@@ -2,7 +2,7 @@
   "name": "jotno",
   "version": "0.1.0",
   "private": true,
-  "description": "Strict, configurable Next.js starter: static or server mode, shadcn/ui, tests, CI and automatic updates.",
+  "description": "Jotno: verified vets near you, pet Q&A and paid chat with a vet, in Bangla.",
   "type": "module",
   "packageManager": "pnpm@12.18.0",
   "engines": {
@@ -13,6 +13,9 @@
     "build": "node scripts/generate-assets.ts && next build && node scripts/postbuild.ts",
     "build:other": "node scripts/build-other.ts",
     "start": "node scripts/start.ts",
+    "cf:build": "node scripts/generate-assets.ts && opennextjs-cloudflare build",
+    "cf:preview": "pnpm cf:build && opennextjs-cloudflare preview",
+    "cf:deploy": "pnpm cf:build && opennextjs-cloudflare deploy",
     "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -28,7 +31,13 @@
     "auto-upgrade": "node scripts/auto-upgrade.ts",
     "setup-project": "node scripts/setup-project.ts",
     "github-setup": "node scripts/github-setup.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:generate": "drizzle-kit generate",
+    "db:env": "node scripts/db-env.ts",
+    "db:clear-demo": "node scripts/clear-demo.ts"
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",
@@ -51,6 +60,7 @@
     "@axe-core/playwright": "4.14.0",
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
+    "@opennextjs/cloudflare": "1.20.18",
     "@playwright/test": "1.65.1",
     "@tailwindcss/turbopack": "4.3.5",
     "@testing-library/dom": "10.4.2",
@@ -75,7 +85,8 @@
     "supabase": "3.2.0",
     "tailwindcss": "4.3.5",
     "typescript": "6.0.3",
-    "vitest": "5.1.1"
+    "vitest": "5.1.1",
+    "wrangler": "4.166.0"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs}": [

@@ -84,6 +84,10 @@ export const siteSchema = z.object({
     primaryForeground: z.object({ light: color, dark: color }),
     /** Page background used for the app icon and browser UI, per theme. */
     background: z.object({ light: color, dark: color }),
+    /** Second brand colour for warm highlights (badges, mascot, "available now"); `bg-highlight`. */
+    highlight: z.object({ light: color, dark: color }),
+    /** Text colour on top of the highlight colour, per theme. */
+    highlightForeground: z.object({ light: color, dark: color }),
   }),
   contact: z.object({
     email: z.email().optional(),
@@ -159,3 +163,46 @@ export const designSchema = z.object({
   neutral: z.object({ hue: z.number().min(0).max(360), chroma: z.number().min(0).max(0.04) }),
 });
 export type DesignConfig = z.infer<typeof designSchema>;
+
+/* ─── Business rules (src/config/business.ts) ─────────────────────────────
+   Prices, commissions and time windows. Money is integer poisha. */
+const poisha = z.number().int().min(0);
+export const businessSchema = z.object({
+  consult: z.object({
+    /** Jotno's share of a chat consult fee, in basis points (1500 = 15%). */
+    commissionBps: z.number().int().min(0).max(10_000),
+    /** How long a paid chat stays open. */
+    openHours: z.number().int().min(1),
+    /** Full automatic refund if the vet doesn't reply within this. */
+    replyWindowMinutes: z.number().int().min(1),
+    minFee: poisha,
+    maxFee: poisha,
+  }),
+  appointment: z.object({
+    /** Paid online to hold the slot; the visit fee is paid at the clinic. */
+    bookingFee: poisha,
+    /** How many days ahead people can book. */
+    daysAhead: z.number().int().min(1),
+    /** Slots that start sooner than this are not offered. */
+    leadMinutes: z.number().int().min(0),
+  }),
+  payout: z.object({ minimum: poisha, weekday: z.number().int().min(0).max(6) }),
+  featured: z.object({
+    /** Packs a vet can buy, e.g. 7 days for ৳300. */
+    packs: z.array(z.object({ days: z.number().int().min(1), price: poisha })).min(1),
+    /** At most this many sponsored vets per district at once. */
+    maxPerDistrict: z.number().int().min(1),
+  }),
+  shop: z.object({
+    deliveryInside: poisha,
+    deliveryOutside: poisha,
+    freeDeliveryFrom: poisha,
+    /** District id for "inside" delivery (47 = Dhaka). */
+    homeDistrictId: z.number().int(),
+  }),
+  /** "Available now" turns itself off after this many hours. */
+  availableHours: z.number().int().min(1).max(24),
+  /** Emergency hotline shown on the emergency page (optional). */
+  emergencyHotline: z.string().optional(),
+});
+export type BusinessConfig = z.infer<typeof businessSchema>;

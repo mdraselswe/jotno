@@ -127,3 +127,34 @@ self.addEventListener("fetch", (event) => {
   else if (isRouterData(url, request)) event.respondWith(staleWhileRevalidate(request));
   else event.respondWith(fetch(request).catch(async () => (await fromCache(request)) ?? Response.error()));
 });
+
+// Web push (Jotno): a vet replied, a vaccine is due, a booking is close.
+// Payload: { title, body, url, tag }.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "Jotno", body: event.data ? event.data.text() : "" };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Jotno", {
+      body: data.body || "",
+      tag: data.tag,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { url: data.url || "/" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      const open = list.find((c) => c.url === url);
+      return open ? open.focus() : self.clients.openWindow(url);
+    }),
+  );
+});

@@ -21,9 +21,11 @@ export default defineConfig([
         {
           patterns: [
             {
-              // Features expose a public API through their index file.
-              group: ["@/features/*/*"],
-              message: "Import from the feature's index (e.g. '@/features/pwa').",
+              // Features expose a public API through their index file, and server
+              // code through server/index.ts ('@/features/<name>/server').
+              group: ["@/features/*/*", "!@/features/*/server"],
+              message:
+                "Import from the feature's index ('@/features/pwa') or its server entry ('@/features/pwa/server').",
             },
           ],
         },

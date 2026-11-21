@@ -4,9 +4,13 @@
  * languages (bn.ts…) are typed as `Messages`, so a missing key is a type error.
  * Register languages in messages/index.ts.
  */
+import { APP_EN } from "./app";
+
 export const en = {
+  ...APP_EN,
   "a11y.skip": "Skip to content",
-  "meta.description": "A strict, configurable Next.js starter with static and server modes.",
+  "meta.description":
+    "Find verified vets near you in Bangladesh, ask pet questions for free and chat with a vet. Bangla first.",
   "nav.main": "Main",
   "nav.mobile": "Mobile",
   "nav.footer": "Footer",
@@ -21,8 +25,8 @@ export const en = {
   "theme.dark": "Theme: dark",
   "footer.rights": "© {year} {name}. All rights reserved.",
   "footer.social": "{name} on {network}",
-  "about.title": "About",
-  "about.sub": "An example page. Copy it to add your own.",
+  "about.title": "About Jotno",
+  "about.sub": "Why we are building Jotno, and how it works.",
   "notFound.title": "Page not found",
   "notFound.body": "The page you are looking for doesn't exist or has moved.",
   "notFound.cta": "Go home",

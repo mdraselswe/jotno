@@ -4,6 +4,7 @@ import { Languages } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,9 +22,21 @@ import { cn } from "@/lib/utils";
  * a single link with two, a menu with more.
  */
 export function LocaleSwitcher() {
+  return (
+    <Suspense fallback={<Switcher path="/" />}>
+      <CurrentSwitcher />
+    </Suspense>
+  );
+}
+
+// The current path is request data, so it streams in; the prerendered links point at the home page.
+function CurrentSwitcher() {
+  return <Switcher path={splitLocale(usePathname()).path} />;
+}
+
+function Switcher({ path }: { path: string }) {
   const locale = useLocale();
   const t = useT();
-  const { path } = splitLocale(usePathname());
   const others = LOCALES.filter((l) => l !== locale);
   // The same page under app/[locale] in another language, so the cast is safe.
   const hrefFor = (l: string) => localePath(l, path) as Route;

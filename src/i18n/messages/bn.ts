@@ -1,9 +1,13 @@
 import type { Messages } from "./en";
 
 /** ✏️ বাংলা UI text. Same keys as en.ts (a missing key is a type error). */
+import { APP_BN } from "./app";
+
 export const bn = {
+  ...APP_BN,
   "a11y.skip": "মূল অংশে যান",
-  "meta.description": "স্ট্যাটিক আর সার্ভার মোডসহ একটি কড়া, কনফিগারযোগ্য Next.js স্টার্টার।",
+  "meta.description":
+    "বাংলাদেশে আপনার কাছের যাচাইকৃত ভেট খুঁজুন, পোষা প্রাণী নিয়ে বিনা খরচে প্রশ্ন করুন আর ভেটের সাথে চ্যাট করুন।",
   "nav.main": "প্রধান",
   "nav.mobile": "মোবাইল",
   "nav.footer": "ফুটার",
@@ -18,8 +22,8 @@ export const bn = {
   "theme.dark": "থিম: ডার্ক",
   "footer.rights": "© {year} {name}। সর্বস্বত্ব সংরক্ষিত।",
   "footer.social": "{network}-এ {name}",
-  "about.title": "আমাদের কথা",
-  "about.sub": "একটি উদাহরণ পেজ। নিজের পেজ বানাতে এটি কপি করুন।",
+  "about.title": "যত্ন সম্পর্কে",
+  "about.sub": "কেন আমরা যত্ন বানাচ্ছি, আর এটা কীভাবে কাজ করে।",
   "notFound.title": "পেজটি পাওয়া যায়নি",
   "notFound.body": "আপনি যে পেজটি খুঁজছেন সেটি নেই অথবা সরিয়ে নেওয়া হয়েছে।",
   "notFound.cta": "হোমে ফিরুন",

@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { DemoBanner } from "@/components/layout/demo-banner";
+import { TabBar } from "@/components/layout/tab-bar";
 import { brandStyle, fontVariables, htmlDesignAttributes } from "@/components/layout/brand-style";
 import { ThemeScript } from "@/components/layout/theme-script";
 import { features, isProduction, site } from "@/config";
@@ -8,6 +11,7 @@ import { LOCALES, localeDir, localePath } from "@/config/locale";
 import { pageUrl } from "@/config/routes";
 import { Toaster } from "@/components/ui/sonner";
 import { ConnectionBanner } from "@/features/connection";
+import { PaymentNotice } from "@/features/payments";
 import { InstallCard, PwaScript } from "@/features/pwa";
 import { LocaleProvider } from "@/i18n/client";
 import { getLocale, getT, requireLocale } from "@/i18n/server";
@@ -89,13 +93,18 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
           >
             {t("a11y.skip")}
           </a>
+          <DemoBanner />
           <SiteHeader />
           <main id="content" className="flex-1">
             {children}
           </main>
           <SiteFooter />
+          <TabBar />
           {features.offlineBanner ? <ConnectionBanner /> : null}
           {features.toaster.enabled ? <Toaster /> : null}
+          <Suspense fallback={null}>
+            <PaymentNotice />
+          </Suspense>
           {features.pwa ? <InstallCard /> : null}
         </LocaleProvider>
       </body>

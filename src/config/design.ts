@@ -1,22 +1,19 @@
 import { designSchema, type DesignConfig } from "./schema.ts";
 
 /**
- * ✏️ The look of this project, as knobs. Every component reads the tokens
- * these set, so changing a value restyles the whole app (docs/design-system.md).
- *
- * These defaults are deliberately plain: a project that still looks like this
- * has not been designed yet. Pick values with STARTER-KIT Prompt 1 on
- * /dev/directions, then add the project's own fonts, colours and signature.
+ * ✏️ Jotno's look, as knobs (docs/design-system.md → Design knobs). Chosen on
+ * /dev/directions: "Warm care" (soft, rounded, gentle spring, warm greys,
+ * a little paper grain). The other two directions there are one edit away.
  */
 const design: DesignConfig = {
-  radius: "0.625rem",
+  radius: "1rem",
   controlShape: "rounded",
-  border: "hairline",
-  elevation: "flat",
+  border: "none",
+  elevation: "soft",
   density: "comfortable",
-  motion: "smooth",
-  texture: "none",
-  neutral: { hue: 0, chroma: 0 },
+  motion: "bouncy",
+  texture: "grain",
+  neutral: { hue: 70, chroma: 0.008 },
 };
 
 export const designConfig = designSchema.parse(design);

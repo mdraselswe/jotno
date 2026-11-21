@@ -10,3 +10,5 @@ allowBuilds:
   # Downloads the Supabase CLI binary (local database for dev and tests).
   supabase: true
   esbuild: true
+  # Cloudflare's runtime binary (wrangler/OpenNext preview and build).
+  workerd: true

@@ -9,6 +9,10 @@ export const brandStyle = {
   "--brand-foreground-dark": site.theme.primaryForeground.dark,
   "--page-bg": site.theme.background.light,
   "--page-bg-dark": site.theme.background.dark,
+  "--brand-highlight": site.theme.highlight.light,
+  "--brand-highlight-dark": site.theme.highlight.dark,
+  "--brand-highlight-foreground": site.theme.highlightForeground.light,
+  "--brand-highlight-foreground-dark": site.theme.highlightForeground.dark,
   ...designStyle(projectDesign),
 } as CSSProperties;
 

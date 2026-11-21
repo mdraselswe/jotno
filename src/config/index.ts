@@ -1,4 +1,5 @@
 import { buildEnv, publicEnv } from "./env.ts";
+import { businessConfig } from "./business.ts";
 import { designConfig } from "./design.ts";
 import { featuresConfig } from "./features.ts";
 import { siteConfig } from "./site.ts";
@@ -18,12 +19,15 @@ export const features = {
   },
 };
 
+/** Prices, commissions, time windows (src/config/business.ts). Money in poisha. */
+export const business = businessConfig;
+
 /** The project's look as knobs (src/config/design.ts). */
 export const design = designConfig;
 
 export const isProduction = buildEnv.NODE_ENV === "production";
 
-export type { DesignConfig, Host, RenderMode, ThemeMode, ToastPosition } from "./schema.ts";
+export type { BusinessConfig, DesignConfig, Host, RenderMode, ThemeMode, ToastPosition } from "./schema.ts";
 export {
   BORDERS,
   CONTROL_SHAPES,

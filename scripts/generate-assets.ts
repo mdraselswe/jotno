@@ -12,6 +12,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
+import { MARK_VIEWBOX, markSvg } from "../src/config/brand-mark.ts";
 import { features, site } from "../src/config/index.ts";
 import { DEFAULT_LOCALE, LOCALES, localeDir, localePath, privatePathVariants } from "../src/config/locale.ts";
 import { pageUrl, ROUTES, SITEMAP_ROUTES } from "../src/config/routes.ts";
@@ -30,7 +31,16 @@ const DEV_PATHS = ["/dev"];
 const disallow = privatePathVariants([...site.privatePaths, ...DEV_PATHS]).map((p) => `Disallow: ${p}`);
 write(
   "robots.txt",
-  ["User-agent: *", "Allow: /", ...disallow, "", `Sitemap: ${site.url}/sitemap.xml`, ""].join("\n"),
+  [
+    "User-agent: *",
+    "Allow: /",
+    ...disallow,
+    "",
+    `Sitemap: ${site.url}/sitemap.xml`,
+    // Vets, questions, guides and products (a route handler, server mode only).
+    ...(site.render === "server" ? [`Sitemap: ${site.url}/sitemap-content.xml`] : []),
+    "",
+  ].join("\n"),
 );
 
 // sitemap.xml: every page in every language, with hreflang alternates.
@@ -81,16 +91,18 @@ write(
   ].join("\n"),
 );
 
-// App icon: a rounded tile in the brand colour with the first letter of the short name.
+// App icon: a rounded tile in the brand colour with the Jotno mark (src/config/brand-mark.ts).
 const mode = site.theme.defaultMode === "dark" ? "dark" : "light";
 const brand = toHexColor(site.theme.primary.light);
 const onBrand = toHexColor(site.theme.primaryForeground.light);
+const heart = toHexColor(site.theme.highlight.light);
 const bg = toHexColor(site.theme.background[mode]);
-const letter = (site.shortName.trim()[0] ?? "A").toUpperCase().replace(/[<&>]/g, "");
 
 function iconSvg({ size, radius, scale }: { size: number; radius: number; scale: number }) {
   const r = size * radius;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="${size}" height="${size}" rx="${r}" fill="${brand}"/><text x="50%" y="50%" dy="0.35em" text-anchor="middle" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-weight="700" font-size="${size * 0.5 * scale}" fill="${onBrand}">${letter}</text></svg>`;
+  const inner = size * 0.74 * scale;
+  const offset = (size - inner) / 2;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="${size}" height="${size}" rx="${r}" fill="${brand}"/><svg x="${offset}" y="${offset}" width="${inner}" height="${inner}" viewBox="${MARK_VIEWBOX}">${markSvg(onBrand, heart)}</svg></svg>`;
 }
 
 write("icons/icon.svg", iconSvg({ size: 64, radius: 0.22, scale: 1 }));
@@ -98,7 +110,7 @@ const png = (svg: string) => sharp(Buffer.from(svg)).png().toBuffer();
 const [icon192, icon512, maskable, apple] = await Promise.all([
   png(iconSvg({ size: 192, radius: 0.22, scale: 1 })),
   png(iconSvg({ size: 512, radius: 0.22, scale: 1 })),
-  // Maskable: full-bleed square, letter inside the 80% safe zone.
+  // Maskable: full-bleed square, mark inside the 80% safe zone.
   png(iconSvg({ size: 512, radius: 0, scale: 0.8 })),
   // Apple adds its own rounded corners.
   png(iconSvg({ size: 180, radius: 0, scale: 1 })),
