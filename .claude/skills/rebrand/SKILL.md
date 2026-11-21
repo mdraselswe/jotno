@@ -1,0 +1,20 @@
+---
+name: rebrand
+description: Turn the starter (or an existing project) into a new brand/project by changing config only.
+---
+
+# Rebrand / start a new project
+
+1. `pnpm setup-project <package-name>` (renames, updates to the latest versions, runs the full check). Skip if already done.
+2. Languages: `pnpm locales <default> [others…]`; then `i18n.timeZone` and `i18n.currency`.
+   `src/config/site.ts`: name, shortName, description, url, privatePaths, contact, socials, seo, and `theme`:
+   - `primary` / `primaryForeground` per theme in OKLCH; check WCAG AA contrast in light and dark
+   - `background` per theme (also used for the app icon and browser UI), `defaultMode`
+3. `src/config/design.ts`: the look (radius, control shape, border, elevation, density, motion, texture, grey tint). Choose on `/dev/directions` (docs/design-system.md → Design knobs).
+   `src/config/fonts.ts`: pick display/text fonts (next/font/google or next/font/local).
+4. `src/config/features.ts`: turn features on/off.
+5. `src/i18n/messages/<locale>.ts` (UI text, every language) and `src/content/` (page copy, one entry per language).
+6. Optional deeper look: other tokens in `src/app/globals.css` (`:root`, `.dark`). Use tweakcn.com to generate a shadcn theme and paste the variables.
+7. `pnpm mode static|server [--lock] --host <vercel|cloudflare|other>` (docs/deploy.md).
+8. `pnpm check && pnpm test:e2e`. Look at `public/icons/icon-512.png` to confirm the app icon.
+9. Replace README's first section with the project's own description.
