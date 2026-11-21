@@ -1,0 +1,38 @@
+name: Database backup
+
+# Nightly pg_dump of the cloud database, kept as a private workflow artifact
+# for 14 days (Supabase's free plan has no point-in-time restore).
+# Needs secret DATABASE_URL_DIRECT (the direct connection on port 5432, not the pooler).
+
+on:
+  schedule:
+    - cron: "30 20 * * *" # 02:30 Dhaka time
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    if: ${{ vars.BACKUP_ENABLED == 'true' }}
+    steps:
+      - name: Install pg_dump 17
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+      - name: Dump
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_DIRECT }}
+        run: |
+          stamp=$(date -u +%Y%m%d-%H%M)
+          /usr/lib/postgresql/17/bin/pg_dump "$DATABASE_URL" --format=custom --no-owner --no-privileges \
+            --schema=public --schema=auth --file="jotno-$stamp.dump"
+          ls -lh jotno-*.dump
+      - uses: actions/upload-artifact@v7
+        with:
+          name: db-backup
+          path: jotno-*.dump
+          retention-days: 14

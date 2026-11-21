@@ -28,6 +28,12 @@ jobs:
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm test
+      # A local Supabase (Postgres + Auth + Storage) with migrations and demo
+      # seed, so the build and e2e tests run against a real database.
+      - name: Start Supabase
+        run: pnpm exec supabase start -x studio,imgproxy,vector,logflare,supavisor,edge-runtime,postgres-meta,mailpit
+      - name: Write .env.local from the local stack
+        run: pnpm db:env
       # The other render mode first (skipped when site.renderLocked), so the
       # configured build is the one e2e tests run against.
       - name: Build (other mode)
@@ -42,3 +48,6 @@ jobs:
           name: playwright-report
           path: playwright-report
           retention-days: 7
+      - name: Stop Supabase
+        if: always()
+        run: pnpm exec supabase stop --no-backup

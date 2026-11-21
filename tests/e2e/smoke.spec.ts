@@ -15,7 +15,19 @@ const text = (locale: string) => {
   return messages;
 };
 
-const ROUTES = ["/", "/about"];
+// Public pages (CI runs them against a local Supabase with the demo seed).
+const ROUTES = [
+  "/",
+  "/about",
+  "/vets",
+  "/questions",
+  "/articles",
+  "/shop",
+  "/emergency",
+  "/for-vets",
+  "/legal/terms",
+  "/legal/refund",
+];
 const OTHER = PREFIXED_LOCALES[0];
 
 test.describe("smoke", () => {

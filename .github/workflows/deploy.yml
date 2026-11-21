@@ -1,0 +1,74 @@
+name: Deploy
+
+# Builds with OpenNext (Linux only) and deploys to Cloudflare Workers after CI
+# passes on main, or by hand. Needs these repository settings:
+#   Secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, DATABASE_URL,
+#            SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET, VAPID_PRIVATE_KEY,
+#            SSLCOMMERZ_STORE_ID, SSLCOMMERZ_STORE_PASSWORD (optional), ADMIN_EMAILS
+#   Variables: NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
+#              NEXT_PUBLIC_VAPID_PUBLIC_KEY, NEXT_PUBLIC_DEMO, NEXT_PUBLIC_GOOGLE_AUTH,
+#              PAYMENT_PROVIDER, SSLCOMMERZ_SANDBOX
+# `pnpm github-setup` or the GitHub UI sets them (docs/deploy.md).
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+      NEXT_PUBLIC_DEMO: ${{ vars.NEXT_PUBLIC_DEMO }}
+      NEXT_PUBLIC_GOOGLE_AUTH: ${{ vars.NEXT_PUBLIC_GOOGLE_AUTH }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build (OpenNext)
+        run: node scripts/generate-assets.ts && pnpm exec opennextjs-cloudflare build
+      - name: Upload server secrets to the worker
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          SSLCOMMERZ_STORE_ID: ${{ secrets.SSLCOMMERZ_STORE_ID }}
+          SSLCOMMERZ_STORE_PASSWORD: ${{ secrets.SSLCOMMERZ_STORE_PASSWORD }}
+          ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+          PAYMENT_PROVIDER: ${{ vars.PAYMENT_PROVIDER }}
+          SSLCOMMERZ_SANDBOX: ${{ vars.SSLCOMMERZ_SANDBOX }}
+        run: |
+          node -e '
+            const keys = ["DATABASE_URL","SUPABASE_SERVICE_ROLE_KEY","CRON_SECRET","VAPID_PRIVATE_KEY","SSLCOMMERZ_STORE_ID","SSLCOMMERZ_STORE_PASSWORD","ADMIN_EMAILS","PAYMENT_PROVIDER","SSLCOMMERZ_SANDBOX"];
+            const out = {};
+            for (const k of keys) if (process.env[k]) out[k] = process.env[k];
+            require("node:fs").writeFileSync("secrets.json", JSON.stringify(out));
+          '
+          pnpm exec wrangler secret bulk secrets.json
+          rm -f secrets.json
+      - name: Deploy
+        run: pnpm exec opennextjs-cloudflare deploy
