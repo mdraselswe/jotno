@@ -1,3 +1,3 @@
 import "server-only";
 
-export { notify } from "./notify";
+export { notify, notifyAdmins } from "./notify";

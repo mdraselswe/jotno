@@ -1,18 +1,21 @@
 import "server-only";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { business } from "@/config";
 import { publicEnv } from "@/config/env";
-import { chatPath, ROUTES } from "@/config/routes";
-import { notify } from "@/features/notifications/server";
+import { chatPath, orderPath, payPath, ROUTES } from "@/config/routes";
+import { notify, notifyAdmins } from "@/features/notifications/server";
+import { releaseOrder } from "@/features/shop/server";
 import { db, schema } from "@/infrastructure/db";
 import { audit } from "@/infrastructure/db/helpers";
-import { payments as gateway, type VerifiedPayment } from "@/infrastructure/payments";
+import { payments as gateway, usesGateway, type VerifiedPayment } from "@/infrastructure/payments";
 import { localeHref } from "@/lib/locale-href";
-import { paidRows, platformRows, refundRows, type LedgerRow } from "../ledger";
+import { paidRows, platformRefundRows, platformRows, refundRows, type LedgerRow } from "../ledger";
 
 const P = schema.payments;
-type Purpose = (typeof P.$inferSelect)["purpose"];
+export type PaymentRow = typeof P.$inferSelect;
+type Purpose = PaymentRow["purpose"];
+type Status = PaymentRow["status"];
 
 /** https://host of this request (works on workers.dev, a custom domain and localhost). */
 export async function requestOrigin(): Promise<string> {
@@ -26,8 +29,9 @@ export async function requestOrigin(): Promise<string> {
 }
 
 /**
- * Creates a pending payment and a gateway checkout. Returns the URL to send
- * the browser to. `back` is where the person lands after paying (a path).
+ * Creates a pending payment and returns where to send the browser: our own
+ * pay page (bKash/Nagad send money + trx id, or cash on delivery) or, when a
+ * gateway is configured, the gateway checkout.
  */
 export async function beginPayment(input: {
   userId: string;
@@ -38,7 +42,7 @@ export async function beginPayment(input: {
   customer: { name: string; email: string; phone: string };
   locale: string;
 }): Promise<string> {
-  const pay = gateway();
+  const manual = !usesGateway();
   const [row] = await db()
     .insert(P)
     .values({
@@ -46,13 +50,15 @@ export async function beginPayment(input: {
       purpose: input.purpose,
       refId: input.refId,
       amount: input.amount,
-      gateway: pay.name,
+      gateway: manual ? "manual" : gateway().name,
     })
     .returning({ id: P.id });
   if (!row) throw new Error("Could not create payment");
+  if (manual) return localeHref(input.locale, payPath(row.id));
+
   const origin = await requestOrigin();
   const ret = (result: string) => `${origin}/api/pay/return/?result=${result}&locale=${input.locale}`;
-  const session = await pay.createCheckout({
+  const session = await gateway().createCheckout({
     paymentId: row.id,
     amount: input.amount,
     productName: input.productName,
@@ -81,9 +87,45 @@ export interface SettleResult {
 }
 
 /**
+ * Moves a payment to paid exactly once (only from one of `from`) and applies
+ * it: opens the chat, confirms the booking, starts the featured listing or
+ * moves the order on. Returns false when another call got there first.
+ */
+export async function markPaid(
+  payment: PaymentRow,
+  opts: {
+    from: Status[];
+    locale: string;
+    reviewedBy?: string | null;
+    gatewayTxId?: string;
+    raw?: Record<string, unknown>;
+  },
+): Promise<boolean> {
+  const now = new Date();
+  const updated = await db()
+    .update(P)
+    .set({
+      status: "paid",
+      paidAt: now,
+      ...(opts.gatewayTxId ? { gatewayTxId: opts.gatewayTxId } : {}),
+      ...(opts.raw ? { raw: opts.raw } : {}),
+      ...(opts.reviewedBy ? { reviewedBy: opts.reviewedBy, reviewedAt: now } : {}),
+    })
+    .where(and(eq(P.id, payment.id), inArray(P.status, opts.from)))
+    .returning({ id: P.id })
+    .catch(() => []);
+  if (updated.length === 0) return false;
+  await applyPaid(payment, opts.locale);
+  await audit(opts.reviewedBy ?? payment.userId, "payment.paid", "payment", payment.id, {
+    purpose: payment.purpose,
+    amount: payment.amount,
+  });
+  return true;
+}
+
+/**
  * Verifies a gateway callback with the gateway and applies it once.
- * Safe to call many times for the same payment (return URL + IPN + retries):
- * only the first call that moves the payment from pending changes anything.
+ * Safe to call many times for the same payment (return URL + IPN + retries).
  */
 export async function settlePayment(fields: Record<string, string>, locale: string): Promise<SettleResult> {
   let verified: VerifiedPayment;
@@ -119,24 +161,17 @@ export async function settlePayment(fields: Record<string, string>, locale: stri
     return { ...base, status: "failed" };
   }
 
-  // The state change and the unique gateway id make this idempotent.
-  const updated = await db()
-    .update(P)
-    .set({ status: "paid", gatewayTxId: verified.gatewayTxId, paidAt: new Date(), raw: verified.raw })
-    .where(and(eq(P.id, payment.id), eq(P.status, "pending")))
-    .returning({ id: P.id })
-    .catch(() => []);
-  if (updated.length === 0) return { ...base, status: "paid" };
-
-  await applyPaid(payment, locale);
-  await audit(payment.userId, "payment.paid", "payment", payment.id, {
-    purpose: payment.purpose,
-    amount: payment.amount,
+  await markPaid(payment, {
+    from: ["pending"],
+    locale,
+    gatewayTxId: verified.gatewayTxId,
+    raw: verified.raw,
   });
   return { ...base, status: "paid" };
 }
 
-async function cancelTarget(purpose: Purpose, refId: string) {
+/** Releases what an unpaid payment was holding (chat, booking, order). */
+export async function cancelTarget(purpose: Purpose, refId: string) {
   if (purpose === "consult") {
     await db()
       .update(schema.consults)
@@ -148,14 +183,11 @@ async function cancelTarget(purpose: Purpose, refId: string) {
       .set({ status: "cancelled" })
       .where(and(eq(schema.appointments.id, refId), eq(schema.appointments.status, "pending_payment")));
   } else if (purpose === "order") {
-    await db()
-      .update(schema.orders)
-      .set({ status: "cancelled" })
-      .where(and(eq(schema.orders.id, refId), eq(schema.orders.status, "pending_payment")));
+    await releaseOrder(refId, "payment not completed", null);
   }
 }
 
-async function applyPaid(payment: typeof P.$inferSelect, locale: string) {
+async function applyPaid(payment: PaymentRow, locale: string) {
   const now = new Date();
   switch (payment.purpose) {
     case "consult": {
@@ -195,6 +227,12 @@ async function applyPaid(payment: typeof P.$inferSelect, locale: string) {
           tag: `consult-${c.id}`,
         });
       }
+      await notify(c.ownerId, "consult.opened", {
+        title: locale === "bn" ? "পেমেন্ট যাচাই হয়েছে, চ্যাট খুলেছে" : "Payment confirmed: your chat is open",
+        body: locale === "bn" ? "ভেট শিগগিরই উত্তর দেবেন।" : "The vet will reply soon.",
+        url: localeHref(locale, chatPath(c.id)),
+        tag: `consult-${c.id}`,
+      });
       return;
     }
     case "appointment": {
@@ -220,6 +258,12 @@ async function applyPaid(payment: typeof P.$inferSelect, locale: string) {
           tag: `appt-${a.id}`,
         });
       }
+      await notify(a.ownerId, "appointment.confirmed", {
+        title: locale === "bn" ? "বুকিং নিশ্চিত হয়েছে" : "Your visit is booked",
+        body: locale === "bn" ? "পেমেন্ট যাচাই হয়েছে।" : "Payment confirmed.",
+        url: localeHref(locale, ROUTES.appointments),
+        tag: `appt-${a.id}`,
+      });
       return;
     }
     case "featured": {
@@ -241,26 +285,63 @@ async function applyPaid(payment: typeof P.$inferSelect, locale: string) {
       return;
     }
     case "order": {
-      const [o] = await db()
+      // Stock was reserved when the order was placed. Cash on delivery is
+      // marked paid at delivery, so only a waiting order moves to "paid".
+      const [moved] = await db()
         .update(schema.orders)
         .set({ status: "paid" })
-        .where(eq(schema.orders.id, payment.refId))
-        .returning();
-      if (!o) return;
-      const items = await db().select().from(schema.orderItems).where(eq(schema.orderItems.orderId, o.id));
-      for (const item of items) {
-        if (!item.productId) continue;
-        await db()
-          .update(schema.products)
-          .set({ stock: sql`greatest(0, ${schema.products.stock} - ${item.qty})` })
-          .where(eq(schema.products.id, item.productId));
-      }
+        .where(and(eq(schema.orders.id, payment.refId), eq(schema.orders.status, "pending_payment")))
+        .returning({ id: schema.orders.id, userId: schema.orders.userId, number: schema.orders.number });
       await writeLedger(
-        platformRows({ amount: payment.amount, paymentId: payment.id, refId: o.id, memo: "shop order" }),
+        platformRows({
+          amount: payment.amount,
+          paymentId: payment.id,
+          refId: payment.refId,
+          memo: "shop order",
+        }),
       );
+      if (moved) {
+        await notify(moved.userId, "order.paid", {
+          title:
+            locale === "bn"
+              ? `অর্ডার #${moved.number}: পেমেন্ট নিশ্চিত`
+              : `Order #${moved.number}: payment confirmed`,
+          body: locale === "bn" ? "আমরা প্যাক করা শুরু করছি।" : "We're packing it now.",
+          url: localeHref(locale, orderPath(moved.id)),
+          tag: `order-${moved.id}`,
+        });
+      }
       return;
     }
   }
+}
+
+/**
+ * Gives a paid payment back. With a gateway the money returns through it;
+ * with manual wallets the payment becomes "refund due" and an admin sends it
+ * from /admin/payments. Writes the reversing ledger rows either way.
+ */
+async function refundPayment(
+  payment: PaymentRow,
+  reason: string,
+): Promise<{ ok: boolean; reference?: string }> {
+  if (payment.gateway !== "manual" && payment.gateway !== "cod" && usesGateway() && payment.gatewayTxId) {
+    const result = await gateway().refund({
+      gatewayTxId: payment.gatewayTxId,
+      amount: payment.amount,
+      reason,
+    });
+    await db().update(P).set({ status: "refunded", refundedAt: new Date() }).where(eq(P.id, payment.id));
+    return result;
+  }
+  await db().update(P).set({ status: "refund_due", note: reason }).where(eq(P.id, payment.id));
+  await notifyAdmins("payment.refund_due", {
+    title: "Refund to send",
+    body: `${reason} · ৳${(payment.amount + payment.fee) / 100}`,
+    url: ROUTES.adminPayments,
+    tag: `refund-${payment.id}`,
+  });
+  return { ok: true, reference: "manual" };
 }
 
 /** Full refund of a paid consult (vet silent, admin decision). Idempotent. */
@@ -276,7 +357,7 @@ export async function refundConsult(
     .from(P)
     .where(and(eq(P.purpose, "consult"), eq(P.refId, consultId), eq(P.status, "paid")))
     .limit(1);
-  if (!payment?.gatewayTxId) return false;
+  if (!payment) return false;
 
   const moved = await db()
     .update(schema.consults)
@@ -285,8 +366,7 @@ export async function refundConsult(
     .returning({ id: schema.consults.id });
   if (moved.length === 0) return false;
 
-  const result = await gateway().refund({ gatewayTxId: payment.gatewayTxId, amount: payment.amount, reason });
-  await db().update(P).set({ status: "refunded" }).where(eq(P.id, payment.id));
+  const result = await refundPayment(payment, reason);
   await writeLedger(
     refundRows({
       fee: c.fee,
@@ -298,12 +378,33 @@ export async function refundConsult(
     }),
   );
   await db().insert(schema.messages).values({ consultId: c.id, senderId: null, body: "system:refunded" });
-  await audit(actorId, "consult.refund", "consult", c.id, { reason, gatewayOk: result.ok });
+  await audit(actorId, "consult.refund", "consult", c.id, { reason, ok: result.ok });
   await notify(c.ownerId, "consult.refunded", {
-    title: "Refunded",
+    title: "Refund on the way",
     body: reason,
     url: chatPath(c.id),
     tag: `consult-${c.id}`,
   });
+  return true;
+}
+
+/** Refunds a paid booking fee or shop order (vet cancelled, order cancelled after paying). */
+export async function refundPlatform(
+  purpose: "appointment" | "order",
+  refId: string,
+  reason: string,
+  actorId: string | null,
+): Promise<boolean> {
+  const [payment] = await db()
+    .select()
+    .from(P)
+    .where(and(eq(P.purpose, purpose), eq(P.refId, refId), eq(P.status, "paid")))
+    .limit(1);
+  if (!payment) return false;
+  const result = await refundPayment(payment, reason);
+  await writeLedger(
+    platformRefundRows({ amount: payment.amount, paymentId: payment.id, refId, memo: `refund: ${reason}` }),
+  );
+  await audit(actorId, `${purpose}.refund`, purpose, refId, { reason, ok: result.ok });
   return true;
 }

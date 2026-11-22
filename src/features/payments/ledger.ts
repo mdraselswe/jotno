@@ -107,6 +107,27 @@ export function platformRows(input: {
   ];
 }
 
+/** Reverses a platform-only charge (cancelled paid order, booking fee given back). */
+export function platformRefundRows(input: {
+  amount: number;
+  paymentId: string;
+  refId: string;
+  memo: string;
+}): LedgerRow[] {
+  assertPoisha(input.amount);
+  const base = {
+    providerId: null,
+    paymentId: input.paymentId,
+    refId: input.refId,
+    availableAt: null,
+    memo: input.memo,
+  };
+  return [
+    { ...base, kind: "refund", amount: input.amount },
+    { ...base, kind: "commission", amount: -input.amount },
+  ];
+}
+
 export interface VetBalance {
   /** Can be paid out now. */
   available: number;

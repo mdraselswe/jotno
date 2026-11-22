@@ -8,7 +8,7 @@ import { business } from "@/config";
 import { ROUTES } from "@/config/routes";
 import { actionViewer } from "@/features/auth/server";
 import { notify } from "@/features/notifications/server";
-import { beginPayment } from "@/features/payments/server";
+import { beginPayment, refundPlatform } from "@/features/payments/server";
 import type { MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
 import { audit, rateLimit } from "@/infrastructure/db/helpers";
@@ -170,6 +170,7 @@ export async function setAppointmentStatus(
   if (!row) return { ok: false, error: "common.notAllowed" };
   await audit(viewer.id, `appointment.${status}`, "appointment", id);
   if (status === "cancelled") {
+    await refundPlatform("appointment", id, "vet cancelled the visit", viewer.id);
     await notify(row.ownerId, "appointment.cancelled", {
       title: locale === "bn" ? "ভেট অ্যাপয়েন্টমেন্ট বাতিল করেছেন" : "The vet cancelled your visit",
       body: locale === "bn" ? "বুকিং ফি ফেরত দেওয়া হবে।" : "Your booking fee will be refunded.",

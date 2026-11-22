@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 /**
  * Public flows against the demo seed (CI starts a local Supabase and runs
- * `pnpm db:env`, which sets NEXT_PUBLIC_DEMO=true and the mock gateway).
+ * `pnpm db:env`, which sets NEXT_PUBLIC_DEMO=true and manual payments).
  */
 test.describe("public flows", () => {
   test("search → vet profile → sign-in gate for a paid chat", async ({ page }) => {

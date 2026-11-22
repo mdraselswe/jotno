@@ -1,7 +1,9 @@
+import { ChevronRight, Package } from "lucide-react";
+import Link from "next/link";
 import { Private, PrivateHeading } from "@/components/layout/private-page";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button-link";
-import { ROUTES } from "@/config/routes";
+import { orderPath, ROUTES } from "@/config/routes";
 import { requireViewer } from "@/features/auth/server";
 import { ORDER_STATUS } from "@/features/shop";
 import { myOrders } from "@/features/shop/server";
@@ -27,34 +29,40 @@ async function Orders() {
         </div>
       ) : (
         <ul className="grid gap-3">
-          {orders.map((o) => (
-            <li
-              key={o.id}
-              className="grid gap-2 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad)"
-            >
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="font-medium">{fmt.date(o.createdAt)}</span>
-                <span className="font-mono text-xs text-muted-foreground">#{o.id.slice(0, 8)}</span>
-                <Badge variant={o.status === "delivered" ? "default" : "secondary"} className="ml-auto">
-                  {t(ORDER_STATUS[o.status] ?? "shop.status.paid")}
-                </Badge>
-              </div>
-              <ul className="grid gap-1 text-sm">
-                {o.items.map((i) => (
-                  <li key={i.id} className="flex justify-between gap-3">
-                    <span>
-                      {i.name} × {i.qty}
+          {orders.map((o) => {
+            const count = o.items.reduce((n, i) => n + i.qty, 0);
+            return (
+              <li key={o.id}>
+                <Link
+                  href={localeHref(locale, orderPath(o.id))}
+                  className="group flex items-center gap-4 rounded-(--radius-xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-transform duration-(--motion-fast) ease-(--ease-out) hover:-translate-y-0.5"
+                >
+                  <span className="grid size-12 shrink-0 place-items-center rounded-full bg-highlight/25 text-primary">
+                    <Package aria-hidden="true" className="size-5" />
+                  </span>
+                  <span className="grid min-w-0 flex-1 gap-0.5">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="font-heading font-semibold">{t("shop.orderNo", { n: o.number })}</span>
+                      <Badge variant={o.status === "delivered" ? "default" : "secondary"}>
+                        {t(ORDER_STATUS[o.status])}
+                      </Badge>
                     </span>
-                    <span className="tabular-nums">{taka(fmt, i.price * i.qty)}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="flex justify-between border-t border-border pt-2 text-sm font-semibold">
-                <span>{t("common.total")}</span>
-                <span className="tabular-nums">{taka(fmt, o.total)}</span>
-              </p>
-            </li>
-          ))}
+                    <span className="truncate text-sm text-muted-foreground">
+                      {fmt.date(o.createdAt)} · {o.items.map((i) => i.name).join(", ")}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {t("shopAdmin.items")}: {count}
+                    </span>
+                  </span>
+                  <span className="font-semibold tabular-nums">{taka(fmt, o.total)}</span>
+                  <ChevronRight
+                    aria-hidden="true"
+                    className="size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                  />
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

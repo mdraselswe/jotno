@@ -52,3 +52,20 @@ export function normalizeCart(lines: CartLine[]): CartLine[] {
   }
   return [...map].map(([productId, qty]) => ({ productId, qty }));
 }
+
+export interface CouponRule {
+  kind: "percent" | "flat";
+  /** Basis points for percent (1000 = 10%), poisha for flat. */
+  value: number;
+  minSubtotal: number;
+  /** Cap for percent coupons (poisha); null = no cap. */
+  maxDiscount: number | null;
+}
+
+/** Discount in whole taka for a subtotal; 0 when the order is below the minimum. Never more than the subtotal. */
+export function couponDiscount(sub: number, c: CouponRule): number {
+  if (sub <= 0 || sub < c.minSubtotal) return 0;
+  const raw = c.kind === "percent" ? Math.floor((sub * c.value) / 10_000) : c.value;
+  const capped = c.maxDiscount != null ? Math.min(raw, c.maxDiscount) : raw;
+  return Math.floor(Math.min(capped, sub) / 100) * 100;
+}

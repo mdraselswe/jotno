@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { canPayout, commissionFor, paidRows, platformRows, refundRows, vetBalance } from "./ledger";
+import {
+  canPayout,
+  commissionFor,
+  paidRows,
+  platformRefundRows,
+  platformRows,
+  refundRows,
+  vetBalance,
+} from "./ledger";
 
 const now = new Date("2026-12-01T10:00:00Z");
 const past = new Date("2026-11-30T10:00:00Z");
@@ -49,6 +57,18 @@ describe("paidRows / refundRows", () => {
     const rows = platformRows({ amount: 100_000, paymentId: "x", refId: "f1", memo: "featured" });
     expect(rows.every((r) => r.providerId === null)).toBe(true);
     expect(rows.find((r) => r.kind === "commission")?.amount).toBe(100_000);
+  });
+});
+
+describe("platformRefundRows", () => {
+  it("cancels a platform charge out", () => {
+    const paid = platformRows({ amount: 50_000, paymentId: "p", refId: "o", memo: "order" });
+    const back = platformRefundRows({ amount: 50_000, paymentId: "p", refId: "o", memo: "refund" });
+    const income = [...paid, ...back]
+      .filter((r) => r.kind === "commission")
+      .reduce((n, r) => n + r.amount, 0);
+    expect(income).toBe(0);
+    expect(back.find((r) => r.kind === "refund")?.amount).toBe(50_000);
   });
 });
 

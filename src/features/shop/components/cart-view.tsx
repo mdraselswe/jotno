@@ -1,6 +1,6 @@
 "use client";
 
-import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { Minus, Plus, ShoppingBag, TicketPercent, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useEffectEvent, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import { useFormatter, useLocale, useT } from "@/i18n/client";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 import { deliveryFee, subtotal, type DeliveryRule } from "../cart";
-import { checkout, priceCart } from "../server/actions";
+import { checkCoupon, checkout, priceCart } from "../server/actions";
 import type { ProductCard } from "../server/queries";
 import { useCart } from "./cart-store";
 
@@ -49,6 +49,10 @@ export function CartView({
   const [address, setAddress] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [checking, startCheck] = useTransition();
   const [pending, start] = useTransition();
   const ids = cart.lines.map((l) => l.productId).join(",");
 
@@ -96,6 +100,18 @@ export function CartView({
   const sub = subtotal(priced);
   const delivery = deliveryFee(sub, districtId ? Number(districtId) : null, rule);
   const blocked = priced.some((l) => l.stock <= 0 || l.qty > l.stock);
+  // The discount was checked for the subtotal at the time; re-check it if the cart changed.
+  const discount = coupon ? Math.min(coupon.discount, sub) : 0;
+  const applyCoupon = (value: string) =>
+    startCheck(async () => {
+      setCouponError(null);
+      const r = await checkCoupon(value, sub);
+      if (r.ok) setCoupon({ code: r.code, discount: r.discount });
+      else {
+        setCoupon(null);
+        setCouponError(t(r.error));
+      }
+    });
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_24rem]">
@@ -183,6 +199,7 @@ export function CartView({
               address,
               districtId: Number(districtId),
               note,
+              coupon: coupon?.code,
             });
             if (!res.ok) setError(t(res.error));
           });
@@ -250,6 +267,57 @@ export function CartView({
             </div>
           </>
         ) : null}
+        <div className="grid gap-1">
+          <Label htmlFor="co-coupon">{t("shop.coupon")}</Label>
+          {coupon ? (
+            <p className="flex items-center gap-2 rounded-(--control-radius) bg-success/10 px-3 py-2 text-sm">
+              <TicketPercent aria-hidden="true" className="size-4 text-success" />
+              <span className="font-mono font-semibold">{coupon.code}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="ml-auto"
+                onClick={() => {
+                  setCoupon(null);
+                  setCode("");
+                }}
+              >
+                <X aria-hidden="true" />
+                {t("shop.remove")}
+              </Button>
+            </p>
+          ) : (
+            <div className="flex gap-2">
+              <Input
+                id="co-coupon"
+                className="min-w-0 flex-1 font-mono uppercase"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (code.trim().length >= 3) applyCoupon(code);
+                  }
+                }}
+                aria-describedby={couponError ? "co-coupon-error" : undefined}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={checking || code.trim().length < 3}
+                onClick={() => applyCoupon(code)}
+              >
+                {t("shop.apply")}
+              </Button>
+            </div>
+          )}
+          {couponError ? (
+            <p id="co-coupon-error" className="text-xs text-destructive">
+              {couponError}
+            </p>
+          ) : null}
+        </div>
         <dl className="grid gap-1 border-t border-border pt-3 text-sm">
           <div className="flex justify-between">
             <dt>{t("shop.subtotal")}</dt>
@@ -261,9 +329,17 @@ export function CartView({
               {districtId ? (delivery === 0 ? t("shop.free") : taka(fmt, delivery)) : "—"}
             </dd>
           </div>
+          {discount > 0 ? (
+            <div className="flex justify-between text-success">
+              <dt>
+                {t("shop.discount")} <span className="font-mono text-xs">({coupon?.code})</span>
+              </dt>
+              <dd className="tabular-nums">−{taka(fmt, discount)}</dd>
+            </div>
+          ) : null}
           <div className="flex justify-between text-base font-semibold">
             <dt>{t("common.total")}</dt>
-            <dd className="tabular-nums">{taka(fmt, sub + (districtId ? delivery : 0))}</dd>
+            <dd className="tabular-nums">{taka(fmt, sub - discount + (districtId ? delivery : 0))}</dd>
           </div>
         </dl>
         {rule.freeFrom > 0 && sub < rule.freeFrom ? (
@@ -278,14 +354,14 @@ export function CartView({
         ) : null}
         {buyer ? (
           <Button type="submit" size="lg" disabled={pending || blocked}>
-            {pending ? t("pay.redirecting") : t("shop.pay")}
+            {pending ? t("pay.redirecting") : t("shop.placeOrder")}
           </Button>
         ) : (
           <ButtonLink href={signInHref as never} size="lg">
             {t("consult.signIn")}
           </ButtonLink>
         )}
-        <p className="text-xs text-muted-foreground">{t("pay.secure")}</p>
+        <p className="text-xs text-muted-foreground">{t("shop.secure")}</p>
       </form>
     </div>
   );

@@ -30,7 +30,7 @@ const values: Record<string, string> = {
   SUPABASE_SERVICE_ROLE_KEY: local.SECRET_KEY ?? local.SERVICE_ROLE_KEY ?? "",
   DATABASE_URL: local.DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
   NEXT_PUBLIC_DEMO: "true",
-  PAYMENT_PROVIDER: "mock",
+  PAYMENT_PROVIDER: "manual",
 };
 
 if (!has("CRON_SECRET")) values.CRON_SECRET = randomBytes(24).toString("base64url");

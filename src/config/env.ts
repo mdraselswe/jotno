@@ -39,8 +39,8 @@ const serverSchema = z.object({
   DATABASE_URL: z.string().min(1).default("postgresql://postgres:postgres@127.0.0.1:54322/postgres"),
   /** Supabase service role key: storage uploads and admin auth calls. Server only. */
   SUPABASE_SERVICE_ROLE_KEY: z.string().default(""),
-  /** "mock" (demo and tests) or "sslcommerz". */
-  PAYMENT_PROVIDER: z.enum(["mock", "sslcommerz"]).default("mock"),
+  /** "manual" (bKash/Nagad send money + trx id, cash on delivery; checked by an admin), "mock" or "sslcommerz". */
+  PAYMENT_PROVIDER: z.enum(["manual", "mock", "sslcommerz"]).default("manual"),
   SSLCOMMERZ_STORE_ID: z.string().default(""),
   SSLCOMMERZ_STORE_PASSWORD: z.string().default(""),
   SSLCOMMERZ_SANDBOX: flag.default(true),

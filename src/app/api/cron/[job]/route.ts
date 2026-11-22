@@ -2,18 +2,24 @@ import { NextResponse, type NextRequest } from "next/server";
 import { serverEnv } from "@/config/env";
 import { runAppointmentJobs } from "@/features/appointments/server";
 import { runConsultJobs } from "@/features/consults/server";
+import { expireUnpaid } from "@/features/payments/server";
 import { runHealthReminders } from "@/features/pets/server";
+import { notifyLowStock } from "@/features/shop/server";
 
 /**
  * Scheduled jobs, called by GitHub Actions (.github/workflows/cron.yml) with
  * `Authorization: Bearer $CRON_SECRET`. Every job is idempotent, so a retry or
  * a double call is harmless.
- *   /api/cron/frequent  every 5 min: chat refunds/closing, booking holds, visit reminders
- *   /api/cron/daily     once a day: vaccine & deworming reminders
+ *   /api/cron/frequent  every 5 min: unpaid holds, chat refunds/closing, visit reminders
+ *   /api/cron/daily     once a day: vaccine & deworming reminders, low stock
  */
 const JOBS = {
-  frequent: async () => ({ consults: await runConsultJobs(), appointments: await runAppointmentJobs() }),
-  daily: async () => ({ health: await runHealthReminders() }),
+  frequent: async () => ({
+    payments: await expireUnpaid(),
+    consults: await runConsultJobs(),
+    appointments: await runAppointmentJobs(),
+  }),
+  daily: async () => ({ health: await runHealthReminders(), stock: await notifyLowStock() }),
 } as const;
 
 function authorized(request: NextRequest): boolean {

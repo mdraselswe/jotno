@@ -61,7 +61,20 @@ export const consultStatus = pgEnum("consult_status", [
   "refunded",
   "cancelled",
 ]);
-export const paymentStatus = pgEnum("payment_status", ["pending", "paid", "failed", "cancelled", "refunded"]);
+/**
+ * pending: waiting for the payer (bKash/Nagad trx not sent yet, or COD until delivery).
+ * review: the payer sent a trx id; an admin checks it against the wallet.
+ * refund_due: money must go back (vet didn't reply, vet cancelled); an admin sends it.
+ */
+export const paymentStatus = pgEnum("payment_status", [
+  "pending",
+  "review",
+  "paid",
+  "failed",
+  "cancelled",
+  "refund_due",
+  "refunded",
+]);
 export const paymentPurpose = pgEnum("payment_purpose", ["consult", "appointment", "featured", "order"]);
 export const ledgerKind = pgEnum("ledger_kind", ["charge", "commission", "vet_payable", "refund", "payout"]);
 export const healthKind = pgEnum("health_kind", ["vaccine", "deworm", "checkup"]);
@@ -73,12 +86,20 @@ export const appointmentStatus = pgEnum("appointment_status", [
   "no_show",
 ]);
 export const articleStatus = pgEnum("article_status", ["draft", "published"]);
+/**
+ * pending_payment → (bKash/Nagad verified) paid → processing → shipped → delivered.
+ * Cash on delivery: placed → (admin confirms by phone) processing → shipped → delivered.
+ * cancelled before shipping (stock goes back); returned after it.
+ */
 export const orderStatus = pgEnum("order_status", [
   "pending_payment",
+  "placed",
   "paid",
+  "processing",
   "shipped",
   "delivered",
   "cancelled",
+  "returned",
 ]);
 
 // ── People ──────────────────────────────────────────────────────────────────
@@ -524,9 +545,23 @@ export const payments = pgTable(
     status: paymentStatus("status").notNull().default("pending"),
     raw: jsonb("raw"),
     paidAt: tstz("paid_at"),
+    /** Manual wallets: the number the payer sent from and the charge they added on top of `amount`. */
+    payerPhone: text("payer_phone"),
+    fee: integer("fee").notNull().default(0),
+    submittedAt: tstz("submitted_at"),
+    reviewedBy: uuid("reviewed_by").references(() => profiles.id),
+    reviewedAt: tstz("reviewed_at"),
+    /** Why a trx id was rejected, or an admin note. */
+    note: text("note"),
+    /** The trx id of the money sent back. */
+    refundRef: text("refund_ref"),
+    refundedAt: tstz("refunded_at"),
     createdAt: createdAt(),
   },
-  (t) => [index("payments_ref_idx").on(t.purpose, t.refId)],
+  (t) => [
+    index("payments_ref_idx").on(t.purpose, t.refId),
+    index("payments_status_idx").on(t.status, t.submittedAt),
+  ],
 ).enableRLS();
 
 /**
@@ -599,6 +634,11 @@ export const products = pgTable(
     price: integer("price").notNull(),
     compareAt: integer("compare_at"),
     stock: integer("stock").notNull().default(0),
+    /** Warn the team when stock falls to this. */
+    lowStockAt: integer("low_stock_at").notNull().default(5),
+    sku: text("sku"),
+    /** Pack size shown next to the price, e.g. "1.5 kg", "400 g". */
+    unit: text("unit"),
     imagePath: text("image_path"),
     active: boolean("active").notNull().default(true),
     isDemo: boolean("is_demo").notNull().default(false),
@@ -611,21 +651,36 @@ export const orders = pgTable(
   "orders",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /** Short number people read out on the phone: #1001, #1002… */
+    number: integer("number").notNull().unique().generatedAlwaysAsIdentity({ startWith: 1001 }),
     userId: uuid("user_id")
       .notNull()
       .references(() => profiles.id),
     status: orderStatus("status").notNull().default("pending_payment"),
     subtotal: integer("subtotal").notNull(),
+    discount: integer("discount").notNull().default(0),
+    couponCode: text("coupon_code"),
     deliveryFee: integer("delivery_fee").notNull(),
     total: integer("total").notNull(),
+    /** bkash | nagad | cod, chosen on the pay page. */
+    paymentMethod: text("payment_method"),
     name: text("name").notNull(),
     phone: text("phone").notNull(),
     address: text("address").notNull(),
     districtId: integer("district_id").references(() => districts.id),
     note: text("note"),
+    courier: text("courier"),
+    trackingCode: text("tracking_code"),
+    trackingUrl: text("tracking_url"),
+    adminNote: text("admin_note"),
+    cancelReason: text("cancel_reason"),
+    shippedAt: tstz("shipped_at"),
+    deliveredAt: tstz("delivered_at"),
+    cancelledAt: tstz("cancelled_at"),
     createdAt: createdAt(),
+    updatedAt: updatedAt(),
   },
-  (t) => [index("orders_user_idx").on(t.userId)],
+  (t) => [index("orders_user_idx").on(t.userId), index("orders_status_idx").on(t.status, t.createdAt)],
 ).enableRLS();
 
 export const orderItems = pgTable("order_items", {
@@ -639,7 +694,51 @@ export const orderItems = pgTable("order_items", {
   qty: integer("qty").notNull(),
 }).enableRLS();
 
+/** Discount codes for the shop. `value` is basis points (percent) or poisha (flat). */
+export const coupons = pgTable("coupons", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  code: text("code").notNull().unique(),
+  kind: text("kind", { enum: ["percent", "flat"] }).notNull(),
+  value: integer("value").notNull(),
+  minSubtotal: integer("min_subtotal").notNull().default(0),
+  /** Cap for percent coupons (poisha); null = no cap. */
+  maxDiscount: integer("max_discount"),
+  maxUses: integer("max_uses"),
+  used: integer("used").notNull().default(0),
+  startsAt: tstz("starts_at"),
+  endsAt: tstz("ends_at"),
+  active: boolean("active").notNull().default(true),
+  createdAt: createdAt(),
+}).enableRLS();
+
+/** Every stock change with its reason, so the count can always be explained. */
+export const stockMovements = pgTable(
+  "stock_movements",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    delta: integer("delta").notNull(),
+    /** order | cancel | return | restock | adjust */
+    reason: text("reason").notNull(),
+    refId: uuid("ref_id"),
+    note: text("note"),
+    createdBy: uuid("created_by").references(() => profiles.id),
+    createdAt: createdAt(),
+  },
+  (t) => [index("stock_movements_product_idx").on(t.productId, t.createdAt)],
+).enableRLS();
+
 // ── Platform ────────────────────────────────────────────────────────────────
+/** Values the team changes without a deploy (wallet numbers, fees, delivery). */
+export const settings = pgTable("settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedBy: uuid("updated_by").references(() => profiles.id),
+  updatedAt: updatedAt(),
+}).enableRLS();
+
 export const notifications = pgTable(
   "notifications",
   {

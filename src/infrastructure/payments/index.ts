@@ -15,6 +15,11 @@ export type { CheckoutInput, CheckoutSession, PaymentGateway, VerifiedPayment } 
  * The mock gateway is allowed only in development, tests and the pre-launch
  * demo (NEXT_PUBLIC_DEMO), never in a real launch.
  */
+/** True when a card/wallet gateway takes the money; false for manual bKash/Nagad/COD (checked by an admin). */
+export function usesGateway(): boolean {
+  return serverEnv().PAYMENT_PROVIDER !== "manual";
+}
+
 export function payments(): PaymentGateway {
   const env = serverEnv();
   if (env.PAYMENT_PROVIDER === "sslcommerz") {

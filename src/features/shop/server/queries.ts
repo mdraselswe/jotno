@@ -1,10 +1,13 @@
 import "server-only";
-import { and, desc, eq, inArray, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, inArray, lte, ne, or, sql, type SQL } from "drizzle-orm";
 import { db, schema } from "@/infrastructure/db";
 import { mediaUrl } from "@/infrastructure/storage";
+import { ORDER_STATUSES, type OrderStatus } from "../status";
 
 const PR = schema.products;
 const O = schema.orders;
+const OI = schema.orderItems;
+const PAY = schema.payments;
 
 export interface ProductCard {
   id: string;
@@ -15,6 +18,7 @@ export interface ProductCard {
   stock: number;
   category: string;
   speciesId: number | null;
+  unit: string | null;
   imageUrl: string | null;
 }
 
@@ -28,22 +32,43 @@ export const toProductCard = (p: ProductRow, locale: string): ProductCard => ({
   stock: p.stock,
   category: p.category,
   speciesId: p.speciesId,
+  unit: p.unit,
   imageUrl: mediaUrl(p.imagePath),
 });
+
+export const PRODUCT_SORTS = ["popular", "new", "price_asc", "price_desc"] as const;
+export type ProductSort = (typeof PRODUCT_SORTS)[number];
 
 export async function listProducts(input: {
   category?: string | null;
   speciesId?: number | null;
+  q?: string | null;
+  sort?: ProductSort | null;
   locale: string;
 }): Promise<ProductCard[]> {
   const conds: SQL[] = [eq(PR.active, true)];
   if (input.category) conds.push(eq(PR.category, input.category));
   if (input.speciesId) conds.push(eq(PR.speciesId, input.speciesId));
+  const q = input.q?.trim().slice(0, 60);
+  if (q) {
+    const like = `%${q.replace(/[%_\\]/g, "")}%`;
+    const match = or(ilike(PR.nameEn, like), ilike(PR.nameBn, like), ilike(PR.sku, like));
+    if (match) conds.push(match);
+  }
+  const order =
+    input.sort === "price_asc"
+      ? [asc(PR.price)]
+      : input.sort === "price_desc"
+        ? [desc(PR.price)]
+        : input.sort === "new"
+          ? [desc(PR.createdAt)]
+          : // In stock first, then the newest.
+            [desc(sql`${PR.stock} > 0`), desc(PR.createdAt)];
   const rows = await db()
     .select()
     .from(PR)
     .where(and(...conds))
-    .orderBy(desc(PR.stock), desc(PR.createdAt))
+    .orderBy(...order)
     .limit(200);
   return rows.map((p) => toProductCard(p, input.locale));
 }
@@ -56,7 +81,18 @@ export async function getProduct(slug: string, locale: string) {
     .where(and(eq(PR.slug, slug), eq(PR.active, true)))
     .limit(1);
   if (!p) return null;
-  return { ...toProductCard(p, locale), description: locale === "bn" ? p.descriptionBn : p.descriptionEn };
+  const related = await db()
+    .select()
+    .from(PR)
+    .where(and(eq(PR.active, true), eq(PR.category, p.category), ne(PR.id, p.id)))
+    .orderBy(desc(sql`${PR.stock} > 0`), desc(PR.createdAt))
+    .limit(4);
+  return {
+    ...toProductCard(p, locale),
+    sku: p.sku,
+    description: locale === "bn" ? p.descriptionBn : p.descriptionEn,
+    related: related.map((r) => toProductCard(r, locale)),
+  };
 }
 
 /** Current prices and stock for cart lines (active products only). */
@@ -74,10 +110,10 @@ async function withItems<T extends { id: string }>(orders: T[]) {
   if (orders.length === 0) return [];
   const items = await db()
     .select()
-    .from(schema.orderItems)
+    .from(OI)
     .where(
       inArray(
-        schema.orderItems.orderId,
+        OI.orderId,
         orders.map((o) => o.id),
       ),
     );
@@ -85,23 +121,94 @@ async function withItems<T extends { id: string }>(orders: T[]) {
 }
 
 export async function myOrders(userId: string) {
-  const orders = await db()
-    .select()
-    .from(O)
-    .where(and(eq(O.userId, userId), inArray(O.status, ["paid", "shipped", "delivered", "cancelled"])))
-    .orderBy(desc(O.createdAt))
-    .limit(50);
+  const orders = await db().select().from(O).where(eq(O.userId, userId)).orderBy(desc(O.createdAt)).limit(50);
   return withItems(orders);
 }
 
-export async function adminOrders() {
-  const orders = await db()
+/** The latest payment for an order (the one the customer is on). */
+async function orderPayment(orderId: string) {
+  const [p] = await db()
+    .select()
+    .from(PAY)
+    .where(and(eq(PAY.purpose, "order"), eq(PAY.refId, orderId)))
+    .orderBy(desc(PAY.createdAt))
+    .limit(1);
+  return p ?? null;
+}
+
+/** One order for its owner (or null), with items and its payment. */
+export async function myOrder(id: string, userId: string) {
+  if (!/^[0-9a-f-]{36}$/.test(id)) return null;
+  const [o] = await db()
     .select()
     .from(O)
-    .where(inArray(O.status, ["paid", "shipped"]))
-    .orderBy(O.createdAt)
-    .limit(200);
-  return withItems(orders);
+    .where(and(eq(O.id, id), eq(O.userId, userId)))
+    .limit(1);
+  if (!o) return null;
+  const [withLines] = await withItems([o]);
+  return withLines ? { ...withLines, payment: await orderPayment(o.id) } : null;
+}
+
+export type OrderDetail = NonNullable<Awaited<ReturnType<typeof myOrder>>>;
+
+export const ADMIN_ORDERS_PAGE = 30;
+
+/** Admin order list: by status ("open" = everything still to do), searched by number, name or phone. */
+export async function adminOrders(input: {
+  status: OrderStatus | "open" | "all";
+  q?: string | null;
+  page: number;
+}) {
+  const conds: SQL[] = [];
+  if (input.status === "open") conds.push(inArray(O.status, ["placed", "paid", "processing", "shipped"]));
+  else if (input.status !== "all") conds.push(eq(O.status, input.status));
+  const q = input.q?.trim().replace(/^#/, "").slice(0, 40);
+  if (q) {
+    const like = `%${q.replace(/[%_\\]/g, "")}%`;
+    const match = /^\d+$/.test(q)
+      ? or(eq(O.number, Number(q)), ilike(O.phone, like))
+      : or(ilike(O.name, like), ilike(O.phone, like));
+    if (match) conds.push(match);
+  }
+  const where = conds.length > 0 ? and(...conds) : undefined;
+  const [rows, [total]] = await Promise.all([
+    db()
+      .select()
+      .from(O)
+      .where(where)
+      .orderBy(input.status === "open" ? asc(O.createdAt) : desc(O.createdAt))
+      .limit(ADMIN_ORDERS_PAGE)
+      .offset(Math.max(0, input.page - 1) * ADMIN_ORDERS_PAGE),
+    db().select({ n: count() }).from(O).where(where),
+  ]);
+  return { items: await withItems(rows), total: total?.n ?? 0 };
+}
+
+/** Orders per status, for the admin tabs. */
+export async function orderCounts(): Promise<Record<OrderStatus, number>> {
+  const rows = await db().select({ status: O.status, n: count() }).from(O).groupBy(O.status);
+  const out = Object.fromEntries(ORDER_STATUSES.map((s) => [s, 0])) as Record<OrderStatus, number>;
+  for (const r of rows) out[r.status] = r.n;
+  return out;
+}
+
+/** One order for the team: items, every payment try, and the stock it moved. */
+export async function adminOrder(id: string) {
+  if (!/^[0-9a-f-]{36}$/.test(id)) return null;
+  const [o] = await db().select().from(O).where(eq(O.id, id)).limit(1);
+  if (!o) return null;
+  const [withLines] = await withItems([o]);
+  const payments = await db()
+    .select()
+    .from(PAY)
+    .where(and(eq(PAY.purpose, "order"), eq(PAY.refId, id)))
+    .orderBy(desc(PAY.createdAt));
+  const [customer] = await db()
+    .select({ email: schema.profiles.email, fullName: schema.profiles.fullName })
+    .from(schema.profiles)
+    .where(eq(schema.profiles.id, o.userId))
+    .limit(1);
+  return withLines ? { ...withLines, payments, customer: customer ?? null } : null;
 }
 
 export async function adminProducts() {
@@ -111,7 +218,119 @@ export async function adminProducts() {
 export async function adminProduct(id: string) {
   if (!/^[0-9a-f-]{36}$/.test(id)) return null;
   const [p] = await db().select().from(PR).where(eq(PR.id, id)).limit(1);
-  return p ? { ...p, imageUrl: mediaUrl(p.imagePath) } : null;
+  if (!p) return null;
+  const movements = await db()
+    .select()
+    .from(schema.stockMovements)
+    .where(eq(schema.stockMovements.productId, id))
+    .orderBy(desc(schema.stockMovements.createdAt))
+    .limit(30);
+  return { ...p, imageUrl: mediaUrl(p.imagePath), movements };
+}
+
+/** Active products at or below their low-stock mark. */
+export async function lowStockProducts() {
+  return db()
+    .select({ id: PR.id, nameEn: PR.nameEn, nameBn: PR.nameBn, stock: PR.stock, lowStockAt: PR.lowStockAt })
+    .from(PR)
+    .where(and(eq(PR.active, true), lte(PR.stock, PR.lowStockAt)))
+    .orderBy(asc(PR.stock))
+    .limit(50);
+}
+
+export async function listCoupons() {
+  return db().select().from(schema.coupons).orderBy(desc(schema.coupons.createdAt)).limit(200);
+}
+
+/** A coupon that can be used right now, or null. */
+export async function usableCoupon(code: string) {
+  const clean = code.trim().toUpperCase();
+  if (!/^[A-Z0-9-]{3,20}$/.test(clean)) return null;
+  const C = schema.coupons;
+  const now = new Date();
+  const [c] = await db()
+    .select()
+    .from(C)
+    .where(
+      and(
+        eq(C.code, clean),
+        eq(C.active, true),
+        or(sql`${C.startsAt} is null`, lte(C.startsAt, now)),
+        or(sql`${C.endsAt} is null`, gte(C.endsAt, now)),
+        or(sql`${C.maxUses} is null`, sql`${C.used} < ${C.maxUses}`),
+      ),
+    )
+    .limit(1);
+  return c ?? null;
+}
+
+const SOLD: OrderStatus[] = ["paid", "processing", "shipped", "delivered"];
+
+/** Sales for the last `days` days: money, orders, methods, best sellers and a daily line. */
+export async function shopReport(days: number) {
+  const since = new Date(Date.now() - days * 86_400_000);
+  const sold = and(inArray(O.status, SOLD), gte(O.createdAt, since));
+  const [totals] = await db()
+    .select({
+      orders: count(),
+      revenue: sql<number>`coalesce(sum(${O.total}), 0)::int`,
+      discount: sql<number>`coalesce(sum(${O.discount}), 0)::int`,
+      delivery: sql<number>`coalesce(sum(${O.deliveryFee}), 0)::int`,
+    })
+    .from(O)
+    .where(sold);
+  const byMethod = await db()
+    .select({ method: O.paymentMethod, orders: count(), revenue: sql<number>`sum(${O.total})::int` })
+    .from(O)
+    .where(sold)
+    .groupBy(O.paymentMethod);
+  const daily = await db()
+    .select({
+      day: sql<string>`to_char(${O.createdAt} at time zone 'Asia/Dhaka', 'YYYY-MM-DD')`,
+      revenue: sql<number>`sum(${O.total})::int`,
+      orders: count(),
+    })
+    .from(O)
+    .where(sold)
+    .groupBy(sql`1`)
+    .orderBy(sql`1`);
+  const top = await db()
+    .select({
+      name: OI.name,
+      qty: sql<number>`sum(${OI.qty})::int`,
+      revenue: sql<number>`sum(${OI.qty} * ${OI.price})::int`,
+    })
+    .from(OI)
+    .innerJoin(O, eq(O.id, OI.orderId))
+    .where(sold)
+    .groupBy(OI.name)
+    .orderBy(desc(sql`2`))
+    .limit(10);
+  const [cancelled] = await db()
+    .select({ n: count() })
+    .from(O)
+    .where(and(inArray(O.status, ["cancelled", "returned"]), gte(O.createdAt, since)));
+  return {
+    orders: totals?.orders ?? 0,
+    revenue: totals?.revenue ?? 0,
+    discount: totals?.discount ?? 0,
+    delivery: totals?.delivery ?? 0,
+    cancelled: cancelled?.n ?? 0,
+    byMethod,
+    daily,
+    top,
+  };
+}
+
+/** Orders in a date range for the CSV export (newest first, capped). */
+export async function ordersForExport(from: Date, to: Date) {
+  const rows = await db()
+    .select()
+    .from(O)
+    .where(and(gte(O.createdAt, from), lte(O.createdAt, to)))
+    .orderBy(desc(O.createdAt))
+    .limit(5_000);
+  return withItems(rows);
 }
 
 /** Active product slugs for the sitemap. */

@@ -6,6 +6,7 @@ import { consult } from "./consult";
 import { vet } from "./vet";
 import { qa } from "./qa";
 import { pages } from "./pages";
+import { pay } from "./pay";
 import { store } from "./store";
 import { work } from "./work";
 
@@ -13,7 +14,7 @@ import { work } from "./work";
  * Jotno's UI text, one pack per area (both languages side by side).
  * Add a pack here when you create one.
  */
-const PACKS = [common, auth, account, vet, consult, admin, work, qa, store, pages] as const;
+const PACKS = [common, auth, account, vet, consult, admin, work, qa, store, pages, pay] as const;
 
 type Merge<T extends readonly { en: object }[]> = T extends readonly [infer H, ...infer R]
   ? H extends { en: infer E }

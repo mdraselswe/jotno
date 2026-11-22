@@ -3,6 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { business } from "@/config";
 import { ROUTES } from "@/config/routes";
 import { getViewer } from "@/features/auth/server";
+import { getSettings } from "@/features/settings/server";
 import { CartView } from "@/features/shop";
 import { getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -11,14 +12,14 @@ export const metadata = { robots: { index: false } };
 
 async function Cart() {
   const locale = await getLocale();
-  const viewer = await getViewer();
+  const [viewer, settings] = await Promise.all([getViewer(), getSettings()]);
   const here = localeHref(locale, ROUTES.cart);
   return (
     <CartView
       rule={{
-        inside: business.shop.deliveryInside,
-        outside: business.shop.deliveryOutside,
-        freeFrom: business.shop.freeDeliveryFrom,
+        inside: settings.delivery.inside,
+        outside: settings.delivery.outside,
+        freeFrom: settings.delivery.freeFrom,
         homeDistrictId: business.shop.homeDistrictId,
       }}
       buyer={

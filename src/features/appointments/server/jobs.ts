@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { ROUTES } from "@/config/routes";
 import { notify } from "@/features/notifications/server";
 import { db, schema } from "@/infrastructure/db";
@@ -8,16 +8,10 @@ import { appointmentsToRemind } from "./queries";
 const A = schema.appointments;
 
 /**
- * Every few minutes: free slots held by abandoned checkouts (30 min) and
- * remind owners about visits in the next 3 hours (once).
+ * Every few minutes: remind owners about visits in the next 3 hours (once).
+ * Unpaid holds are released by the payments job (expireUnpaid).
  */
-export async function runAppointmentJobs(): Promise<{ released: number; reminded: number }> {
-  const released = await db()
-    .update(A)
-    .set({ status: "cancelled" })
-    .where(and(eq(A.status, "pending_payment"), sql`${A.createdAt} < now() - interval '30 minutes'`))
-    .returning({ id: A.id });
-
+export async function runAppointmentJobs(): Promise<{ reminded: number }> {
   let reminded = 0;
   for (const a of await appointmentsToRemind(3)) {
     const time = new Intl.DateTimeFormat("en-GB", {
@@ -35,16 +29,5 @@ export async function runAppointmentJobs(): Promise<{ released: number; reminded
     reminded += 1;
   }
 
-  // Shop orders abandoned at checkout.
-  await db()
-    .update(schema.orders)
-    .set({ status: "cancelled" })
-    .where(
-      and(
-        eq(schema.orders.status, "pending_payment"),
-        sql`${schema.orders.createdAt} < now() - interval '1 day'`,
-      ),
-    );
-
-  return { released: released.length, reminded };
+  return { reminded };
 }

@@ -27,3 +27,17 @@ export async function notify(
     console.error("notify failed", kind, error);
   }
 }
+
+/** Tells every admin (new payment to check, cash-on-delivery order, refund to send, low stock). */
+export async function notifyAdmins(kind: string, push: PushPayload): Promise<void> {
+  try {
+    const admins = await db()
+      .select({ id: schema.profiles.id })
+      .from(schema.profiles)
+      .where(eq(schema.profiles.role, "admin"))
+      .limit(20);
+    await Promise.all(admins.map((a) => notify(a.id, kind, push)));
+  } catch (error) {
+    console.error("notifyAdmins failed", kind, error);
+  }
+}

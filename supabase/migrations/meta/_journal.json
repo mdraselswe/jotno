@@ -8,6 +8,13 @@
       "when": 1795289093458,
       "tag": "20261121192453_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795338095010,
+      "tag": "20261122090134_manual_payments_shop_ops",
+      "breakpoints": true
     }
   ]
 }

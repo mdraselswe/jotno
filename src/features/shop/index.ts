@@ -1,5 +1,18 @@
 export { AddToCartButton, CartLink } from "./components/add-to-cart";
-export { EMPTY_PRODUCT, OrderActions, ProductForm, type ProductFormValues } from "./components/admin-shop";
+export {
+  CouponForm,
+  EMPTY_COUPON,
+  EMPTY_PRODUCT,
+  OrderControls,
+  OrderNote,
+  PrintButton,
+  ProductForm,
+  StockAdjust,
+  type CouponFormValues,
+  type ProductFormValues,
+} from "./components/admin-shop";
+export { CancelMyOrder } from "./components/my-order";
+export { OrderTimeline } from "./components/order-parts";
 export { CartView, type Buyer } from "./components/cart-view";
 export { ProductTile } from "./components/product-tile";
 export { useCart } from "./components/cart-store";
@@ -14,4 +27,14 @@ export {
   type DeliveryRule,
   type PricedLine,
 } from "./cart";
-export { ORDER_STATUS } from "./status";
+export { couponDiscount, type CouponRule } from "./cart";
+export {
+  customerCanCancel,
+  ORDER_STATUS,
+  ORDER_STATUSES,
+  ORDER_STEPS,
+  orderActions,
+  orderStep,
+  type OrderAction,
+  type OrderStatus,
+} from "./status";

@@ -38,10 +38,5 @@ export async function runConsultJobs(): Promise<{ refunded: number; closed: numb
       .insert(schema.messages)
       .values(over.map((c) => ({ consultId: c.id, senderId: null, body: "system:closed" })));
   }
-  // Pending payments older than a day are abandoned checkouts.
-  await db()
-    .update(C)
-    .set({ status: "cancelled" })
-    .where(and(eq(C.status, "pending_payment"), sql`${C.createdAt} < now() - interval '1 day'`));
   return { refunded, closed: over.length };
 }
