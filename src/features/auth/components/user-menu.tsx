@@ -10,6 +10,7 @@ import { ButtonLink } from "@/components/ui/button-link";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -65,7 +66,10 @@ export function UserMenu() {
         }
       />
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="truncate">{user.name ?? user.email}</DropdownMenuLabel>
+        {/* Base UI throws if a group label sits outside a group. */}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="truncate">{user.name ?? user.email}</DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         {item(localeHref(locale, ROUTES.account), <UserRound aria-hidden="true" />, t("nav.account"))}
         {item(localeHref(locale, ROUTES.pets), <PawPrint aria-hidden="true" />, t("account.pets"))}

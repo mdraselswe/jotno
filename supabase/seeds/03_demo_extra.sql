@@ -32,3 +32,10 @@ insert into public.products (slug, name_en, name_bn, description_en, description
   ('winter-dog-sweater', 'Winter dog sweater', 'কুকুরের শীতের সোয়েটার', 'Warm knit sweater for cold mornings.', 'ঠান্ডা সকালের জন্য গরম বোনা সোয়েটার।', 'dress', 2, 62000, 75000, 8, 'M', true, true),
   ('cat-bow-collar', 'Bow collar for cats', 'বিড়ালের বো কলার', 'Breakaway collar with a bell and a bow.', 'ঘণ্টা আর বো-সহ সহজে খোলে এমন কলার।', 'dress', 1, 18000, null, 26, null, true, true)
 on conflict (slug) do nothing;
+
+-- Demo wallet numbers, so paid chats and bookings can be tried locally (manual
+-- bKash/Nagad payments need a number to send to). Not real accounts; set the
+-- real ones in /admin/settings. Keeps anything an admin already saved.
+insert into public.settings (key, value)
+values ('business', '{"bkash": {"number": "01700000000"}, "nagad": {"number": "01800000000"}}')
+on conflict (key) do nothing;
