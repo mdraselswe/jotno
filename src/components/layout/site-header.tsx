@@ -40,16 +40,18 @@ export function SiteHeader() {
     });
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur [view-transition-name:site-header] supports-[backdrop-filter]:bg-background/60">
-      <div className="container-page flex h-14 items-center gap-3">
+    <header className="sticky top-0 z-40 px-2 pt-2 [view-transition-name:site-header] sm:px-4 sm:pt-3">
+      <div className="mx-auto flex h-14 max-w-6xl header-settle items-center gap-3 rounded-full bg-card/60 px-(--header-pad) ps-4 backdrop-blur-xl supports-[backdrop-filter]:bg-card/45">
         <Link href={localeHref(locale, ROUTES.home)} className="group" aria-label={site.name}>
           <Logo locale={locale} />
         </Link>
         <nav
           aria-label={t("nav.main")}
-          className="ms-6 hidden items-center gap-6 text-sm font-medium md:flex"
+          className="ms-4 hidden items-center gap-1 text-sm font-medium md:flex"
         >
-          {links("transition-colors")}
+          {links(
+            "rounded-full px-3 py-1.5 transition-[color,background-color] duration-(--motion-fast) hover:bg-foreground/5 aria-[current=page]:bg-foreground aria-[current=page]:text-background",
+          )}
         </nav>
         <div className="ms-auto flex items-center gap-1">
           <ButtonLink

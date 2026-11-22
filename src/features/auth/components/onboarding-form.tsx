@@ -51,7 +51,7 @@ export function OnboardingForm({ defaultName, defaultRole }: { defaultName: stri
   const choice = (value: Role, icon: ReactNode, title: string, hint: string) => (
     <label
       className={cn(
-        "flex cursor-pointer gap-3 rounded-(--control-radius) border-(length:--border-w) p-4 transition-[border-color,background-color] duration-(--motion-fast) has-focus-visible:ring-3 has-focus-visible:ring-ring/50",
+        "flex cursor-pointer gap-3 rounded-(--control-radius) bg-card p-4 shadow-(--shadow-control) transition-[border-color,background-color] duration-(--motion-fast) has-focus-visible:ring-3 has-focus-visible:ring-ring/50",
         role === value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50",
       )}
     >

@@ -170,7 +170,7 @@ async function VetProfile({ params }: { params: Promise<{ slug: string }> }) {
             </p>
           ) : null}
         </section>
-        <aside className="grid content-start gap-3 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad) text-sm">
+        <aside className="grid content-start gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) text-sm shadow-(--shadow-card)">
           {vet.qualifications ? (
             <p className="inline-flex items-start gap-2">
               <GraduationCap aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
@@ -204,10 +204,7 @@ async function VetProfile({ params }: { params: Promise<{ slug: string }> }) {
         ) : (
           <ul className="grid gap-3 md:grid-cols-2">
             {vet.reviews.map((r) => (
-              <li
-                key={r.id}
-                className="grid gap-1 rounded-(--radius-xl) border-(length:--border-w) bg-card p-4"
-              >
+              <li key={r.id} className="grid gap-1 rounded-(--radius-2xl) bg-card p-4 shadow-(--shadow-card)">
                 <span className="flex items-center gap-1" aria-label={t("consult.stars", { n: r.rating })}>
                   {Array.from({ length: 5 }, (_, i) => (
                     <Star

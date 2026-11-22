@@ -19,7 +19,7 @@ async function Vets() {
     <li key={v.id}>
       <Link
         href={localeHref(locale, adminVetPath(v.id))}
-        className="flex flex-wrap items-center gap-3 rounded-(--control-radius) border-(length:--border-w) bg-card px-4 py-3 hover:bg-muted/40"
+        className="flex flex-wrap items-center gap-3 rounded-(--control-radius) bg-card px-4 py-3 shadow-(--shadow-card) hover:bg-muted/40"
       >
         <span className="grid min-w-0 flex-1">
           <span className="font-medium">

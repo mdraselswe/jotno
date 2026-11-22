@@ -37,7 +37,7 @@ async function Articles() {
             <li key={a.id}>
               <Link
                 href={localeHref(locale, vetArticlePath(a.id))}
-                className="flex items-center gap-3 rounded-(--control-radius) border-(length:--border-w) bg-card px-4 py-3 hover:bg-muted/40"
+                className="flex items-center gap-3 rounded-(--control-radius) bg-card px-4 py-3 shadow-(--shadow-card) hover:bg-muted/40"
               >
                 <span className="min-w-0 flex-1 truncate font-medium">{a.title}</span>
                 <span className="text-xs text-muted-foreground">{fmt.date(a.updatedAt)}</span>

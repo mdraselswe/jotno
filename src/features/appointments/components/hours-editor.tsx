@@ -57,7 +57,7 @@ export function HoursEditor({ initial }: { initial: HoursRow[] }) {
           return (
             <li
               key={weekday}
-              className="grid gap-2 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad)"
+              className="grid gap-2 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium">{t(DAY_KEYS[weekday] ?? "appt.sun")}</span>

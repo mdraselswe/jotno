@@ -17,7 +17,7 @@ export function AvailableNowSwitch({ on, until }: { on: boolean; until: string |
   return (
     <label
       className={cn(
-        "flex items-center justify-between gap-4 rounded-(--radius-xl) border-(length:--border-w) p-(--card-pad) transition-colors",
+        "flex items-center justify-between gap-4 rounded-(--radius-xl) bg-card p-(--card-pad) shadow-(--shadow-control) transition-colors",
         optimistic ? "border-success/40 bg-success/10" : "bg-card",
       )}
     >

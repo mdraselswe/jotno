@@ -4,9 +4,10 @@ import { RichText } from "@/components/ui/rich-text";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-const CONTAINER = "container-page py-16 md:py-24";
-const HEADER = "mb-10 grid max-w-2xl gap-3";
-const TITLE = "font-heading text-4xl font-semibold tracking-tight text-balance md:text-5xl";
+const CONTAINER = "container-page relative py-14 md:py-20";
+const HEADER = "relative mb-12 grid max-w-3xl gap-4";
+const TITLE =
+  "font-heading text-5xl leading-[0.95] font-extrabold tracking-tight text-balance [font-stretch:80%] md:text-7xl";
 const SUB = "text-lg text-pretty text-muted-foreground";
 
 /** Standard page heading + content, with the page transition. PageShellSkeleton is its loading twin. */
@@ -14,6 +15,10 @@ export function PageShell({ title, sub, children }: { title: string; sub?: strin
   return (
     <PageTransition>
       <div className={CONTAINER}>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-10 right-[-6rem] -z-10 size-72 jelly bg-band-care/50 blur-2xl md:size-96"
+        />
         <header className={HEADER}>
           <h1 className={TITLE}>
             <RichText text={title} />

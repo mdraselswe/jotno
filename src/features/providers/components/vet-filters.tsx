@@ -86,7 +86,7 @@ export function VetFilters() {
           {near ? <X aria-hidden="true" /> : <LocateFixed aria-hidden="true" />}
           {t("vets.nearMe")}
         </Button>
-        <label className="flex items-center gap-2 rounded-(--control-radius) border-(length:--border-w) px-3 py-1.5 text-sm">
+        <label className="flex items-center gap-2 rounded-(--control-radius) bg-card px-3 py-1.5 text-sm shadow-(--shadow-control)">
           <Switch
             checked={params.get("now") === "1"}
             onCheckedChange={(c) => update({ now: c ? "1" : null })}
@@ -106,7 +106,7 @@ export function VetFilters() {
               aria-pressed={on}
               onClick={() => update({ species: on ? null : s.slug })}
               className={cn(
-                "rounded-full border-(length:--border-w) px-3 py-1.5 text-sm transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                "rounded-full bg-card px-3 py-1.5 text-sm shadow-(--shadow-control) transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
                 on ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted",
               )}
             >

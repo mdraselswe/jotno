@@ -39,7 +39,7 @@ async function List({ searchParams }: { searchParams: Promise<Search> }) {
   };
   const chip = (active: boolean) =>
     cn(
-      "shrink-0 rounded-full border-(length:--border-w) px-3 py-1 text-sm transition-colors",
+      "shrink-0 rounded-full bg-card px-3 py-1 text-sm shadow-(--shadow-control) transition-colors",
       active ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted",
     );
   return (
@@ -65,7 +65,7 @@ async function List({ searchParams }: { searchParams: Promise<Search> }) {
             <li key={a.id}>
               <Link
                 href={localeHref(locale, articlePath(a.slug))}
-                className="grid h-full gap-2 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad) shadow-(--shadow-card) transition-colors hover:bg-muted/40"
+                className="grid h-full gap-2 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-colors hover:bg-muted/40"
               >
                 {a.speciesId ? (
                   <span className="text-xs font-medium text-primary">{speciesName(a.speciesId, locale)}</span>

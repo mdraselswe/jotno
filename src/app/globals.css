@@ -821,3 +821,91 @@ svg.lucide {
     animation: sos-breathe 2.4s ease-in-out infinite;
   }
 }
+
+/* ─── Jotno: marketing motion (components/marketing) ───────────────────── */
+@keyframes marquee {
+  to {
+    translate: -50% 0;
+  }
+}
+
+/* The soft blob behind prices: its corners slowly breathe. */
+@keyframes jelly {
+  0%,
+  100% {
+    border-radius: 45% 55% 60% 40% / 55% 45% 55% 45%;
+  }
+  33% {
+    border-radius: 60% 40% 45% 55% / 45% 60% 40% 55%;
+  }
+  66% {
+    border-radius: 40% 60% 55% 45% / 60% 40% 60% 40%;
+  }
+}
+@utility jelly {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: jelly 7s ease-in-out infinite;
+  }
+}
+
+/* Lenis (smooth-scroll.tsx) owns the scroll while it runs. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* Floating header: tightens and gains a solid card as the page scrolls. */
+@keyframes header-settle {
+  to {
+    --header-pad: 0.375rem;
+    background-color: color-mix(in oklch, var(--card) 88%, transparent);
+    box-shadow: var(--shadow-card);
+  }
+}
+@property --header-pad {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0.625rem;
+}
+@utility header-settle {
+  @supports (animation-timeline: scroll()) {
+    animation: header-settle linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 120px;
+  }
+}
+
+/* A hand-drawn underline under a word (headings). */
+@utility scribble {
+  position: relative;
+  isolation: isolate;
+  white-space: nowrap;
+  &::after {
+    content: "";
+    position: absolute;
+    inset-inline: -0.08em;
+    bottom: -0.12em;
+    height: 0.32em;
+    background: var(--highlight);
+    border-radius: 999px;
+    z-index: -1;
+    rotate: -1.5deg;
+    transform-origin: left;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    &::after {
+      animation: scribble-in 900ms var(--ease-out-expo) 300ms both;
+    }
+  }
+}
+@keyframes scribble-in {
+  from {
+    scale: 0 1;
+  }
+}

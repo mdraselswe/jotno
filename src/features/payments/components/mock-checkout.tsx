@@ -51,7 +51,7 @@ export function MockCheckout() {
     ) : null;
 
   return (
-    <div className="mx-auto grid w-full max-w-sm gap-6 rounded-(--radius-xl) border-(length:--border-w) bg-card p-6 shadow-(--shadow-card)">
+    <div className="mx-auto grid w-full max-w-sm gap-6 rounded-(--radius-2xl) bg-card p-6 shadow-(--shadow-card)">
       <div className="flex items-center gap-2 rounded-(--control-radius) bg-highlight/20 px-3 py-2 text-sm text-highlight-foreground">
         <FlaskConical aria-hidden="true" className="size-4 shrink-0" />
         {t("pay.mockNote")}

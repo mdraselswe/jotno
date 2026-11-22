@@ -33,7 +33,7 @@ export default async function ForVetsPage() {
           {c.benefits.map((b) => (
             <li
               key={b.title}
-              className="grid gap-2 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad)"
+              className="grid gap-2 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
             >
               <h2 className="font-heading text-lg font-semibold">{b.title}</h2>
               <p className="text-sm text-muted-foreground">{format(b.body, { pct })}</p>
@@ -57,7 +57,7 @@ export default async function ForVetsPage() {
           {c.faq.map((f) => (
             <details
               key={f.q}
-              className="group rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad)"
+              className="group rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
             >
               <summary className="flex cursor-pointer items-center gap-2 font-medium">
                 <BadgeCheck aria-hidden="true" className="size-4 text-primary" />

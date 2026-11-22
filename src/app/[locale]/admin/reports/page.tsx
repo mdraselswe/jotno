@@ -25,7 +25,7 @@ async function Reports() {
           {reports.map((r) => (
             <li
               key={r.id}
-              className="flex flex-wrap items-center gap-3 rounded-(--control-radius) border-(length:--border-w) bg-card px-4 py-3"
+              className="flex flex-wrap items-center gap-3 rounded-(--control-radius) bg-card px-4 py-3 shadow-(--shadow-card)"
             >
               <Badge variant="secondary">{r.entity}</Badge>
               <span className="grid min-w-0 flex-1">

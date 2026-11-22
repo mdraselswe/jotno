@@ -59,7 +59,7 @@ async function Overview() {
 
       <div
         className={cn(
-          "flex flex-wrap items-start gap-3 rounded-(--radius-xl) border-(length:--border-w) p-(--card-pad)",
+          "flex flex-wrap items-start gap-3 rounded-(--radius-xl) bg-card p-(--card-pad) shadow-(--shadow-control)",
           tone,
         )}
       >
@@ -68,7 +68,7 @@ async function Overview() {
         {status === "draft" || status === "rejected" ? <SubmitForReviewButton /> : null}
       </div>
 
-      <div className="grid gap-2 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad)">
+      <div className="grid gap-2 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)">
         <div className="flex items-center justify-between gap-4">
           <span className="font-medium">{t("vet.completeness", { n: provider.completeness })}</span>
           <ButtonLink href={localeHref(locale, ROUTES.vetProfile)} size="sm" variant="ghost">
@@ -97,7 +97,7 @@ async function Overview() {
         ].map(([label, value]) => (
           <div
             key={label}
-            className="grid gap-1 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad)"
+            className="grid gap-1 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
           >
             <dt className="text-xs text-muted-foreground">{label}</dt>
             <dd className="font-heading text-2xl font-semibold tabular-nums">{value}</dd>

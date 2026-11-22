@@ -127,7 +127,7 @@ export function ReviewForm({ consultId }: { consultId: string }) {
   if (done) return <p className="text-sm text-success">{t("consult.thanksReview")}</p>;
   return (
     <form
-      className="grid gap-3 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad)"
+      className="grid gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
       onSubmit={(e) => {
         e.preventDefault();
         start(async () => {

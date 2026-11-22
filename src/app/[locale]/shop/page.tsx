@@ -1,6 +1,9 @@
-import { Search } from "lucide-react";
+import { Search, Truck } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
+import type { CSSProperties } from "react";
+import { Doodle } from "@/components/illustrations/doodles";
+import { BowlMenu, type BowlItem } from "@/components/marketing/bowl-menu";
 import { Suspense } from "react";
 import { PageTransition } from "@/components/motion/page-transition";
 import { Input } from "@/components/ui/input";
@@ -44,23 +47,18 @@ async function Products({ searchParams }: { searchParams: Promise<Search> }) {
     const str = p.toString();
     return (str ? `${base}/?${str}` : base) as Route;
   };
-  const chip = (active: boolean) =>
-    cn(
-      "shrink-0 rounded-full border-(length:--border-w) px-3 py-1 text-sm transition-colors",
-      active ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted",
-    );
+  const menu: BowlItem[] = [
+    { key: "all", label: t("common.all"), href: href({ category: null }), active: !category },
+    ...SHOP_CATEGORIES.map((c) => ({
+      key: c.slug,
+      label: locale === "bn" ? c.bn : c.en,
+      href: href({ category: c.slug }),
+      active: category === c.slug,
+    })),
+  ];
   return (
-    <div className="grid gap-6">
-      <nav aria-label={t("shop.category")} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-        <Link href={href({ category: null })} className={chip(!category)}>
-          {t("common.all")}
-        </Link>
-        {SHOP_CATEGORIES.map((c) => (
-          <Link key={c.slug} href={href({ category: c.slug })} className={chip(category === c.slug)}>
-            {locale === "bn" ? c.bn : c.en}
-          </Link>
-        ))}
-      </nav>
+    <div className="grid gap-8">
+      <BowlMenu items={menu} label={t("shop.category")} />
       <div className="flex flex-wrap items-center gap-3">
         <form action={base} role="search" className="relative min-w-0 flex-1 basis-64">
           {category ? <input type="hidden" name="category" value={category} /> : null}
@@ -97,9 +95,9 @@ async function Products({ searchParams }: { searchParams: Promise<Search> }) {
       {products.length === 0 ? (
         <p className="text-muted-foreground">{t("shop.empty")}</p>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          {products.map((p) => (
-            <li key={p.id}>
+        <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+          {products.map((p, i) => (
+            <li key={p.id} className="reveal" style={{ "--i": i % 4 } as CSSProperties}>
               <ProductTile p={p} locale={locale} t={t} fmt={fmt} />
             </li>
           ))}
@@ -113,13 +111,21 @@ export default async function ShopPage({ searchParams }: PageProps<"/[locale]/sh
   const t = await getT();
   return (
     <PageTransition>
-      <div className="container-page grid gap-8 py-8 md:py-12">
-        <header className="flex flex-wrap items-end justify-between gap-4">
-          <div className="grid max-w-2xl gap-2">
-            <h1 className="font-heading text-3xl font-semibold tracking-tight md:text-4xl">
+      <div className="container-page grid gap-10 py-10 md:py-16">
+        <header className="relative flex flex-wrap items-end justify-between gap-4">
+          <Doodle
+            name="bone"
+            className="absolute -top-4 right-[30%] size-12 rotate-12 draw text-band-dog max-md:hidden"
+          />
+          <div className="grid max-w-2xl gap-3">
+            <h1 className="font-heading text-5xl leading-[0.92] font-extrabold tracking-tight [font-stretch:78%] md:text-7xl">
               {t("shop.title")}
             </h1>
-            <p className="text-pretty text-muted-foreground">{t("shop.sub")}</p>
+            <p className="text-lg text-pretty text-muted-foreground">{t("shop.sub")}</p>
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <Truck aria-hidden="true" className="size-4 text-primary" />
+              {t("shop.secure")}
+            </p>
           </div>
           <CartLink />
         </header>

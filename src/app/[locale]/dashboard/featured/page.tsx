@@ -49,7 +49,7 @@ async function Featured() {
         {business.featured.packs.map((pack, i) => (
           <div
             key={pack.days}
-            className="grid gap-3 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad) shadow-(--shadow-card)"
+            className="grid gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
           >
             <p className="font-heading text-lg font-semibold">
               {t("featured.days", { n: fmt.number(pack.days) })}

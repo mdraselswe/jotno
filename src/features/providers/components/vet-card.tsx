@@ -53,8 +53,8 @@ export function VetCard({
     <Link
       href={localeHref(locale, vetPath(vet.slug))}
       className={cn(
-        "group relative flex gap-4 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad) shadow-(--shadow-card) transition-[box-shadow,translate] duration-(--motion-fast) hover:-translate-y-0.5 hover:shadow-(--shadow-card-hover)",
-        vet.featured && "border-highlight/60",
+        "group relative flex gap-4 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-[box-shadow,translate] duration-(--motion-base) ease-(--ease-ui) hover:-translate-y-1 hover:shadow-(--shadow-card-hover)",
+        vet.featured && "ring-2 ring-highlight",
       )}
     >
       <span className="relative">

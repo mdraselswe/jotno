@@ -31,7 +31,7 @@ export async function WaitingConsults({ providerId, locale }: { providerId: stri
             <li key={c.id}>
               <Link
                 href={localeHref(locale, chatPath(c.id))}
-                className="flex items-center gap-3 rounded-(--control-radius) border-(length:--border-w) bg-card px-4 py-3 hover:bg-muted/50"
+                className="flex items-center gap-3 rounded-(--control-radius) bg-card px-4 py-3 shadow-(--shadow-card) hover:bg-muted/50"
               >
                 <MessageCircle aria-hidden="true" className="size-5 text-primary" />
                 <span className="grid min-w-0 flex-1">

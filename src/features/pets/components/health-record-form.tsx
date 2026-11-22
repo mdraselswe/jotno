@@ -55,7 +55,7 @@ export function HealthRecordForm({ petId, today }: { petId: string; today: strin
   return (
     <form
       onSubmit={submit}
-      className="grid gap-4 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad)"
+      className="grid gap-4 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">

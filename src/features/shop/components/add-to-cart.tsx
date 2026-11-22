@@ -45,7 +45,7 @@ export function CartLink() {
   return (
     <Link
       href={localeHref(locale, ROUTES.cart)}
-      className="inline-flex h-(--control-h) items-center gap-2 rounded-(--control-radius) border-(length:--border-w) px-3 text-sm hover:bg-muted"
+      className="inline-flex h-(--control-h) items-center gap-2 rounded-(--control-radius) bg-card px-3 text-sm shadow-(--shadow-control) hover:bg-muted"
     >
       <ShoppingCart aria-hidden="true" className="size-4" />
       {t("shop.cart")}

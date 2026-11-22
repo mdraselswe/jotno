@@ -57,7 +57,7 @@ async function Overview() {
               <dd className="font-heading text-2xl font-semibold tabular-nums">{tile.value}</dd>
             </>
           );
-          const cls = `grid gap-1 rounded-(--radius-xl) border-(length:--border-w) p-(--card-pad) ${tile.alert ? "border-warning/50 bg-warning/10" : "bg-card"}`;
+          const cls = `grid gap-1 rounded-(--radius-2xl) p-(--card-pad) ${tile.alert ? "border-warning/50 bg-warning/10" : "bg-card shadow-(--shadow-card)"}`;
           return tile.href ? (
             <Link key={tile.label} href={tile.href} className={`${cls} hover:bg-muted/40`}>
               {body}

@@ -1,44 +1,64 @@
-import { BadgeCheck, HeartPulse, MessageCircle, Search, Siren, type LucideIcon } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  HeartPulse,
+  MessageCircle,
+  Search,
+  Siren,
+  Truck,
+  type LucideIcon,
+} from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
 import { Mishu } from "@/components/brand/mishu";
+import { Doodle } from "@/components/illustrations/doodles";
+import { HeroOrbit, type OrbitPetItem } from "@/components/marketing/hero-orbit";
+import { Marquee } from "@/components/marketing/marquee";
+import { SmoothScroll } from "@/components/marketing/smooth-scroll";
+import { SquishyPricing, type PricingCard } from "@/components/marketing/squishy-pricing";
+import { StickerSlap } from "@/components/marketing/sticker-slap";
 import { NumberTicker } from "@/components/motion/number-ticker";
 import { PageTransition } from "@/components/motion/page-transition";
 import { ButtonLink } from "@/components/ui/button-link";
-import { RichText } from "@/components/ui/rich-text";
 import { Skeleton } from "@/components/ui/skeleton";
+import { business } from "@/config";
 import { articlePath, ROUTES } from "@/config/routes";
-import { homeContent, type StepIcon } from "@/content/home";
+import { SPECIES } from "@/content/geo";
+import { homeContent, ORBIT_PETS, type StepIcon } from "@/content/home";
 import { listArticles } from "@/features/articles/server";
 import { HomeSearch, VetCard, VetDotMap } from "@/features/providers";
 import { liveStats, searchProviders } from "@/features/providers/server";
 import { QuestionList } from "@/features/questions";
 import { answeredHighlights } from "@/features/questions/server";
-import { pickLocale } from "@/i18n";
+import { format, pickLocale } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
+import { taka } from "@/lib/money";
+import { splitAccent } from "@/lib/rich-text";
 
 const STEP_ICONS: Record<StepIcon, LucideIcon> = { search: Search, chat: MessageCircle, heart: HeartPulse };
+const STEP_TONES = ["bg-band-cat", "bg-band-bird", "bg-band-rabbit"] as const;
 
 async function LivePanel() {
   const t = await getT();
   const stats = await liveStats();
   return (
-    <div className="grid gap-4 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad) shadow-(--shadow-card)">
+    <div className="grid gap-4 rounded-(--radius-3xl) bg-card p-6 shadow-(--shadow-card)">
       <p className="flex items-baseline gap-2">
-        <span className="relative flex size-2.5 self-center">
+        <span className="relative flex size-3 self-center">
           <span className="absolute inline-flex size-full rounded-full bg-success opacity-60 motion-safe:animate-ping" />
-          <span className="relative inline-flex size-2.5 rounded-full bg-success" />
+          <span className="relative inline-flex size-3 rounded-full bg-success" />
         </span>
-        <span className="font-heading text-4xl font-semibold tabular-nums">
+        <span className="font-heading text-5xl font-bold [font-stretch:80%] tabular-nums">
           <NumberTicker value={stats.online} />
         </span>
         <span className="text-muted-foreground">{t("home.onlineNow")}</span>
       </p>
       <VetDotMap dots={stats.dots} label={t("home.mapLabel")} />
       <p className="text-sm text-muted-foreground">
-        <span className="font-medium text-foreground tabular-nums">
+        <span className="font-semibold text-foreground tabular-nums">
           <NumberTicker value={stats.verified} />
         </span>{" "}
         {t("home.verifiedVets")}
@@ -55,23 +75,13 @@ async function FeaturedVets() {
   const vets = [...featured, ...results].slice(0, 4);
   if (vets.length === 0) return null;
   return (
-    <section className="container-page grid gap-6 py-12">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 className="font-heading text-2xl font-semibold tracking-tight md:text-3xl">
-          {t("home.vetsTitle")}
-        </h2>
-        <ButtonLink href={localeHref(locale, ROUTES.vets)} variant="outline">
-          {t("common.seeAll")}
-        </ButtonLink>
-      </div>
-      <ul className="grid gap-3 md:grid-cols-2">
-        {vets.map((v) => (
-          <li key={v.id}>
-            <VetCard vet={v} locale={locale} t={t} fmt={fmt} />
-          </li>
-        ))}
-      </ul>
-    </section>
+    <ul className="grid gap-3">
+      {vets.map((v, i) => (
+        <li key={v.id} className="reveal" style={{ "--i": i } as CSSProperties}>
+          <VetCard vet={v} locale={locale} t={t} fmt={fmt} />
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -85,11 +95,13 @@ async function CommunityRow() {
   ]);
   if (questions.length === 0 && articles.length === 0) return null;
   return (
-    <section className="container-page grid gap-10 py-12 lg:grid-cols-2">
+    <section className="container-page grid gap-10 py-16 lg:grid-cols-2">
       {questions.length > 0 ? (
         <div className="grid content-start gap-4">
           <div className="flex items-end justify-between gap-3">
-            <h2 className="font-heading text-2xl font-semibold tracking-tight">{t("qa.highlights")}</h2>
+            <h2 className="font-heading text-3xl font-bold tracking-tight [font-stretch:85%]">
+              {t("qa.highlights")}
+            </h2>
             <ButtonLink href={localeHref(locale, ROUTES.ask)} size="sm">
               {t("qa.ask")}
             </ButtonLink>
@@ -100,23 +112,34 @@ async function CommunityRow() {
       {articles.length > 0 ? (
         <div className="grid content-start gap-4">
           <div className="flex items-end justify-between gap-3">
-            <h2 className="font-heading text-2xl font-semibold tracking-tight">{t("art.title")}</h2>
-            <Link href={localeHref(locale, ROUTES.articles)} className="text-sm text-primary hover:underline">
+            <h2 className="font-heading text-3xl font-bold tracking-tight [font-stretch:85%]">
+              {t("art.title")}
+            </h2>
+            <Link
+              href={localeHref(locale, ROUTES.articles)}
+              className="text-sm font-medium text-primary hover:underline"
+            >
               {t("common.seeAll")}
             </Link>
           </div>
           <ul className="grid gap-3">
-            {articles.slice(0, 3).map((a) => (
-              <li key={a.id}>
+            {articles.slice(0, 3).map((a, i) => (
+              <li key={a.id} className="reveal" style={{ "--i": i } as CSSProperties}>
                 <Link
                   href={localeHref(locale, articlePath(a.slug))}
-                  className="grid gap-1 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad) transition-colors hover:bg-muted/40"
+                  className="group grid gap-1 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-[transform,box-shadow] duration-(--motion-base) ease-(--ease-ui) hover:-translate-y-1 hover:shadow-(--shadow-card-hover)"
                 >
-                  <span className="font-medium">{a.title}</span>
+                  <span className="font-heading text-lg font-semibold">{a.title}</span>
                   {a.excerpt ? (
                     <span className="line-clamp-2 text-sm text-muted-foreground">{a.excerpt}</span>
                   ) : null}
-                  <span className="text-xs text-muted-foreground">{a.vetName}</span>
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    {a.vetName}
+                    <ArrowRight
+                      aria-hidden="true"
+                      className="ms-auto size-4 transition-transform duration-(--motion-fast) group-hover:translate-x-1"
+                    />
+                  </span>
                 </Link>
               </li>
             ))}
@@ -127,74 +150,234 @@ async function CommunityRow() {
   );
 }
 
+function SectionTitle({ eyebrow, title, sub }: { eyebrow?: string; title: string; sub?: string }) {
+  return (
+    <header className="grid max-w-2xl gap-3">
+      {eyebrow ? (
+        <p className="justify-self-start rounded-full bg-card px-3 py-1 text-xs font-semibold tracking-wide text-primary uppercase shadow-(--shadow-control)">
+          {eyebrow}
+        </p>
+      ) : null}
+      <h2 className="font-heading text-4xl leading-[0.95] font-bold tracking-tight text-balance [font-stretch:80%] md:text-6xl">
+        {title}
+      </h2>
+      {sub ? <p className="text-lg text-pretty text-muted-foreground">{sub}</p> : null}
+    </header>
+  );
+}
+
 export default async function HomePage() {
   const locale = await getLocale();
   const t = await getT();
+  const fmt = await getFormatter();
   const c = pickLocale(homeContent, locale);
+  const vets = localeHref(locale, ROUTES.vets);
+
+  const pets: OrbitPetItem[] = ORBIT_PETS.map((slug) => {
+    const sp = SPECIES.find((s) => s.slug === slug);
+    const name = sp ? (locale === "bn" ? sp.bn : sp.en) : slug;
+    return {
+      slug,
+      name,
+      line: c.orbit.pets[slug],
+      find: format(c.orbit.find, { pet: locale === "bn" ? name : name.toLowerCase() }),
+      href: `${vets}/?species=${slug}` as Route,
+    };
+  });
+
+  const priceVars = {
+    free: taka(fmt, 0),
+    chat: taka(fmt, business.consult.minFee),
+    booking: taka(fmt, business.appointment.bookingFee),
+  };
+  const hrefFor = { ask: ROUTES.ask, vets: ROUTES.vets, forVets: ROUTES.forVets } as const;
+  const plans: PricingCard[] = c.pricing.plans.map((p) => ({
+    name: p.name,
+    price: format(p.price, priceVars),
+    unit: p.unit,
+    body: p.body,
+    points: p.points,
+    cta: p.cta,
+    href: localeHref(locale, hrefFor[p.href]),
+    featured: p.featured,
+    tag: p.featured ? c.pricing.popular : undefined,
+  }));
+  const keep = 100 - business.consult.commissionBps / 100;
+  const title = splitAccent(c.hero.title);
+
   return (
     <PageTransition>
-      <section className="container-page grid items-center gap-10 py-12 md:py-20 lg:grid-cols-[1.2fr_1fr]">
-        <div className="grid gap-6">
-          <p className="flex items-center gap-2 text-sm font-medium text-primary">
-            <BadgeCheck aria-hidden="true" className="size-4" />
-            {c.hero.eyebrow}
-          </p>
-          <h1 className="font-heading text-4xl font-semibold tracking-tight text-balance md:text-6xl">
-            <RichText text={c.hero.title} />
-          </h1>
-          <p className="max-w-xl text-lg text-pretty text-muted-foreground">{c.hero.body}</p>
-          <HomeSearch />
-          <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
-            {c.trust.map((item) => (
-              <li key={item} className="flex items-center gap-1.5">
-                <BadgeCheck aria-hidden="true" className="size-4 text-success" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <Suspense fallback={<Skeleton className="aspect-[5/6] rounded-(--radius-xl)" />}>
-          <LivePanel />
-        </Suspense>
-      </section>
+      <SmoothScroll />
+      <HeroOrbit
+        pets={pets}
+        label={c.orbit.label}
+        prev={c.orbit.prev}
+        next={c.orbit.next}
+        badges={c.orbit.badges}
+        footer={
+          <Marquee
+            items={c.marquee}
+            className="-rotate-1 bg-foreground py-3 font-heading text-lg font-semibold text-background md:text-xl"
+          />
+        }
+      >
+        <p className="inline-flex items-center gap-2 justify-self-start rounded-full bg-card/80 px-3 py-1.5 text-sm font-semibold text-primary shadow-(--shadow-control) backdrop-blur">
+          <BadgeCheck aria-hidden="true" className="size-4" />
+          {c.hero.eyebrow}
+        </p>
+        <h1 className="font-heading text-5xl leading-[0.92] font-extrabold tracking-tight text-balance [font-stretch:78%] sm:text-6xl lg:text-7xl xl:text-[5.5rem]">
+          {title.map((part, i) =>
+            part.accent ? (
+              <span
+                key={i}
+                className="block font-script text-[1.08em] font-normal text-primary [font-stretch:100%]"
+              >
+                <span className="scribble">{part.text}</span>
+              </span>
+            ) : (
+              <span key={i}>{part.text}</span>
+            ),
+          )}
+        </h1>
+        <p className="max-w-xl text-lg text-pretty text-foreground/75">{c.hero.body}</p>
+        <HomeSearch />
+        <ul className="flex flex-wrap gap-2 text-sm">
+          {c.trust.map((item) => (
+            <li
+              key={item}
+              className="flex items-center gap-1.5 rounded-full bg-card/70 px-3 py-1 shadow-(--shadow-control) backdrop-blur"
+            >
+              <BadgeCheck aria-hidden="true" className="size-4 text-success" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </HeroOrbit>
 
-      <section className="container-page py-12">
-        <ol className="grid gap-4 md:grid-cols-3">
+      {/* How it works */}
+      <section className="container-page grid gap-10 py-20 md:py-28">
+        <SectionTitle title={c.stepsTitle} />
+        <ol className="grid gap-5 md:grid-cols-3">
           {c.steps.map((s, i) => {
             const Icon = STEP_ICONS[s.icon];
             return (
               <li
                 key={s.title}
-                className="grid reveal gap-2 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad)"
+                className="group relative grid reveal gap-4 overflow-hidden rounded-(--radius-3xl) bg-card p-7 shadow-(--shadow-card) transition-[transform,box-shadow] duration-(--motion-base) ease-(--ease-ui) hover:-translate-y-1.5 hover:shadow-(--shadow-card-hover)"
                 style={{ "--i": i } as CSSProperties}
               >
-                <Icon aria-hidden="true" className="size-6 text-primary" />
-                <h2 className="font-heading text-lg font-semibold">{s.title}</h2>
-                <p className="text-sm text-muted-foreground">{s.body}</p>
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-6 -right-2 font-heading text-[8rem] leading-none font-extrabold text-foreground/5 [font-stretch:75%]"
+                >
+                  {i + 1}
+                </span>
+                <span
+                  className={`grid size-14 place-items-center rounded-2xl ${STEP_TONES[i] ?? "bg-band-care"} transition-transform duration-(--motion-base) ease-spring group-hover:scale-110 group-hover:-rotate-6`}
+                >
+                  <Icon aria-hidden="true" className="size-7" />
+                </span>
+                <h3 className="font-heading text-2xl font-bold tracking-tight">{s.title}</h3>
+                <p className="text-muted-foreground">{s.body}</p>
               </li>
             );
           })}
         </ol>
       </section>
 
-      <Suspense
-        fallback={
-          <div className="container-page py-12">
-            <Skeleton className="h-64 rounded-(--radius-xl)" />
+      {/* Live vets */}
+      <section className="bg-band-care/40">
+        <div className="container-page grid gap-8 py-20 md:py-24 lg:grid-cols-[22rem_1fr]">
+          <div className="grid content-start gap-6 lg:sticky lg:top-24">
+            <SectionTitle title={t("home.vetsTitle")} />
+            <Suspense fallback={<Skeleton className="aspect-[5/6] rounded-(--radius-3xl)" />}>
+              <LivePanel />
+            </Suspense>
+            <ButtonLink href={vets} variant="outline" className="justify-self-start">
+              {t("common.seeAll")}
+              <ArrowRight aria-hidden="true" />
+            </ButtonLink>
           </div>
-        }
-      >
-        <FeaturedVets />
-      </Suspense>
+          <Suspense
+            fallback={
+              <div className="grid gap-3">
+                {Array.from({ length: 4 }, (_, i) => (
+                  <Skeleton key={i} className="h-36 rounded-(--radius-2xl)" />
+                ))}
+              </div>
+            }
+          >
+            <FeaturedVets />
+          </Suspense>
+        </div>
+      </section>
 
+      {/* Pricing */}
+      <section className="container-page grid gap-12 py-20 md:py-28">
+        <SectionTitle eyebrow={c.pricing.eyebrow} title={c.pricing.title} sub={c.pricing.sub} />
+        <SquishyPricing plans={plans} />
+        <p className="text-center text-sm text-muted-foreground">
+          {format(c.pricing.note, { keep })}{" "}
+          <Link
+            href={localeHref(locale, ROUTES.forVets)}
+            className="font-medium text-primary hover:underline"
+          >
+            {t("nav.forVets")}
+          </Link>
+        </p>
+      </section>
+
+      {/* Shop */}
       <section className="container-page py-6">
-        <div className="flex flex-wrap items-center gap-4 rounded-(--radius-xl) border-(length:--border-w) border-destructive/40 bg-destructive/5 p-(--card-pad)">
-          <Siren aria-hidden="true" className="size-8 text-destructive" />
-          <div className="grid flex-1 gap-1">
-            <h2 className="font-heading text-lg font-semibold">{c.emergency.title}</h2>
-            <p className="text-sm text-muted-foreground">{c.emergency.body}</p>
+        <div className="relative grid items-center gap-8 overflow-hidden rounded-(--radius-4xl) bg-band-dog/60 p-6 shadow-(--shadow-card) sm:p-10 md:grid-cols-[1fr_1.1fr]">
+          <Doodle name="bone" className="absolute top-6 right-8 size-14 rotate-12 draw text-foreground/25" />
+          <Doodle
+            name="paw"
+            className="absolute bottom-6 left-[46%] size-10 -rotate-12 text-foreground/20 max-md:hidden"
+          />
+          <div className="relative grid gap-4">
+            <h2 className="font-heading text-4xl leading-[0.95] font-bold tracking-tight text-balance [font-stretch:80%] md:text-5xl">
+              {c.shopTeaser.title}
+            </h2>
+            <p className="max-w-md text-pretty text-foreground/75">{c.shopTeaser.body}</p>
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <Truck aria-hidden="true" className="size-4" />
+              {t("shop.codNote")}
+            </p>
+            <ButtonLink href={localeHref(locale, ROUTES.shop)} size="lg" className="justify-self-start">
+              {c.shopTeaser.button}
+              <ArrowRight aria-hidden="true" />
+            </ButtonLink>
           </div>
-          <ButtonLink href={localeHref(locale, ROUTES.emergency)} variant="destructive">
+          <div className="relative mx-auto aspect-square w-full max-w-sm">
+            <span aria-hidden="true" className="absolute inset-0 jelly bg-card/60" />
+            {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized local photo */}
+            <img
+              src="/images/pets/dog-bowl-800.webp"
+              srcSet="/images/pets/dog-bowl-400.webp 400w, /images/pets/dog-bowl-800.webp 800w"
+              sizes="(min-width: 768px) 24rem, 80vw"
+              alt=""
+              width={800}
+              height={800}
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-[8%] size-[84%] reveal rounded-full object-cover shadow-(--shadow-card)"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Emergency */}
+      <section className="container-page py-10">
+        <div className="flex flex-wrap items-center gap-5 rounded-(--radius-3xl) bg-destructive/10 p-6 sm:p-8">
+          <span className="grid size-16 shrink-0 sos-breathe place-items-center rounded-full bg-destructive text-background">
+            <Siren aria-hidden="true" className="size-8" />
+          </span>
+          <div className="grid flex-1 gap-1">
+            <h2 className="font-heading text-2xl font-bold tracking-tight">{c.emergency.title}</h2>
+            <p className="text-pretty text-muted-foreground">{c.emergency.body}</p>
+          </div>
+          <ButtonLink href={localeHref(locale, ROUTES.emergency)} variant="destructive" size="lg">
             {c.emergency.button}
           </ButtonLink>
         </div>
@@ -204,17 +387,22 @@ export default async function HomePage() {
         <CommunityRow />
       </Suspense>
 
-      <section className="container-page py-16">
-        <div className="grid items-center gap-6 rounded-(--radius-xl) bg-primary/5 p-8 md:grid-cols-[auto_1fr_auto] md:p-12">
-          <Mishu mood="happy" className="size-24" />
-          <div className="grid gap-2">
-            <h2 className="font-heading text-2xl font-semibold tracking-tight">{c.vetCta.title}</h2>
-            <p className="max-w-xl text-muted-foreground">{c.vetCta.body}</p>
-          </div>
-          <ButtonLink href={localeHref(locale, ROUTES.forVets)} size="lg">
+      {/* For vets */}
+      <section className="container-page py-16 md:py-24">
+        <StickerSlap stickers={c.stickers} mascot={<Mishu mood="happy" className="size-32" />}>
+          <h2 className="font-heading text-5xl leading-[0.92] font-extrabold tracking-tight text-balance [font-stretch:78%] md:text-7xl">
+            {c.vetCta.title}
+          </h2>
+          <p className="max-w-lg text-lg text-pretty text-primary-foreground/85">{c.vetCta.body}</p>
+          <ButtonLink
+            href={localeHref(locale, ROUTES.forVets)}
+            size="lg"
+            className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+          >
             {c.vetCta.button}
+            <ArrowRight aria-hidden="true" />
           </ButtonLink>
-        </div>
+        </StickerSlap>
       </section>
       <p className="sr-only">{t("meta.description")}</p>
     </PageTransition>

@@ -116,7 +116,7 @@ export function VetProfileForm({ initial }: { initial: VetProfileValues }) {
     });
   }
 
-  const section = "grid gap-4 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad)";
+  const section = "grid gap-4 rounded-(--radius-2xl) bg-card shadow-(--shadow-card) p-(--card-pad)";
   const heading = "font-heading text-lg font-semibold";
 
   return (
@@ -151,7 +151,7 @@ export function VetProfileForm({ initial }: { initial: VetProfileValues }) {
               return (
                 <label
                   key={s.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-full border-(length:--border-w) px-3 py-1.5 text-sm has-checked:border-primary has-checked:bg-primary/10 has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
+                  className="flex cursor-pointer items-center gap-2 rounded-full bg-card px-3 py-1.5 text-sm shadow-(--shadow-control) has-checked:border-primary has-checked:bg-primary/10 has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
                 >
                   <input
                     type="checkbox"

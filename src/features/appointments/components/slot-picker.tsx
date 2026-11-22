@@ -72,7 +72,7 @@ export function SlotPicker({
                 setSlot(null);
               }}
               className={cn(
-                "shrink-0 rounded-(--control-radius) border-(length:--border-w) px-3 py-2 text-sm transition-colors",
+                "shrink-0 rounded-(--control-radius) bg-card px-3 py-2 text-sm shadow-(--shadow-control) transition-colors",
                 d.day === day
                   ? "border-primary bg-primary text-primary-foreground"
                   : "bg-card hover:bg-muted",
@@ -94,7 +94,7 @@ export function SlotPicker({
               aria-pressed={s === slot}
               onClick={() => setSlot(s)}
               className={cn(
-                "rounded-(--control-radius) border-(length:--border-w) px-2 py-2 text-sm tabular-nums transition-colors",
+                "rounded-(--control-radius) bg-card px-2 py-2 text-sm tabular-nums shadow-(--shadow-control) transition-colors",
                 s === slot ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted",
               )}
             >

@@ -42,7 +42,7 @@ export function PetCard({
   return (
     <Link
       href={href}
-      className="group flex items-center gap-4 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad) shadow-(--shadow-card) transition-[box-shadow,translate] duration-(--motion-fast) hover:-translate-y-0.5 hover:shadow-(--shadow-card-hover)"
+      className="group flex items-center gap-4 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-[box-shadow,translate] duration-(--motion-fast) hover:-translate-y-0.5 hover:shadow-(--shadow-card-hover)"
     >
       <PetAvatar pet={pet} />
       <span className="grid min-w-0 gap-0.5">

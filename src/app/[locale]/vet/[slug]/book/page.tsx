@@ -59,7 +59,7 @@ async function Book({ params }: { params: Promise<{ slug: string }> }) {
       </dl>
 
       {days.length === 0 ? (
-        <div className="grid justify-items-center gap-3 rounded-(--radius-xl) border-(length:--border-w) p-6 text-center">
+        <div className="grid justify-items-center gap-3 rounded-(--radius-xl) bg-card p-6 text-center shadow-(--shadow-control)">
           <CalendarX aria-hidden="true" className="size-8 text-muted-foreground" />
           <p>{t("appt.noSlots")}</p>
           <ButtonLink href={localeHref(locale, consultStartPath(slug))}>{t("vets.startChat")}</ButtonLink>

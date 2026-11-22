@@ -63,7 +63,7 @@ export function VetDocuments({ documents, locked }: { documents: VetDocument[]; 
           {documents.map((d) => (
             <li
               key={d.id}
-              className="flex items-center gap-3 rounded-(--control-radius) border-(length:--border-w) px-3 py-2 text-sm"
+              className="flex items-center gap-3 rounded-(--control-radius) bg-card px-3 py-2 text-sm shadow-(--shadow-control)"
             >
               <span className="flex-1">{t(KINDS[d.kind as Kind] ?? "vet.docOther")}</span>
               <Button variant="ghost" size="icon-sm" aria-label={t("common.view")} onClick={() => view(d.id)}>

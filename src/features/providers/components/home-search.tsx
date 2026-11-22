@@ -20,7 +20,7 @@ export function HomeSearch() {
   return (
     <form
       role="search"
-      className="grid gap-2 rounded-(--radius-xl) border-(length:--border-w) bg-card p-2 shadow-(--shadow-card) sm:grid-cols-[1fr_1fr_auto]"
+      className="grid gap-2 rounded-(--radius-2xl) bg-card p-2 shadow-(--shadow-card) sm:grid-cols-[1fr_1fr_auto]"
       onSubmit={(e) => {
         e.preventDefault();
         const qs = new URLSearchParams();

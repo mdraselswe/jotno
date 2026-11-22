@@ -41,7 +41,7 @@ async function Overview() {
         </Link>
         <Link
           href={localeHref(locale, ROUTES.vets)}
-          className="flex items-center gap-3 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad) shadow-(--shadow-card) transition-transform hover:-translate-y-0.5"
+          className="flex items-center gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-transform hover:-translate-y-0.5"
         >
           <Stethoscope aria-hidden="true" className="size-6 text-primary" />
           <span className="font-medium">{t("account.quickFind")}</span>
@@ -94,7 +94,7 @@ async function Overview() {
                 <li key={c.id}>
                   <Link
                     href={localeHref(locale, petPath(c.petId))}
-                    className="flex items-center gap-3 rounded-(--control-radius) border-(length:--border-w) bg-card px-4 py-3 hover:bg-muted/50"
+                    className="flex items-center gap-3 rounded-(--control-radius) bg-card px-4 py-3 shadow-(--shadow-card) hover:bg-muted/50"
                   >
                     <CalendarClock
                       aria-hidden="true"

@@ -94,7 +94,7 @@ async function PetDetail({ params }: { params: Promise<{ id: string }> }) {
               return (
                 <li
                   key={r.id}
-                  className="flex flex-wrap items-center gap-3 rounded-(--control-radius) border-(length:--border-w) bg-card px-4 py-3"
+                  className="flex flex-wrap items-center gap-3 rounded-(--control-radius) bg-card px-4 py-3 shadow-(--shadow-card)"
                 >
                   <div className="grid min-w-0 flex-1 gap-0.5">
                     <span className="font-medium">

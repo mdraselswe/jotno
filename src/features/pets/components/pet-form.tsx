@@ -129,7 +129,7 @@ export function PetForm({ initial }: { initial: PetFormValues }) {
           {(["female", "male", "unknown"] as const).map((sx) => (
             <label
               key={sx}
-              className="flex cursor-pointer items-center gap-2 rounded-(--control-radius) border-(length:--border-w) px-3 py-2 text-sm has-checked:border-primary has-checked:bg-primary/5 has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
+              className="flex cursor-pointer items-center gap-2 rounded-(--control-radius) bg-card px-3 py-2 text-sm shadow-(--shadow-control) has-checked:border-primary has-checked:bg-primary/5 has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
             >
               <input
                 type="radio"

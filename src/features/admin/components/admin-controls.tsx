@@ -40,7 +40,7 @@ export function ReviewActions({ providerId, status }: { providerId: string; stat
   const { pending, run, t } = useAction();
   const [reason, setReason] = useState("");
   return (
-    <div className="grid gap-3 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad)">
+    <div className="grid gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)">
       {status !== "verified" ? (
         <Button disabled={pending} onClick={() => run(() => verifyProvider(providerId))}>
           <Check aria-hidden="true" />
@@ -105,7 +105,7 @@ export function FeaturedForm({ vets }: { vets: { id: string; name: string; distr
   const [days, setDays] = useState("7");
   return (
     <form
-      className="grid gap-3 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad) sm:grid-cols-4 sm:items-end"
+      className="grid gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) sm:grid-cols-4 sm:items-end"
       onSubmit={(e) => {
         e.preventDefault();
         run(() =>

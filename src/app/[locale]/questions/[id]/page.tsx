@@ -104,7 +104,7 @@ async function Question({ params }: { params: Promise<{ id: string }> }) {
         {q.answers.map((a) => (
           <div
             key={a.id}
-            className="grid gap-3 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad)"
+            className="grid gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
           >
             <Link href={localeHref(locale, vetPath(a.vet.slug))} className="flex items-center gap-3">
               {a.vet.photoUrl ? (
@@ -148,7 +148,7 @@ async function Question({ params }: { params: Promise<{ id: string }> }) {
       </section>
 
       {isVet ? (
-        <section className="grid gap-3 rounded-(--radius-xl) border-(length:--border-w) p-(--card-pad)">
+        <section className="grid gap-3 rounded-(--radius-xl) bg-card p-(--card-pad) shadow-(--shadow-control)">
           <AnswerForm questionId={q.id} />
         </section>
       ) : null}

@@ -26,7 +26,7 @@ async function Payouts() {
           {queue.map((v) => (
             <li
               key={v.providerId}
-              className="grid gap-3 rounded-(--control-radius) border-(length:--border-w) bg-card px-4 py-3"
+              className="grid gap-3 rounded-(--control-radius) bg-card px-4 py-3 shadow-(--shadow-card)"
             >
               <div className="flex flex-wrap items-center gap-3">
                 <span className="grid min-w-0 flex-1">
@@ -93,7 +93,7 @@ async function Payouts() {
             {refundable.map((c) => (
               <li
                 key={c.id}
-                className="flex flex-wrap items-center gap-3 rounded-(--control-radius) border-(length:--border-w) bg-card px-4 py-3"
+                className="flex flex-wrap items-center gap-3 rounded-(--control-radius) bg-card px-4 py-3 shadow-(--shadow-card)"
               >
                 <span className="grid min-w-0 flex-1">
                   <span className="truncate font-medium">{c.summary}</span>

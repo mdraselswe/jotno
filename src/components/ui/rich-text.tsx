@@ -5,7 +5,7 @@ import { splitAccent } from "@/lib/rich-text";
 export function RichText({ text }: { text: string }) {
   return splitAccent(text).map((part, i) =>
     part.accent ? (
-      <span key={i} className="text-primary">
+      <span key={i} className="scribble text-primary">
         {part.text}
       </span>
     ) : (

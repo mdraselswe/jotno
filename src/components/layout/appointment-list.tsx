@@ -37,7 +37,7 @@ export function AppointmentList({
       {rows.map((r) => (
         <li
           key={r.id}
-          className="flex flex-wrap items-center gap-3 rounded-(--control-radius) border-(length:--border-w) bg-card px-4 py-3"
+          className="flex flex-wrap items-center gap-3 rounded-(--control-radius) bg-card px-4 py-3 shadow-(--shadow-card)"
         >
           <time
             dateTime={r.startsAt.toISOString()}

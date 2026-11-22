@@ -53,7 +53,7 @@ async function Results({ searchParams }: { searchParams: Promise<Search> }) {
   };
   const chip = (active: boolean) =>
     cn(
-      "shrink-0 rounded-full border-(length:--border-w) px-3 py-1 text-sm transition-colors",
+      "shrink-0 rounded-full bg-card px-3 py-1 text-sm shadow-(--shadow-control) transition-colors",
       active ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted",
     );
 

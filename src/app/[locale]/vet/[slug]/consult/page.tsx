@@ -69,7 +69,7 @@ async function Start({ params }: { params: Promise<{ slug: string }> }) {
           <p className="text-center text-xs text-muted-foreground">{t("pay.secure")}</p>
         </>
       ) : (
-        <div className="grid justify-items-center gap-4 rounded-(--radius-xl) border-(length:--border-w) p-6 text-center">
+        <div className="grid justify-items-center gap-4 rounded-(--radius-xl) bg-card p-6 text-center shadow-(--shadow-control)">
           <Mishu mood="listening" className="size-20" />
           <ButtonLink
             href={`${localeHref(locale, ROUTES.login)}/?next=${encodeURIComponent(here)}` as typeof here}

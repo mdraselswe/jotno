@@ -76,7 +76,7 @@ async function Article({ params }: { params: Promise<{ slug: string }> }) {
         </p>
       </header>
       <ArticleBody body={a.body} />
-      <aside className="grid gap-3 rounded-(--radius-xl) border-(length:--border-w) bg-card p-(--card-pad) sm:flex sm:items-center">
+      <aside className="grid gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) sm:flex sm:items-center">
         <Link href={localeHref(locale, vetPath(a.vet.slug))} className="flex flex-1 items-center gap-3">
           {a.vet.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- storage URL

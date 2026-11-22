@@ -27,7 +27,7 @@ async function Featured() {
           {slots.map((s) => (
             <li
               key={s.id}
-              className="flex flex-wrap items-center gap-3 rounded-(--control-radius) border-(length:--border-w) bg-card px-4 py-3"
+              className="flex flex-wrap items-center gap-3 rounded-(--control-radius) bg-card px-4 py-3 shadow-(--shadow-card)"
             >
               <span className="grid min-w-0 flex-1">
                 <span className="font-medium">{s.name}</span>
