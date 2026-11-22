@@ -3,7 +3,7 @@
 import { PawPrint, Stethoscope } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useState, useTransition, type FormEvent, type ReactNode } from "react";
-import { Mishu } from "@/components/brand/mishu";
+import { Spot } from "@/components/illustrations/spots";
 import { AreaPicker } from "@/components/forms/area-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,7 +76,7 @@ export function OnboardingForm({ defaultName, defaultRole }: { defaultName: stri
   return (
     <form onSubmit={submit} className="mx-auto grid w-full max-w-lg gap-8" noValidate>
       <div className="grid justify-items-center gap-3 text-center">
-        <Mishu mood={error ? "worried" : pending ? "listening" : "happy"} className="size-24" />
+        <Spot name="welcome" className="w-32" />
         <h1 className="font-heading text-3xl font-semibold tracking-tight">{t("onboarding.title")}</h1>
         <p className="text-pretty text-muted-foreground">{t("onboarding.sub")}</p>
       </div>

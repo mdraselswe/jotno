@@ -173,7 +173,7 @@ export const homeContent: Record<string, HomeContent> = {
       ],
       note: "Vets join free and keep {keep}% of every chat.",
     },
-    stickers: ["BVC verified ✓", "Get paid weekly", "Free to join", "Your own page", "Bookings in one place"],
+    stickers: ["BVC verified", "Get paid weekly", "Free to join", "Your own page", "Bookings in one place"],
     shopTeaser: {
       title: "Food, litter and care, delivered",
       body: "Checked by our team. Pay by bKash, Nagad or cash on delivery, anywhere in Bangladesh.",
@@ -301,7 +301,7 @@ export const homeContent: Record<string, HomeContent> = {
       note: "ভেটরা ফ্রিতে যোগ দেন আর প্রতিটি চ্যাটের {keep}% নিজের কাছে রাখেন।",
     },
     stickers: [
-      "BVC যাচাইকৃত ✓",
+      "BVC যাচাইকৃত",
       "প্রতি সপ্তাহে পেমেন্ট",
       "যোগ দেওয়া ফ্রি",
       "নিজের প্রোফাইল পাতা",

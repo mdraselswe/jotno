@@ -3,7 +3,7 @@
 import { ArrowLeft, Mail } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition, type FormEvent } from "react";
-import { Mishu, type MishuMood } from "@/components/brand/mishu";
+import { Spot } from "@/components/illustrations/spots";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +27,6 @@ export function LoginForm() {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(callbackError ? t("auth.callbackError") : null);
   const [wait, setWait] = useState(0);
-  const [typing, setTyping] = useState(false);
   const [pending, start] = useTransition();
 
   useEffect(() => {
@@ -35,8 +34,6 @@ export function LoginForm() {
     const id = setTimeout(() => setWait((s) => s - 1), 1000);
     return () => clearTimeout(id);
   }, [wait]);
-
-  const mood: MishuMood = pending ? "listening" : error ? "worried" : typing ? "listening" : "idle";
 
   function send(e?: FormEvent) {
     e?.preventDefault();
@@ -77,7 +74,7 @@ export function LoginForm() {
   return (
     <div className="mx-auto grid w-full max-w-sm gap-6">
       <div className="grid justify-items-center gap-3 text-center">
-        <Mishu mood={mood} className="size-28" />
+        <Spot name="welcome" className="w-36" />
         <h1 className="font-heading text-3xl font-semibold tracking-tight">{t("auth.title")}</h1>
         <p className="text-pretty text-muted-foreground">{t("auth.sub")}</p>
       </div>
@@ -107,8 +104,6 @@ export function LoginForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onFocus={() => setTyping(true)}
-              onBlur={() => setTyping(false)}
               placeholder="you@example.com"
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? "login-error" : undefined}

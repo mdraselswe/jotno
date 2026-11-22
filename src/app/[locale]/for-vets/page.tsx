@@ -1,6 +1,6 @@
 import { BadgeCheck } from "lucide-react";
 import type { Route } from "next";
-import { Mishu } from "@/components/brand/mishu";
+import { Spot } from "@/components/illustrations/spots";
 import { PageShell } from "@/components/layout/page-shell";
 import { ButtonLink } from "@/components/ui/button-link";
 import { business } from "@/config";
@@ -51,7 +51,7 @@ export default async function ForVetsPage() {
               </li>
             ))}
           </ol>
-          <Mishu mood="happy" className="hidden size-32 md:block" />
+          <Spot name="vet" className="hidden w-44 md:block" />
         </section>
         <section className="grid gap-3">
           {c.faq.map((f) => (

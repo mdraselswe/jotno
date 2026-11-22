@@ -15,10 +15,6 @@ export function PageShell({ title, sub, children }: { title: string; sub?: strin
   return (
     <PageTransition>
       <div className={CONTAINER}>
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-10 right-[-6rem] -z-10 size-72 jelly bg-band-care/50 blur-2xl md:size-96"
-        />
         <header className={HEADER}>
           <h1 className={TITLE}>
             <RichText text={title} />

@@ -24,14 +24,14 @@ const site: SiteConfig = {
   privatePaths: ["/account", "/dashboard", "/admin", "/chat", "/onboarding", "/pay", "/api", "/auth"],
   theme: {
     defaultMode: "light",
-    // Deep care green: health and growth, calm and trustworthy, never hospital-cold.
-    primary: { light: "oklch(0.44 0.09 165)", dark: "oklch(0.8 0.12 165)" },
-    primaryForeground: { light: "oklch(0.985 0.01 120)", dark: "oklch(0.2 0.04 165)" },
-    // Warm studio paper (light) and warm charcoal (dark), like a photo backdrop.
-    background: { light: "#f2efe8", dark: "#151412" },
-    // Apricot: warmth, the mascot, "available now", the blobs behind the animals.
-    highlight: { light: "oklch(0.8 0.12 55)", dark: "oklch(0.76 0.12 55)" },
-    highlightForeground: { light: "oklch(0.26 0.05 45)", dark: "oklch(0.2 0.05 45)" },
+    // Care teal: health and trust, calm, never hospital-cold. The only strong colour.
+    primary: { light: "oklch(0.47 0.085 185)", dark: "oklch(0.78 0.1 180)" },
+    primaryForeground: { light: "oklch(0.985 0.005 180)", dark: "oklch(0.18 0.03 185)" },
+    // Clean paper white (light) and deep teal-charcoal (dark).
+    background: { light: "#fbfbfa", dark: "#101413" },
+    // Amber: used sparingly (the logo's dot, highlights, "popular").
+    highlight: { light: "oklch(0.8 0.13 72)", dark: "oklch(0.78 0.12 72)" },
+    highlightForeground: { light: "oklch(0.27 0.06 60)", dark: "oklch(0.2 0.05 60)" },
   },
   contact: {
     email: "hello@jotnocare.com",

@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { Mishu } from "@/components/brand/mishu";
+import { Spot } from "@/components/illustrations/spots";
 import { Private, PrivateHeading } from "@/components/layout/private-page";
 import { ButtonLink } from "@/components/ui/button-link";
 import { petPath, ROUTES } from "@/config/routes";
@@ -37,7 +37,7 @@ async function Pets() {
       />
       {pets.length === 0 ? (
         <div className="grid justify-items-center gap-4 rounded-(--radius-xl) border-(length:--border-w) border-dashed p-10 text-center">
-          <Mishu mood="sleeping" className="size-24" />
+          <Spot name="care" className="w-36" />
           <p className="max-w-sm text-muted-foreground">{t("pets.empty")}</p>
           {add}
         </div>

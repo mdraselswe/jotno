@@ -30,7 +30,7 @@ export function UserMenu() {
   const locale = useLocale();
   const router = useRouter();
 
-  if (user === undefined) return <Skeleton className="h-(--control-h-sm) w-20 rounded-full" />;
+  if (user === undefined) return <Skeleton className="h-(--control-h-sm) w-20 rounded-(--control-radius)" />;
   if (!user)
     return (
       <ButtonLink href={localeHref(locale, ROUTES.login)} size="sm" className="min-w-20">

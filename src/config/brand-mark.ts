@@ -1,27 +1,20 @@
 /**
- * ✏️ The Jotno mark: a paw whose main pad is a heart ("care" for animals).
+ * ✏️ The Jotno mark: an open hand (a cradle) holding a dot. Care for a life,
+ * and a lowercase "j" for Jotno: the tall right arm is the stem, the curl the hook.
  * Plain SVG data in a 100×100 box, shared by the header logo
  * (components/brand/logo.tsx) and the generated app icons (scripts/generate-assets.ts).
  */
 export const MARK_VIEWBOX = "0 0 100 100";
 
-/** The heart pad (filled with the highlight colour). */
-export const MARK_HEART =
-  "M50 84C33 73 23 64 25.5 53.5 27.8 44 39.5 41 50 50.5 60.5 41 72.2 44 74.5 53.5 77 64 67 73 50 84Z";
+/** The cradle, drawn as a thick round-capped stroke (brand colour). */
+export const MARK_CRADLE = "M19 50C19 70 33 84 51 84S83 70 83 47V17";
+export const MARK_STROKE = 14;
 
-/** Four toe beans: [cx, cy, rx, ry, rotate]. */
-export const MARK_TOES: readonly (readonly [number, number, number, number, number])[] = [
-  [24, 37, 7.5, 9.5, -22],
-  [40, 23, 7.5, 10, -6],
-  [60, 23, 7.5, 10, 6],
-  [76, 37, 7.5, 9.5, 22],
-];
+/** The life it holds (highlight colour): [cx, cy, r]. */
+export const MARK_DOT = [50, 47, 13] as const;
 
 /** SVG markup of the mark (no outer <svg>), for scripts. */
-export function markSvg(toe: string, heart: string): string {
-  const toes = MARK_TOES.map(
-    ([cx, cy, rx, ry, r]) =>
-      `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" transform="rotate(${r} ${cx} ${cy})" fill="${toe}"/>`,
-  ).join("");
-  return `${toes}<path d="${MARK_HEART}" fill="${heart}"/>`;
+export function markSvg(cradle: string, dot: string): string {
+  const [cx, cy, r] = MARK_DOT;
+  return `<path d="${MARK_CRADLE}" fill="none" stroke="${cradle}" stroke-width="${MARK_STROKE}" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="${dot}"/>`;
 }

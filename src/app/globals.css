@@ -66,31 +66,31 @@
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: calc(var(--radius) * 1.2);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-3xl: calc(var(--radius) * 2);
+  --radius-4xl: calc(var(--radius) * 2.4);
 }
 
 /* Brand colours come from src/config/site.ts (set as --brand* on <html>). */
 :root,
 [data-design] {
   --background: var(--page-bg, oklch(1 var(--nc, 0) var(--nh, 0)));
-  --foreground: oklch(0.24 0.018 55);
-  --card: oklch(0.988 0.005 85);
-  --card-foreground: oklch(0.24 0.018 55);
-  --popover: oklch(0.992 0.004 85);
-  --popover-foreground: oklch(0.24 0.018 55);
+  --foreground: oklch(0.22 0.015 200);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.015 200);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.015 200);
   --primary: var(--brand, oklch(0.205 var(--nc, 0) var(--nh, 0)));
   --primary-foreground: var(--brand-foreground, oklch(0.985 var(--nc, 0) var(--nh, 0)));
   --highlight: var(--brand-highlight, oklch(0.8 0.14 70));
   --highlight-foreground: var(--brand-highlight-foreground, oklch(0.28 0.06 60));
-  --secondary: oklch(0.93 0.016 80);
-  --secondary-foreground: oklch(0.3 0.02 55);
-  --muted: oklch(0.925 0.012 80);
-  --muted-foreground: oklch(0.5 0.02 60);
-  --accent: oklch(0.92 0.03 70);
-  --accent-foreground: oklch(0.3 0.03 55);
+  --secondary: oklch(0.945 0.008 185);
+  --secondary-foreground: oklch(0.28 0.02 200);
+  --muted: oklch(0.95 0.006 185);
+  --muted-foreground: oklch(0.5 0.015 200);
+  --accent: oklch(0.94 0.02 185);
+  --accent-foreground: oklch(0.28 0.03 200);
   --destructive: oklch(0.577 0.245 27.325);
   /* Status colours: badges, alerts, toasts. Text on them uses the -foreground token. */
   --success: oklch(0.52 0.14 150);
@@ -99,8 +99,8 @@
   --warning-foreground: oklch(0.25 0.05 70);
   --info: oklch(0.55 0.15 245);
   --info-foreground: oklch(0.985 var(--nc, 0) var(--nh, 0));
-  --border: oklch(0.885 0.014 75);
-  --input: oklch(0.87 0.016 75);
+  --border: oklch(0.9 0.008 190);
+  --input: oklch(0.86 0.01 190);
   --ring: oklch(0.55 0.08 165);
   --chart-1: oklch(0.87 var(--nc, 0) var(--nh, 0));
   --chart-2: oklch(0.556 var(--nc, 0) var(--nh, 0));
@@ -121,21 +121,21 @@
 .dark,
 .dark [data-design] {
   --background: var(--page-bg-dark, oklch(0.145 var(--nc, 0) var(--nh, 0)));
-  --foreground: oklch(0.95 0.008 80);
-  --card: oklch(0.215 0.01 60);
-  --card-foreground: oklch(0.95 0.008 80);
-  --popover: oklch(0.235 0.01 60);
-  --popover-foreground: oklch(0.95 0.008 80);
+  --foreground: oklch(0.95 0.006 180);
+  --card: oklch(0.205 0.01 190);
+  --card-foreground: oklch(0.95 0.006 180);
+  --popover: oklch(0.225 0.01 190);
+  --popover-foreground: oklch(0.95 0.006 180);
   --primary: var(--brand-dark, oklch(0.922 var(--nc, 0) var(--nh, 0)));
   --primary-foreground: var(--brand-foreground-dark, oklch(0.205 var(--nc, 0) var(--nh, 0)));
   --highlight: var(--brand-highlight-dark, oklch(0.78 0.13 70));
   --highlight-foreground: var(--brand-highlight-foreground-dark, oklch(0.22 0.05 60));
-  --secondary: oklch(0.28 0.012 60);
-  --secondary-foreground: oklch(0.94 0.008 80);
-  --muted: oklch(0.27 0.01 60);
-  --muted-foreground: oklch(0.72 0.014 70);
-  --accent: oklch(0.3 0.025 60);
-  --accent-foreground: oklch(0.95 0.008 80);
+  --secondary: oklch(0.27 0.01 190);
+  --secondary-foreground: oklch(0.94 0.006 180);
+  --muted: oklch(0.26 0.01 190);
+  --muted-foreground: oklch(0.72 0.012 190);
+  --accent: oklch(0.29 0.02 185);
+  --accent-foreground: oklch(0.95 0.006 180);
   --destructive: oklch(0.704 0.191 22.216);
   --success: oklch(0.72 0.15 150);
   --success-foreground: oklch(0.2 0.04 150);
@@ -161,27 +161,28 @@
   --sidebar-ring: oklch(0.556 var(--nc, 0) var(--nh, 0));
 }
 
-/* Species bands: the colour that blooms behind each animal (home orbit,
-   chips, shop). Soft in light mode, deep in dark mode. */
+/* Species bands: the tint behind each animal (home orbit, shop). One quiet
+   family (low chroma, close lightness) so they never fight the brand teal. */
 :root {
-  --band-cat: oklch(0.86 0.1 75);
-  --band-dog: oklch(0.8 0.12 50);
-  --band-bird: oklch(0.86 0.1 135);
-  --band-rabbit: oklch(0.87 0.05 330);
-  --band-cow: oklch(0.85 0.07 95);
-  --band-goat: oklch(0.82 0.05 60);
-  --band-chicken: oklch(0.85 0.1 40);
-  --band-care: oklch(0.85 0.07 165);
+  --band-cat: oklch(0.92 0.035 80);
+  --band-dog: oklch(0.91 0.035 55);
+  --band-bird: oklch(0.92 0.04 150);
+  --band-rabbit: oklch(0.92 0.025 250);
+  --band-cow: oklch(0.92 0.03 110);
+  --band-goat: oklch(0.91 0.02 60);
+  --band-chicken: oklch(0.92 0.045 85);
+  --band-care: oklch(0.92 0.035 185);
 }
 .dark {
-  --band-cat: oklch(0.45 0.08 75);
-  --band-dog: oklch(0.45 0.1 45);
-  --band-bird: oklch(0.45 0.08 140);
-  --band-rabbit: oklch(0.42 0.06 330);
-  --band-cow: oklch(0.45 0.06 95);
-  --band-goat: oklch(0.42 0.05 60);
-  --band-chicken: oklch(0.45 0.09 40);
-  --band-care: oklch(0.42 0.07 165);
+  --band-cat: oklch(0.28 0.02 80);
+  --band-dog: oklch(0.28 0.02 55);
+  --band-bird: oklch(0.28 0.025 150);
+  --band-rabbit: oklch(0.28 0.02 250);
+  --band-cow: oklch(0.28 0.02 110);
+  --band-goat: oklch(0.28 0.015 60);
+  --band-chicken: oklch(0.28 0.02 85);
+  --band-care: oklch(0.28 0.025 185);
+  --warm-mix: 8%;
 }
 
 /* ─── Design knobs (src/config/design.ts, docs/design-system.md) ──────────
@@ -285,8 +286,8 @@
   --shadow-field-focus:
     inset 0 0 0 1px color-mix(in oklch, var(--primary) 55%, transparent),
     0 0 0 4px color-mix(in oklch, var(--primary) 15%, transparent);
-  --shadow-card: inset 0 1px 0 var(--hi), 0 1px 2px var(--shade-1), 0 10px 28px -12px var(--shade-2);
-  --shadow-card-hover: inset 0 1px 0 var(--hi), 0 2px 4px var(--shade-1), 0 20px 40px -16px var(--shade-2);
+  --shadow-card: 0 1px 2px var(--shade-1), 0 10px 28px -14px var(--shade-2);
+  --shadow-card-hover: 0 2px 4px var(--shade-1), 0 20px 40px -18px var(--shade-2);
   --shadow-overlay: inset 0 1px 0 var(--hi), 0 8px 16px var(--shade-1), 0 24px 48px -16px var(--shade-2);
   --primary-sheen: linear-gradient(to bottom, oklch(1 0 0 / 0.22), transparent 60%);
   /* No lift on hover: a moving target under the pointer flickers at its edge. */
@@ -542,15 +543,20 @@ svg.lucide {
   stroke-width: var(--icon-stroke, 2);
 }
 
-/* Fade and rise as the element scrolls into view. Pure CSS (scroll-driven
+/* Fade and rise as the element scrolls into view, and fade away as it leaves
+   at the top, so scrolling back up plays it again. Pure CSS (scroll-driven
    animations); browsers without support, and reduced motion, show it as is.
    Stagger siblings with style={{ "--i": index }}. */
 @utility reveal {
   @supports (animation-timeline: view()) {
     @media (prefers-reduced-motion: no-preference) {
-      animation: reveal-up linear both;
-      animation-timeline: view();
-      animation-range: entry calc(var(--i, 0) * 4%) entry calc(70% + var(--i, 0) * 4%);
+      animation:
+        reveal-up linear both,
+        reveal-away linear both;
+      animation-timeline: view(), view();
+      animation-range:
+        entry calc(var(--i, 0) * 4%) entry calc(70% + var(--i, 0) * 4%),
+        exit 45% exit 100%;
     }
   }
 }
@@ -559,6 +565,38 @@ svg.lucide {
   from {
     opacity: 0;
     translate: 0 1.5rem;
+    scale: 0.98;
+  }
+}
+@keyframes reveal-away {
+  to {
+    opacity: 0;
+    translate: 0 -1rem;
+    scale: 0.98;
+  }
+}
+
+/* Every page gets it without opting in: section headings, cards and photos
+   inside <main> sections and the footer. (A layer below utilities, so any
+   element with its own animation keeps it.) Opt a block out with
+   data-no-reveal (the hero, whose photos JavaScript animates). */
+@layer base {
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      :where(main section, main [data-reveal], body > footer, body footer)
+        :where(h2, .glow-border, img, [data-reveal-item]):not(
+          [data-no-reveal],
+          :where(.reveal, .glow-border, [data-no-reveal]) *
+        ) {
+        animation:
+          reveal-up linear both,
+          reveal-away linear both;
+        animation-timeline: view(), view();
+        animation-range:
+          entry 0% entry 70%,
+          exit 45% exit 100%;
+      }
+    }
   }
 }
 
@@ -711,92 +749,7 @@ svg.lucide {
   }
 }
 
-/* ─── Jotno: Mishu the cat (components/brand/mishu.tsx) ─────────────────── */
-@keyframes mishu-tail {
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-  50% {
-    transform: rotate(-14deg);
-  }
-}
-@keyframes mishu-blink {
-  0%,
-  92%,
-  100% {
-    transform: scaleY(1);
-  }
-  95% {
-    transform: scaleY(0.1);
-  }
-}
-@keyframes mishu-ear {
-  0%,
-  86%,
-  100% {
-    transform: rotate(0deg);
-  }
-  90% {
-    transform: rotate(-10deg);
-  }
-  94% {
-    transform: rotate(4deg);
-  }
-}
-@keyframes mishu-breathe {
-  0%,
-  100% {
-    transform: scale(1, 1);
-  }
-  50% {
-    transform: scale(1.015, 0.985);
-  }
-}
-@keyframes mishu-hop {
-  0%,
-  100% {
-    transform: translateY(0) scale(1, 1);
-  }
-  20% {
-    transform: translateY(0) scale(1.06, 0.94);
-  }
-  45% {
-    transform: translateY(-9px) scale(0.97, 1.04);
-  }
-  70% {
-    transform: translateY(0) scale(1.03, 0.97);
-  }
-}
-@keyframes mishu-zzz {
-  0% {
-    opacity: 0;
-    transform: translate(0, 4px);
-  }
-  30%,
-  70% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(4px, -6px);
-  }
-}
-@keyframes mishu-sparkle {
-  0% {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-  40% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.2);
-  }
-}
-
+/* ─── Jotno: live states ───────────────────────────────────────────────── */
 /* Gentle "alive" pulse for live dots and the SOS button (off with reduced motion). */
 @keyframes live-ping {
   0% {
@@ -870,7 +823,6 @@ html.lenis body {
 /* Floating header: tightens and gains a solid card as the page scrolls. */
 @keyframes header-settle {
   to {
-    --header-pad: 0.375rem;
     background-color: color-mix(in oklch, var(--card) 88%, transparent);
     box-shadow: var(--shadow-card);
   }
@@ -880,12 +832,7 @@ html.lenis body {
 @property --band-c {
   syntax: "<color>";
   inherits: true;
-  initial-value: oklch(0.85 0.07 165);
-}
-@property --header-pad {
-  syntax: "<length>";
-  inherits: true;
-  initial-value: 0.625rem;
+  initial-value: oklch(0.92 0.035 185);
 }
 @utility header-settle {
   @supports (animation-timeline: scroll()) {
@@ -943,22 +890,11 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background:
-    radial-gradient(
-      60rem 40rem at 8% -10%,
-      color-mix(in oklch, var(--highlight) 22%, transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      50rem 36rem at 100% 105%,
-      color-mix(in oklch, var(--primary) 12%, transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      40rem 30rem at 95% 15%,
-      color-mix(in oklch, var(--band-rabbit) 30%, transparent),
-      transparent 70%
-    );
+  background: radial-gradient(
+    70rem 34rem at 50% -12%,
+    color-mix(in oklch, var(--primary) 9%, transparent),
+    transparent 70%
+  );
 }
 .dark body::before {
   opacity: 0.55;
@@ -1003,16 +939,18 @@ body::before {
     inset: 0;
     z-index: 1;
     border-radius: inherit;
-    padding: 1.5px;
+    padding: 1px;
     pointer-events: none;
-    background: conic-gradient(
-      from var(--angle),
-      transparent 0 40%,
-      color-mix(in oklch, var(--primary) 55%, transparent) 58%,
-      color-mix(in oklch, var(--highlight) 90%, transparent) 68%,
-      color-mix(in oklch, var(--primary) 35%, transparent) 78%,
-      transparent 90%
-    );
+    /* One line: a still hairline, with a short teal light running round it. */
+    background:
+      conic-gradient(
+        from var(--angle),
+        transparent 0 62%,
+        color-mix(in oklch, var(--primary) 70%, transparent) 76%,
+        color-mix(in oklch, var(--primary) 25%, var(--card)) 84%,
+        transparent 92%
+      ),
+      linear-gradient(var(--border), var(--border));
     -webkit-mask:
       linear-gradient(#000 0 0) content-box,
       linear-gradient(#000 0 0);
@@ -1021,8 +959,29 @@ body::before {
       linear-gradient(#000 0 0) content-box,
       linear-gradient(#000 0 0);
     mask-composite: exclude;
-    animation: border-spin 7s linear infinite;
-    animation-delay: calc(var(--i, 0) * -1.7s);
-    opacity: 0.85;
+    animation: border-spin 8s linear infinite;
+    animation-delay: calc(var(--i, 0) * -1.9s);
   }
+  /* A glowing card inside a glowing card: only the outer one draws a line. */
+  & :is(.glow-border)::before {
+    content: none;
+  }
+}
+
+/* Section surfaces: neighbouring sections take different ones so each reads
+   as its own block, while staying inside one calm palette. */
+@utility surface-soft {
+  background-color: color-mix(in oklch, var(--primary) 9%, var(--background));
+}
+@utility surface-muted {
+  background-color: color-mix(in oklch, var(--foreground) 5%, var(--background));
+}
+@utility surface-warm {
+  background-color: color-mix(in oklch, var(--highlight) var(--warm-mix, 17%), var(--background));
+}
+/* Deep teal ink. Add the `dark` class too, so everything inside switches to
+   the dark tokens. */
+@utility surface-ink {
+  background-color: oklch(0.24 0.035 195);
+  color: var(--foreground);
 }

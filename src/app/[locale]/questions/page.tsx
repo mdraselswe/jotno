@@ -1,7 +1,7 @@
 import { MessageCircleQuestion } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Mishu } from "@/components/brand/mishu";
+import { Spot } from "@/components/illustrations/spots";
 import { PageTransition } from "@/components/motion/page-transition";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,7 +78,7 @@ async function Results({ searchParams }: { searchParams: Promise<Search> }) {
       </nav>
       {items.length === 0 ? (
         <div className="grid justify-items-center gap-4 rounded-(--radius-xl) border-(length:--border-w) border-dashed p-10 text-center">
-          <Mishu mood="listening" className="size-24" />
+          <Spot name="question" className="w-36" />
           <p className="max-w-sm text-muted-foreground">{t("qa.empty")}</p>
         </div>
       ) : (

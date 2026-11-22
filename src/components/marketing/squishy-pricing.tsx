@@ -42,9 +42,10 @@ function Card({ plan, index }: { plan: PricingCard; index: number }) {
 
   return (
     <motion.article
+      data-no-reveal
       initial={reduce ? false : { opacity: 0, y: 60, scale: 0.92 }}
       whileInView={{ opacity: 1, y: 0, scale: 1 }}
-      viewport={{ once: true, margin: "-80px" }}
+      viewport={{ once: false, margin: "-80px" }}
       transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: index * 0.08 }}
       whileTap={reduce ? undefined : { scaleX: 1.04, scaleY: 0.95 }}
       onPointerMove={move}
@@ -55,7 +56,7 @@ function Card({ plan, index }: { plan: PricingCard; index: number }) {
           : ({ rotateX: rx, rotateY: ry, transformPerspective: 900, "--i": index } as CSSProperties)
       }
       className={cn(
-        "glow-border relative grid content-start gap-5 rounded-(--radius-3xl) p-6 shadow-(--shadow-card) transition-shadow duration-(--motion-base) hover:shadow-(--shadow-card-hover) sm:p-8",
+        "glow-border relative grid content-start gap-5 rounded-(--radius-2xl) p-6 shadow-(--shadow-card) transition-shadow duration-(--motion-base) hover:shadow-(--shadow-card-hover) sm:p-8",
         plan.featured ? "bg-primary text-primary-foreground lg:-my-4 lg:py-12" : "bg-card",
       )}
     >
@@ -76,8 +77,8 @@ function Card({ plan, index }: { plan: PricingCard; index: number }) {
           <span
             aria-hidden="true"
             className={cn(
-              "absolute inset-x-0 bottom-[0.08em] -z-10 h-[0.28em] -rotate-1 rounded-full",
-              plan.featured ? "bg-primary-foreground/20" : "bg-highlight/70",
+              "absolute inset-x-0 bottom-[0.08em] -z-10 h-[0.28em] rounded-full",
+              plan.featured ? "bg-primary-foreground/20" : "bg-highlight/45",
             )}
           />
           {plan.price}
@@ -107,10 +108,10 @@ function Card({ plan, index }: { plan: PricingCard; index: number }) {
         <Link
           href={plan.href}
           className={cn(
-            "glass relative inline-flex h-12 w-full items-center justify-center rounded-full px-6 font-semibold transition-colors duration-(--motion-fast)",
+            "glass relative inline-flex h-12 w-full items-center justify-center rounded-(--control-radius) px-6 font-semibold transition-colors duration-(--motion-fast)",
             plan.featured
               ? "bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-              : "bg-foreground text-background hover:bg-foreground/85",
+              : "bg-primary/10 text-primary hover:bg-primary/16",
           )}
         >
           {plan.cta}

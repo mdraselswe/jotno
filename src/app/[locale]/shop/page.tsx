@@ -2,7 +2,6 @@ import { Search, Truck } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { Doodle } from "@/components/illustrations/doodles";
 import { BowlMenu, type BowlItem } from "@/components/marketing/bowl-menu";
 import { Suspense } from "react";
 import { PageTransition } from "@/components/motion/page-transition";
@@ -144,11 +143,7 @@ export default async function ShopPage({ searchParams }: PageProps<"/[locale]/sh
   return (
     <PageTransition>
       <div className="container-page grid gap-10 py-8 md:py-12">
-        <section className="relative overflow-hidden rounded-(--radius-4xl) bg-band-dog/45 p-6 shadow-(--shadow-card) sm:p-10">
-          <Doodle
-            name="bone"
-            className="absolute top-6 right-[22%] size-12 rotate-12 draw text-foreground/20 max-md:hidden"
-          />
+        <section className="relative overflow-hidden rounded-(--radius-3xl) surface-warm p-6 sm:p-10">
           <div className="absolute top-4 right-4 z-10 sm:top-6 sm:right-6">
             <CartLink />
           </div>

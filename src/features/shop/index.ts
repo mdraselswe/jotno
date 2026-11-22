@@ -14,7 +14,7 @@ export {
 export { CancelMyOrder } from "./components/my-order";
 export { OrderTimeline } from "./components/order-parts";
 export { CartView, type Buyer } from "./components/cart-view";
-export { productArt, ProductTile } from "./components/product-tile";
+export { productArt, ProductArt, ProductTile } from "./components/product-tile";
 export { useCart } from "./components/cart-store";
 export {
   clampQty,

@@ -1,7 +1,7 @@
 import { ShieldCheck } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { Mishu } from "@/components/brand/mishu";
+import { Spot } from "@/components/illustrations/spots";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { business } from "@/config";
@@ -70,7 +70,7 @@ async function Start({ params }: { params: Promise<{ slug: string }> }) {
         </>
       ) : (
         <div className="grid justify-items-center gap-4 rounded-(--radius-xl) bg-card p-6 text-center shadow-(--shadow-control)">
-          <Mishu mood="listening" className="size-20" />
+          <Spot name="chat" className="w-32" />
           <ButtonLink
             href={`${localeHref(locale, ROUTES.login)}/?next=${encodeURIComponent(here)}` as typeof here}
             size="lg"

@@ -41,7 +41,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 px-2 pt-2 [view-transition-name:site-header] sm:px-4 sm:pt-3">
-      <div className="mx-auto flex h-14 max-w-6xl header-settle items-center gap-3 rounded-full bg-card/60 px-(--header-pad) ps-4 backdrop-blur-xl supports-[backdrop-filter]:bg-card/45">
+      <div className="mx-auto flex h-14 max-w-6xl header-settle items-center gap-2 rounded-(--radius-2xl) bg-card/70 ps-3 pe-2 ring-1 ring-foreground/6 backdrop-blur-xl supports-[backdrop-filter]:bg-card/55 sm:gap-3 sm:ps-4">
         <Link href={localeHref(locale, ROUTES.home)} className="group" aria-label={site.name}>
           <Logo locale={locale} />
         </Link>
@@ -50,10 +50,10 @@ export function SiteHeader() {
           className="ms-4 hidden items-center gap-1 text-sm font-medium md:flex"
         >
           {links(
-            "rounded-full px-3 py-1.5 transition-[color,background-color] duration-(--motion-fast) hover:bg-foreground/5 aria-[current=page]:bg-foreground aria-[current=page]:text-background",
+            "rounded-(--control-radius) px-3 py-1.5 transition-[color,background-color] duration-(--motion-fast) hover:bg-foreground/5 aria-[current=page]:bg-foreground aria-[current=page]:text-background",
           )}
         </nav>
-        <div className="ms-auto flex items-center gap-1">
+        <div className="ms-auto flex min-w-0 items-center gap-1.5">
           <ButtonLink
             href={localeHref(locale, ROUTES.emergency)}
             size="sm"

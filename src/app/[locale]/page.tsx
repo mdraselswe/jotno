@@ -1,24 +1,13 @@
-import {
-  ArrowRight,
-  BadgeCheck,
-  HeartPulse,
-  MessageCircle,
-  Search,
-  Siren,
-  Truck,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowRight, BadgeCheck, CircleCheck, Siren, Truck } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
-import { Mishu } from "@/components/brand/mishu";
-import { Doodle } from "@/components/illustrations/doodles";
+import { Spot, type SpotName } from "@/components/illustrations/spots";
 import { HeroOrbit, type OrbitPetItem } from "@/components/marketing/hero-orbit";
 import { Marquee } from "@/components/marketing/marquee";
 import { SmoothScroll } from "@/components/marketing/smooth-scroll";
 import { SquishyPricing, type PricingCard } from "@/components/marketing/squishy-pricing";
-import { StickerSlap } from "@/components/marketing/sticker-slap";
 import { NumberTicker } from "@/components/motion/number-ticker";
 import { PageTransition } from "@/components/motion/page-transition";
 import { ButtonLink } from "@/components/ui/button-link";
@@ -38,8 +27,7 @@ import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 import { splitAccent } from "@/lib/rich-text";
 
-const STEP_ICONS: Record<StepIcon, LucideIcon> = { search: Search, chat: MessageCircle, heart: HeartPulse };
-const STEP_TONES = ["bg-band-cat", "bg-band-bird", "bg-band-rabbit"] as const;
+const STEP_ART: Record<StepIcon, SpotName> = { search: "search", chat: "chat", heart: "care" };
 
 async function LivePanel() {
   const t = await getT();
@@ -95,57 +83,59 @@ async function CommunityRow() {
   ]);
   if (questions.length === 0 && articles.length === 0) return null;
   return (
-    <section className="container-page grid gap-10 py-16 lg:grid-cols-2">
-      {questions.length > 0 ? (
-        <div className="grid content-start gap-4">
-          <div className="flex items-end justify-between gap-3">
-            <h2 className="font-heading text-3xl font-bold tracking-tight [font-stretch:85%]">
-              {t("qa.highlights")}
-            </h2>
-            <ButtonLink href={localeHref(locale, ROUTES.ask)} size="sm">
-              {t("qa.ask")}
-            </ButtonLink>
+    <section className="surface-muted">
+      <div className="container-page grid gap-10 py-20 md:py-24 lg:grid-cols-2">
+        {questions.length > 0 ? (
+          <div className="grid content-start gap-4">
+            <div className="flex items-end justify-between gap-3">
+              <h2 className="font-heading text-3xl font-bold tracking-tight [font-stretch:85%]">
+                {t("qa.highlights")}
+              </h2>
+              <ButtonLink href={localeHref(locale, ROUTES.ask)} size="sm">
+                {t("qa.ask")}
+              </ButtonLink>
+            </div>
+            <QuestionList items={questions} locale={locale} t={t} fmt={fmt} />
           </div>
-          <QuestionList items={questions} locale={locale} t={t} fmt={fmt} />
-        </div>
-      ) : null}
-      {articles.length > 0 ? (
-        <div className="grid content-start gap-4">
-          <div className="flex items-end justify-between gap-3">
-            <h2 className="font-heading text-3xl font-bold tracking-tight [font-stretch:85%]">
-              {t("art.title")}
-            </h2>
-            <Link
-              href={localeHref(locale, ROUTES.articles)}
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              {t("common.seeAll")}
-            </Link>
+        ) : null}
+        {articles.length > 0 ? (
+          <div className="grid content-start gap-4">
+            <div className="flex items-end justify-between gap-3">
+              <h2 className="font-heading text-3xl font-bold tracking-tight [font-stretch:85%]">
+                {t("art.title")}
+              </h2>
+              <Link
+                href={localeHref(locale, ROUTES.articles)}
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                {t("common.seeAll")}
+              </Link>
+            </div>
+            <ul className="grid gap-3">
+              {articles.slice(0, 3).map((a, i) => (
+                <li key={a.id} className="reveal" style={{ "--i": i } as CSSProperties}>
+                  <Link
+                    href={localeHref(locale, articlePath(a.slug))}
+                    className="group glow-border relative grid gap-1 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-[transform,box-shadow] duration-(--motion-base) ease-(--ease-ui) hover:shadow-(--shadow-card-hover)"
+                  >
+                    <span className="font-heading text-lg font-semibold">{a.title}</span>
+                    {a.excerpt ? (
+                      <span className="line-clamp-2 text-sm text-muted-foreground">{a.excerpt}</span>
+                    ) : null}
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      {a.vetName}
+                      <ArrowRight
+                        aria-hidden="true"
+                        className="ms-auto size-4 transition-transform duration-(--motion-fast) group-hover:translate-x-1"
+                      />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul className="grid gap-3">
-            {articles.slice(0, 3).map((a, i) => (
-              <li key={a.id} className="reveal" style={{ "--i": i } as CSSProperties}>
-                <Link
-                  href={localeHref(locale, articlePath(a.slug))}
-                  className="group glow-border relative grid gap-1 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-[transform,box-shadow] duration-(--motion-base) ease-(--ease-ui) hover:shadow-(--shadow-card-hover)"
-                >
-                  <span className="font-heading text-lg font-semibold">{a.title}</span>
-                  {a.excerpt ? (
-                    <span className="line-clamp-2 text-sm text-muted-foreground">{a.excerpt}</span>
-                  ) : null}
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    {a.vetName}
-                    <ArrowRight
-                      aria-hidden="true"
-                      className="ms-auto size-4 transition-transform duration-(--motion-fast) group-hover:translate-x-1"
-                    />
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </section>
   );
 }
@@ -154,7 +144,7 @@ function SectionTitle({ eyebrow, title, sub }: { eyebrow?: string; title: string
   return (
     <header className="grid max-w-2xl gap-3">
       {eyebrow ? (
-        <p className="justify-self-start rounded-full bg-card px-3 py-1 text-xs font-semibold tracking-wide text-primary uppercase shadow-(--shadow-control)">
+        <p className="justify-self-start rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold tracking-wide text-primary uppercase">
           {eyebrow}
         </p>
       ) : null}
@@ -219,7 +209,7 @@ export default async function HomePage() {
         footer={
           <Marquee
             items={c.marquee}
-            className="-rotate-1 bg-foreground py-3 font-heading text-lg font-semibold text-background md:text-xl"
+            className="bg-foreground py-3 font-heading text-lg font-semibold text-background md:text-xl"
           />
         }
       >
@@ -260,35 +250,32 @@ export default async function HomePage() {
       <section className="container-page grid gap-10 py-20 md:py-28">
         <SectionTitle title={c.stepsTitle} />
         <ol className="grid gap-5 md:grid-cols-3">
-          {c.steps.map((s, i) => {
-            const Icon = STEP_ICONS[s.icon];
-            return (
-              <li
-                key={s.title}
-                className="group glow-border relative grid reveal gap-4 overflow-hidden rounded-(--radius-3xl) bg-card p-7 shadow-(--shadow-card) transition-[transform,box-shadow] duration-(--motion-base) ease-(--ease-ui) hover:shadow-(--shadow-card-hover)"
-                style={{ "--i": i } as CSSProperties}
+          {c.steps.map((s, i) => (
+            <li
+              key={s.title}
+              className="group glow-border relative grid content-start gap-3 rounded-(--radius-2xl) bg-card p-6 shadow-(--shadow-card) transition-shadow duration-(--motion-base) ease-(--ease-ui) hover:shadow-(--shadow-card-hover)"
+              style={{ "--i": i } as CSSProperties}
+            >
+              <span
+                aria-hidden="true"
+                className="absolute top-5 right-6 font-heading text-sm font-bold text-muted-foreground tabular-nums"
               >
-                <span
-                  aria-hidden="true"
-                  className="absolute top-4 right-6 font-heading text-7xl leading-none! font-extrabold text-foreground/7 [font-stretch:75%]"
-                >
-                  {fmt.number(i + 1)}
-                </span>
-                <span
-                  className={`grid size-14 place-items-center rounded-2xl ${STEP_TONES[i] ?? "bg-band-care"} transition-transform duration-(--motion-base) ease-out-expo group-hover:scale-110 group-hover:-rotate-6`}
-                >
-                  <Icon aria-hidden="true" className="size-7" />
-                </span>
-                <h3 className="font-heading text-2xl font-bold tracking-tight">{s.title}</h3>
-                <p className="text-muted-foreground">{s.body}</p>
-              </li>
-            );
-          })}
+                {fmt.number(0)}
+                {fmt.number(i + 1)}
+              </span>
+              <Spot
+                name={STEP_ART[s.icon]}
+                className="-ms-3 w-36 transition-transform duration-(--motion-slow) ease-out-expo group-hover:scale-105"
+              />
+              <h3 className="font-heading text-2xl font-bold tracking-tight">{s.title}</h3>
+              <p className="text-muted-foreground">{s.body}</p>
+            </li>
+          ))}
         </ol>
       </section>
 
       {/* Live vets */}
-      <section className="bg-band-care/40">
+      <section className="surface-soft">
         <div className="container-page grid gap-8 py-20 md:py-24 lg:grid-cols-[22rem_1fr]">
           <div className="grid content-start gap-6 lg:sticky lg:top-24">
             <SectionTitle title={t("home.vetsTitle")} />
@@ -330,20 +317,15 @@ export default async function HomePage() {
       </section>
 
       {/* Shop */}
-      <section className="container-page py-6">
-        <div className="relative grid items-center gap-8 overflow-hidden rounded-(--radius-4xl) bg-band-dog/60 p-6 shadow-(--shadow-card) sm:p-10 md:grid-cols-[1fr_1.1fr]">
-          <Doodle name="bone" className="absolute top-6 right-8 size-14 rotate-12 draw text-foreground/25" />
-          <Doodle
-            name="paw"
-            className="absolute bottom-6 left-[46%] size-10 -rotate-12 text-foreground/20 max-md:hidden"
-          />
-          <div className="relative grid gap-4">
+      <section className="surface-warm">
+        <div className="container-page grid items-center gap-10 py-20 md:grid-cols-[1fr_1.1fr] md:py-24">
+          <div className="grid gap-4">
             <h2 className="font-heading text-4xl leading-[0.95] font-bold tracking-tight text-balance [font-stretch:80%] md:text-5xl">
               {c.shopTeaser.title}
             </h2>
             <p className="max-w-md text-pretty text-foreground/75">{c.shopTeaser.body}</p>
             <p className="flex items-center gap-2 text-sm font-medium">
-              <Truck aria-hidden="true" className="size-4" />
+              <Truck aria-hidden="true" className="size-4 text-primary" />
               {t("shop.codNote")}
             </p>
             <ButtonLink href={localeHref(locale, ROUTES.shop)} size="lg" className="justify-self-start">
@@ -351,27 +333,29 @@ export default async function HomePage() {
               <ArrowRight aria-hidden="true" />
             </ButtonLink>
           </div>
-          <div className="relative mx-auto aspect-square w-full max-w-sm">
-            <span aria-hidden="true" className="absolute inset-0 jelly bg-card/60" />
+          <div className="relative mx-auto w-full max-w-md">
             {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized local photo */}
             <img
               src="/images/pets/dog-bowl-800.webp"
               srcSet="/images/pets/dog-bowl-400.webp 400w, /images/pets/dog-bowl-800.webp 800w"
-              sizes="(min-width: 768px) 24rem, 80vw"
+              sizes="(min-width: 768px) 28rem, 90vw"
               alt=""
               width={800}
               height={800}
               loading="lazy"
               decoding="async"
-              className="absolute inset-[8%] size-[84%] reveal rounded-full object-cover shadow-(--shadow-card)"
+              className="aspect-[4/3] w-full rounded-(--radius-3xl) object-cover shadow-(--shadow-card)"
             />
+            <span className="absolute -bottom-8 -left-6 rounded-(--radius-2xl) bg-card p-1 shadow-(--shadow-card) max-sm:hidden">
+              <Spot name="shop" className="w-32" />
+            </span>
           </div>
         </div>
       </section>
 
       {/* Emergency */}
-      <section className="container-page py-10">
-        <div className="flex flex-wrap items-center gap-5 rounded-(--radius-3xl) bg-destructive/10 p-6 sm:p-8">
+      <section className="container-page py-14">
+        <div className="flex flex-wrap items-center gap-5 rounded-(--radius-2xl) border border-destructive/20 bg-destructive/6 p-6 sm:p-8">
           <span className="grid size-16 shrink-0 sos-breathe place-items-center rounded-full bg-destructive text-background">
             <Siren aria-hidden="true" className="size-8" />
           </span>
@@ -390,21 +374,39 @@ export default async function HomePage() {
       </Suspense>
 
       {/* For vets */}
-      <section className="container-page py-16 md:py-24">
-        <StickerSlap stickers={c.stickers} mascot={<Mishu mood="happy" className="size-32" />}>
-          <h2 className="font-heading text-5xl leading-[0.92] font-extrabold tracking-tight text-balance [font-stretch:78%] md:text-7xl">
-            {c.vetCta.title}
-          </h2>
-          <p className="max-w-lg text-lg text-pretty text-primary-foreground/85">{c.vetCta.body}</p>
-          <ButtonLink
-            href={localeHref(locale, ROUTES.forVets)}
-            size="lg"
-            className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-          >
-            {c.vetCta.button}
-            <ArrowRight aria-hidden="true" />
-          </ButtonLink>
-        </StickerSlap>
+      <section className="container-page py-20 md:py-24">
+        <div className="relative grid items-center gap-10 overflow-hidden rounded-(--radius-3xl) bg-primary p-8 text-primary-foreground shadow-(--shadow-card) sm:p-12 md:grid-cols-[1.3fr_1fr]">
+          <div
+            aria-hidden="true"
+            className="absolute -top-24 -right-24 size-80 rounded-full bg-primary-foreground/6"
+          />
+          <div className="relative grid gap-5">
+            <h2 className="font-heading text-4xl leading-[0.95] font-extrabold tracking-tight text-balance [font-stretch:80%] md:text-6xl">
+              {c.vetCta.title}
+            </h2>
+            <p className="max-w-lg text-lg text-pretty text-primary-foreground/85">{c.vetCta.body}</p>
+            <ButtonLink
+              href={localeHref(locale, ROUTES.forVets)}
+              size="lg"
+              className="justify-self-start bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+            >
+              {c.vetCta.button}
+              <ArrowRight aria-hidden="true" />
+            </ButtonLink>
+          </div>
+          <ul className="relative grid gap-3">
+            {c.stickers.map((item, i) => (
+              <li
+                key={item}
+                className="flex reveal items-center gap-3 rounded-(--radius-xl) bg-primary-foreground/10 px-4 py-3 font-medium ring-1 ring-primary-foreground/15"
+                style={{ "--i": i } as CSSProperties}
+              >
+                <CircleCheck aria-hidden="true" className="size-5 shrink-0 text-highlight" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
       <p className="sr-only">{t("meta.description")}</p>
     </PageTransition>

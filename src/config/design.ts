@@ -2,18 +2,18 @@ import { designSchema, type DesignConfig } from "./schema.ts";
 
 /**
  * ✏️ Jotno's look, as knobs (docs/design-system.md → Design knobs).
- * "Soft & tactile" (direction 1 on /dev/directions): objects you can press,
- * light from above, layered soft shadows, smooth eased motion (no spring wobble on hover), warm greys.
+ * Calm and professional: one radius scale (10px controls, 16px cards, 24px
+ * at most), soft layered shadows, smooth eased motion, cool neutral greys.
  */
 const design: DesignConfig = {
-  radius: "1.1rem",
-  controlShape: "pill",
+  radius: "0.625rem",
+  controlShape: "rounded",
   border: "none",
   elevation: "tactile",
   density: "airy",
   motion: "smooth",
-  texture: "grain",
-  neutral: { hue: 75, chroma: 0.012 },
+  texture: "none",
+  neutral: { hue: 180, chroma: 0.006 },
 };
 
 export const designConfig = designSchema.parse(design);

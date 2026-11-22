@@ -1,5 +1,4 @@
 import { Truck } from "lucide-react";
-import { Doodle } from "@/components/illustrations/doodles";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -10,7 +9,7 @@ import { localePath } from "@/config/locale";
 import { pageUrl, productPath, ROUTES } from "@/config/routes";
 import { categoryName } from "@/content/shop";
 import { getSettings } from "@/features/settings/server";
-import { AddToCartButton, CartLink, productArt, ProductTile } from "@/features/shop";
+import { AddToCartButton, CartLink, productArt, ProductArt, ProductTile } from "@/features/shop";
 import { getProduct } from "@/features/shop/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -55,14 +54,14 @@ async function Product({ params }: { params: Promise<{ slug: string }> }) {
           }}
         />
         <div
-          className={`glow-border relative aspect-square overflow-hidden rounded-(--radius-3xl) shadow-(--shadow-card) ${productArt(p.category).tone}`}
+          className={`glow-border relative aspect-square overflow-hidden rounded-(--radius-2xl) shadow-(--shadow-card) ${productArt(p.category).tone}`}
         >
           {p.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- storage URL
             <img src={p.imageUrl} alt={p.name} className="size-full object-cover" />
           ) : (
             <span className="grid size-full place-items-center">
-              <Doodle name={productArt(p.category).doodle} className="size-2/5 draw text-foreground/45" />
+              <ProductArt category={p.category} className="size-1/3 text-primary/60" />
             </span>
           )}
         </div>

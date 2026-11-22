@@ -215,6 +215,7 @@ export function HeroOrbit({
   return (
     <section
       ref={root}
+      data-no-reveal
       aria-roledescription="carousel"
       aria-label={label}
       // Pulled up under the floating header, so the band runs to the top.

@@ -17,7 +17,7 @@ function Card({
       data-size={size}
       data-interactive={interactive || undefined}
       className={cn(
-        "group/card glow-border relative flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl border-(length:--border-w) border-(--line) bg-card py-(--card-spacing) text-sm text-card-foreground shadow-(--shadow-card) [--card-spacing:var(--card-pad)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-interactive:transition-[translate,box-shadow] data-interactive:duration-(--motion-base) data-interactive:ease-(--ease-ui) data-interactive:hover:shadow-(--shadow-card-hover) data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        "group/card glow-border relative flex flex-col gap-(--card-spacing) overflow-hidden rounded-2xl border-(length:--border-w) border-(--line) bg-card py-(--card-spacing) text-sm text-card-foreground shadow-(--shadow-card) [--card-spacing:var(--card-pad)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-interactive:transition-[translate,box-shadow] data-interactive:duration-(--motion-base) data-interactive:ease-(--ease-ui) data-interactive:hover:shadow-(--shadow-card-hover) data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-2xl *:[img:last-child]:rounded-b-2xl",
         className,
       )}
       {...props}

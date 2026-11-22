@@ -54,7 +54,7 @@ export function VetCard({
       href={localeHref(locale, vetPath(vet.slug))}
       className={cn(
         "group glow-border relative flex h-full gap-4 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-[box-shadow,translate] duration-(--motion-base) ease-(--ease-ui) hover:shadow-(--shadow-card-hover)",
-        vet.featured && "ring-2 ring-highlight",
+        vet.featured && "bg-[color-mix(in_oklch,var(--highlight)_8%,var(--card))]",
       )}
     >
       <span className="relative">

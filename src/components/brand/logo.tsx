@@ -1,22 +1,25 @@
-import { MARK_HEART, MARK_TOES, MARK_VIEWBOX } from "@/config/brand-mark";
+import { MARK_CRADLE, MARK_DOT, MARK_STROKE, MARK_VIEWBOX } from "@/config/brand-mark";
 import { cn } from "@/lib/utils";
 
-/** The Jotno mark: toes in the brand colour, the heart pad in the highlight colour. */
+/** The Jotno mark: an open hand in the brand colour holding a dot in the highlight colour. */
 export function LogoMark({ className }: { className?: string }) {
+  const [cx, cy, r] = MARK_DOT;
   return (
     <svg viewBox={MARK_VIEWBOX} aria-hidden="true" className={cn("size-7 shrink-0", className)}>
-      {MARK_TOES.map(([cx, cy, rx, ry, r]) => (
-        <ellipse
-          key={`${cx}-${cy}`}
-          cx={cx}
-          cy={cy}
-          rx={rx}
-          ry={ry}
-          transform={`rotate(${r} ${cx} ${cy})`}
-          className="fill-primary"
-        />
-      ))}
-      <path d={MARK_HEART} className="fill-highlight" />
+      <path
+        d={MARK_CRADLE}
+        fill="none"
+        strokeWidth={MARK_STROKE}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="stroke-primary"
+      />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        className="origin-[50px_47px] fill-highlight transition-transform duration-(--motion-base) ease-out-expo group-hover:-translate-y-1.5"
+      />
     </svg>
   );
 }
@@ -25,7 +28,7 @@ export function LogoMark({ className }: { className?: string }) {
 export function Logo({ locale, className }: { locale: string; className?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
-      <LogoMark className="transition-transform duration-(--motion-base) ease-spring group-hover:-rotate-12" />
+      <LogoMark />
       <span className="font-heading text-xl leading-none font-bold tracking-tight">
         {locale === "bn" ? "যত্ন" : "Jotno"}
       </span>

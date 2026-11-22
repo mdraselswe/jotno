@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { Mishu } from "@/components/brand/mishu";
+import { Spot } from "@/components/illustrations/spots";
 import { PageTransition } from "@/components/motion/page-transition";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -43,7 +43,7 @@ async function Results({ searchParams }: { searchParams: Promise<Search> }) {
   if (featured.length === 0 && results.length === 0) {
     return (
       <div className="grid justify-items-center gap-4 rounded-(--radius-xl) border-(length:--border-w) border-dashed p-10 text-center">
-        <Mishu mood="worried" className="size-24" />
+        <Spot name="search" className="w-36" />
         <p className="max-w-sm text-muted-foreground">{t("vets.noResults")}</p>
         <ButtonLink href={localeHref(locale, ROUTES.ask)} variant="outline">
           {t("account.quickAsk")}

@@ -1,5 +1,5 @@
+import { Bath, Bone, PawPrint, Puzzle, Shirt, type LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { Doodle, type DoodleName } from "@/components/illustrations/doodles";
 import { productPath } from "@/config/routes";
 import type { Formatter, Translate } from "@/i18n";
 import { localeHref } from "@/lib/locale-href";
@@ -8,16 +8,21 @@ import type { ProductCard } from "../server/queries";
 import { AddToCartButton } from "./add-to-cart";
 
 /** Placeholder art per category, until a product has a photo. */
-const ART: Record<string, { doodle: DoodleName; tone: string }> = {
-  food: { doodle: "bone", tone: "bg-band-dog/45" },
-  grooming: { doodle: "cat", tone: "bg-band-rabbit/55" },
-  accessories: { doodle: "paw", tone: "bg-band-cow/55" },
-  toys: { doodle: "ball", tone: "bg-band-bird/50" },
-  dress: { doodle: "heart", tone: "bg-band-chicken/45" },
+const ART: Record<string, { icon: LucideIcon; tone: string }> = {
+  food: { icon: Bone, tone: "bg-band-dog" },
+  grooming: { icon: Bath, tone: "bg-band-rabbit" },
+  accessories: { icon: PawPrint, tone: "bg-band-cow" },
+  toys: { icon: Puzzle, tone: "bg-band-bird" },
+  dress: { icon: Shirt, tone: "bg-band-chicken" },
 };
 
-export const productArt = (category: string) =>
-  ART[category] ?? { doodle: "paw" as const, tone: "bg-band-care/50" };
+export const productArt = (category: string) => ART[category] ?? { icon: PawPrint, tone: "bg-band-care" };
+
+/** The placeholder: the category's icon, drawn thin and large. */
+export function ProductArt({ category, className }: { category: string; className?: string }) {
+  const Icon = productArt(category).icon;
+  return <Icon aria-hidden="true" className={className} style={{ strokeWidth: 1.25 }} />;
+}
 
 /** Product card for the shop grid. */
 export function ProductTile({
@@ -34,10 +39,10 @@ export function ProductTile({
   const href = localeHref(locale, productPath(p.slug));
   const art = productArt(p.category);
   return (
-    <div className="group glow-border relative grid h-full grid-rows-[auto_1fr_auto] overflow-hidden rounded-(--radius-3xl) bg-card shadow-(--shadow-card) transition-[transform,box-shadow] duration-(--motion-base) ease-(--ease-ui) hover:shadow-(--shadow-card-hover)">
+    <div className="group glow-border relative grid h-full grid-rows-[auto_1fr_auto] overflow-hidden rounded-(--radius-2xl) bg-card shadow-(--shadow-card) transition-[transform,box-shadow] duration-(--motion-base) ease-(--ease-ui) hover:shadow-(--shadow-card-hover)">
       <Link
         href={href}
-        className={`relative m-2 block aspect-square overflow-hidden rounded-(--radius-2xl) ${art.tone}`}
+        className={`relative m-2 block aspect-square overflow-hidden rounded-(--radius-xl) ${art.tone}`}
         tabIndex={-1}
         aria-hidden="true"
       >
@@ -56,9 +61,9 @@ export function ProductTile({
           />
         ) : (
           <span className="grid size-full place-items-center">
-            <Doodle
-              name={art.doodle}
-              className="size-2/5 text-foreground/45 transition-transform duration-(--motion-slow) ease-(--ease-ui) group-hover:scale-110 group-hover:-rotate-6"
+            <ProductArt
+              category={p.category}
+              className="size-1/3 text-primary/60 transition-transform duration-(--motion-slow) ease-(--ease-ui) group-hover:scale-110"
             />
           </span>
         )}
