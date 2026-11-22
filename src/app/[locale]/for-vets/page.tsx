@@ -1,73 +1,78 @@
-import { BadgeCheck } from "lucide-react";
 import type { Route } from "next";
-import { Spot } from "@/components/illustrations/spots";
-import { PageShell } from "@/components/layout/page-shell";
-import { ButtonLink } from "@/components/ui/button-link";
+import { VetScene } from "@/components/illustrations/join-scenes";
+import { EarningsCalc } from "@/components/marketing/join-parts";
+import { JoinPage } from "@/components/marketing/join-page";
 import { business } from "@/config";
 import { ROUTES } from "@/config/routes";
-import { forVetsContent } from "@/content/pages";
+import { vetJoinContent } from "@/content/join";
 import { format, pickLocale } from "@/i18n";
-import { getLocale } from "@/i18n/server";
+import { getFormatter, getLocale } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { pageMetadata } from "@/lib/metadata";
 
 export async function generateMetadata() {
   const locale = await getLocale();
-  const c = pickLocale(forVetsContent, locale);
-  return pageMetadata(c.title.replace(/[[\]]/g, ""), c.sub, ROUTES.forVets, locale);
+  const c = pickLocale(vetJoinContent, locale);
+  const pct = business.consult.commissionBps / 100;
+  return pageMetadata(
+    c.title.replace(/[[\]]/g, ""),
+    format(c.body, { keep: 100 - pct }),
+    ROUTES.forVets,
+    locale,
+  );
 }
 
+/** Shareable sign-up page for vets. */
 export default async function ForVetsPage() {
-  const locale = await getLocale();
-  const c = pickLocale(forVetsContent, locale);
+  const [locale, fmt] = await Promise.all([getLocale(), getFormatter()]);
+  const c = pickLocale(vetJoinContent, locale);
+  const taka = (poisha: number) => fmt.money(poisha / 100, { maximumFractionDigits: 0 });
   const pct = business.consult.commissionBps / 100;
-  const join =
-    `${localeHref(locale, ROUTES.login)}/?next=${encodeURIComponent(localeHref(locale, ROUTES.onboarding))}` as Route;
+  const vars = {
+    pct: fmt.number(pct),
+    keep: fmt.number(100 - pct),
+    window: fmt.number(business.consult.replyWindowMinutes),
+    booking: taka(business.appointment.bookingFee),
+    minPayout: taka(business.payout.minimum),
+  };
+  const onboarding = `${localeHref(locale, ROUTES.onboarding)}/?as=vet`;
+  const signUp = `${localeHref(locale, ROUTES.login)}/?next=${encodeURIComponent(onboarding)}` as Route;
+  const f = (s: string) => format(s, vars);
   return (
-    <PageShell title={c.title} sub={c.sub}>
-      <div className="grid gap-12">
-        <ButtonLink href={join} size="lg" className="justify-self-start">
-          {c.cta}
-        </ButtonLink>
-        <ul className="grid gap-4 md:grid-cols-2">
-          {c.benefits.map((b) => (
-            <li
-              key={b.title}
-              className="glow-border relative grid gap-2 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
-            >
-              <h2 className="font-heading text-lg font-semibold">{b.title}</h2>
-              <p className="text-sm text-muted-foreground">{format(b.body, { pct })}</p>
-            </li>
-          ))}
-        </ul>
-        <section className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
-          <ol className="grid gap-3">
-            {c.steps.map((s, i) => (
-              <li key={s} className="flex gap-3">
-                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary text-sm font-medium text-primary-foreground tabular-nums">
-                  {i + 1}
-                </span>
-                <span className="pt-0.5">{s}</span>
-              </li>
-            ))}
-          </ol>
-          <Spot name="vet" className="hidden w-44 md:block" />
+    <JoinPage
+      c={c}
+      vars={vars}
+      fmt={fmt}
+      scene={<VetScene />}
+      ctaHref={signUp}
+      secondaryHref={"#earnings" as Route}
+      pets={["cat", "dog"]}
+      middle={
+        <section id="earnings" className="container-page scroll-mt-24 py-20 md:py-24">
+          <div
+            data-animate
+            className="grid gap-8 rounded-(--radius-3xl) bg-card p-7 shadow-(--shadow-card) sm:p-10"
+          >
+            <div className="grid gap-2">
+              <h2 className="font-heading text-3xl font-bold tracking-tight md:text-5xl">{c.calc.title}</h2>
+              <p className="text-muted-foreground">{f(c.calc.sub)}</p>
+            </div>
+            <EarningsCalc
+              minFee={business.consult.minFee}
+              maxFee={business.consult.maxFee}
+              commissionBps={business.consult.commissionBps}
+              labels={{
+                chats: c.calc.chats,
+                fee: c.calc.fee,
+                perDay: c.calc.perDay,
+                monthly: c.calc.monthly,
+                keep: f(c.calc.keep),
+                note: c.calc.note,
+              }}
+            />
+          </div>
         </section>
-        <section className="grid gap-3">
-          {c.faq.map((f) => (
-            <details
-              key={f.q}
-              className="group glow-border relative rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
-            >
-              <summary className="flex cursor-pointer items-center gap-2 font-medium">
-                <BadgeCheck aria-hidden="true" className="size-4 text-primary" />
-                {f.q}
-              </summary>
-              <p className="mt-2 text-sm text-muted-foreground">{f.a}</p>
-            </details>
-          ))}
-        </section>
-      </div>
-    </PageShell>
+      }
+    />
   );
 }

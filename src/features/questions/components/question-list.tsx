@@ -48,7 +48,9 @@ export function QuestionList({
                 )}
               >
                 <MessageSquareText aria-hidden="true" className="size-3.5" />
-                {q.answerCount > 0 ? t("qa.answers", { n: fmt.number(q.answerCount) }) : t("qa.noAnswerYet")}
+                {q.answerCount > 0
+                  ? t(q.answerCount === 1 ? "qa.answerOne" : "qa.answers", { n: fmt.number(q.answerCount) })
+                  : t("qa.noAnswerYet")}
               </span>
               <span>{fmt.date(q.createdAt)}</span>
             </span>

@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, count, desc, eq, gte, ilike, inArray, lte, ne, or, sql, type SQL } from "drizzle-orm";
 import { db, schema } from "@/infrastructure/db";
 import { mediaUrl } from "@/infrastructure/storage";
+import { runCatalog, type ShopFilters } from "../catalog";
 import { ORDER_STATUSES, type OrderStatus } from "../status";
 
 const PR = schema.products;
@@ -36,41 +37,24 @@ export const toProductCard = (p: ProductRow, locale: string): ProductCard => ({
   imageUrl: mediaUrl(p.imagePath),
 });
 
-export const PRODUCT_SORTS = ["popular", "new", "price_asc", "price_desc"] as const;
-export type ProductSort = (typeof PRODUCT_SORTS)[number];
-
-export async function listProducts(input: {
-  category?: string | null;
-  speciesId?: number | null;
-  q?: string | null;
-  sort?: ProductSort | null;
-  locale: string;
-}): Promise<ProductCard[]> {
-  const conds: SQL[] = [eq(PR.active, true)];
-  if (input.category) conds.push(eq(PR.category, input.category));
-  if (input.speciesId) conds.push(eq(PR.speciesId, input.speciesId));
-  const q = input.q?.trim().slice(0, 60);
-  if (q) {
-    const like = `%${q.replace(/[%_\\]/g, "")}%`;
-    const match = or(ilike(PR.nameEn, like), ilike(PR.nameBn, like), ilike(PR.sku, like));
-    if (match) conds.push(match);
-  }
-  const order =
-    input.sort === "price_asc"
-      ? [asc(PR.price)]
-      : input.sort === "price_desc"
-        ? [desc(PR.price)]
-        : input.sort === "new"
-          ? [desc(PR.createdAt)]
-          : // In stock first, then the newest.
-            [desc(sql`${PR.stock} > 0`), desc(PR.createdAt)];
-  const rows = await db()
-    .select()
-    .from(PR)
-    .where(and(...conds))
-    .orderBy(...order)
-    .limit(200);
-  return rows.map((p) => toProductCard(p, input.locale));
+/**
+ * The shop grid: every active product (with units sold in the last 90 days,
+ * for "popular"), then search, filters, facets, sort and paging in
+ * `runCatalog`. Returns cards plus the facet counts for the filter panel.
+ */
+export async function shopCatalog(filters: ShopFilters, locale: string) {
+  const sold = sql<number>`coalesce((
+    select sum(oi.qty)::int from ${OI} oi join ${O} o on o.id = oi.order_id
+    where oi.product_id = "products"."id" and o.status not in ('cancelled', 'returned')
+      and o.created_at > now() - interval '90 days'
+  ), 0)`;
+  const rows = await db().select({ p: PR, sold }).from(PR).where(eq(PR.active, true)).limit(2000);
+  const result = runCatalog(
+    rows.map((r) => ({ ...r.p, sold: Number(r.sold) })),
+    filters,
+    locale,
+  );
+  return { ...result, items: result.items.map((p) => toProductCard(p, locale)) };
 }
 
 export async function getProduct(slug: string, locale: string) {

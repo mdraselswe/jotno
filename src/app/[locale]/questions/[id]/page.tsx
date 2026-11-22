@@ -99,7 +99,9 @@ async function Question({ params }: { params: Promise<{ id: string }> }) {
 
       <section className="grid gap-4" aria-labelledby="answers">
         <h2 id="answers" className="font-heading text-xl font-semibold">
-          {q.answerCount > 0 ? t("qa.answers", { n: fmt.number(q.answerCount) }) : t("qa.noAnswerYet")}
+          {q.answerCount > 0
+            ? t(q.answerCount === 1 ? "qa.answerOne" : "qa.answers", { n: fmt.number(q.answerCount) })
+            : t("qa.noAnswerYet")}
         </h2>
         {q.answers.map((a) => (
           <div

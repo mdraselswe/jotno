@@ -966,3 +966,354 @@ body::before {
   background-color: oklch(0.2 0.004 70);
   color: var(--foreground);
 }
+
+/* Dot texture for section backgrounds (sits on top of the section's colour). */
+@utility dots {
+  background-image: radial-gradient(
+    color-mix(in oklch, var(--foreground) 13%, transparent) 1.1px,
+    transparent 1.6px
+  );
+  background-size: 22px 22px;
+  background-position: 0 0;
+}
+
+/* ─── Peeking pets (components/illustrations/pets.tsx) ─────────────────── */
+.pet-peek {
+  transform: translateY(0);
+}
+.pet-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.pet-ear-l,
+.pet-ear-r {
+  transform-box: fill-box;
+  transform-origin: 50% 90%;
+}
+.pet-tongue {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pet-peek {
+    animation: pet-peek 9s var(--ease-in-out-quart, ease-in-out) infinite;
+    animation-delay: var(--pet-delay, 0s);
+    transform-origin: 50% 100%;
+  }
+  .pet-eyes {
+    animation: pet-blink 4.5s ease-in-out infinite;
+  }
+  .pet-ear-l {
+    animation: pet-ear 4s ease-in-out infinite;
+  }
+  .pet-ear-r {
+    animation: pet-ear 4s ease-in-out 1.3s infinite reverse;
+  }
+  .pet-tongue {
+    animation: pet-pant 0.5s ease-in-out infinite alternate;
+  }
+  .pet-roll {
+    animation: pet-roll 5s ease-in-out infinite alternate;
+  }
+}
+@keyframes pet-peek {
+  0%,
+  8% {
+    transform: translateY(100%);
+  }
+  18% {
+    transform: translateY(6%);
+  }
+  22%,
+  34% {
+    transform: translateY(0) rotate(0);
+  }
+  40%,
+  48% {
+    transform: translateY(0) rotate(-7deg);
+  }
+  54%,
+  62% {
+    transform: translateY(0) rotate(6deg);
+  }
+  68%,
+  76% {
+    transform: translateY(0) rotate(0);
+  }
+  88%,
+  100% {
+    transform: translateY(100%);
+  }
+}
+@keyframes pet-blink {
+  0%,
+  44%,
+  50%,
+  100% {
+    transform: scaleY(1);
+  }
+  47% {
+    transform: scaleY(0.1);
+  }
+}
+@keyframes pet-ear {
+  0%,
+  70%,
+  100% {
+    transform: rotate(0);
+  }
+  78% {
+    transform: rotate(-10deg);
+  }
+  86% {
+    transform: rotate(4deg);
+  }
+}
+@keyframes pet-pant {
+  to {
+    transform: scaleY(1.25);
+  }
+}
+@keyframes pet-roll {
+  from {
+    transform: translateX(0) rotate(0);
+  }
+  to {
+    transform: translateX(var(--roll, 160px)) rotate(400deg);
+  }
+}
+
+/* Shop header scene (components/illustrations/shop-scene.tsx). */
+.scene-pop,
+.scene-look,
+.scene-peek-side {
+  transform-box: view-box;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .scene-pop {
+    animation: scene-pop 7s var(--ease-in-out-quart, ease-in-out) infinite;
+  }
+  .scene-look {
+    transform-origin: 160px 150px;
+    animation: scene-look 7s ease-in-out infinite;
+  }
+  .scene-peek-side {
+    animation: scene-peek-side 7s var(--ease-in-out-quart, ease-in-out) 1.5s infinite;
+  }
+}
+@keyframes scene-pop {
+  0%,
+  6% {
+    transform: translateY(96px);
+  }
+  16%,
+  80% {
+    transform: translateY(0);
+  }
+  90%,
+  100% {
+    transform: translateY(96px);
+  }
+}
+@keyframes scene-look {
+  0%,
+  24%,
+  70%,
+  100% {
+    transform: rotate(0);
+  }
+  32%,
+  42% {
+    transform: rotate(-8deg);
+  }
+  50%,
+  60% {
+    transform: rotate(7deg);
+  }
+}
+@keyframes scene-peek-side {
+  0%,
+  10% {
+    transform: translateX(-30px);
+  }
+  22%,
+  70% {
+    transform: translateX(0);
+  }
+  82%,
+  100% {
+    transform: translateX(-30px);
+  }
+}
+
+/* Onboarding scenes (components/illustrations/join-scenes.tsx). */
+.chat-pop,
+.chip-in,
+.coin-drop,
+.badge-pulse,
+.peek-side-l,
+.peek-up,
+.dot-bounce {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .chat-pop {
+    animation: chat-pop 8s var(--ease-out-quart, ease-out) infinite;
+    animation-delay: calc(var(--i, 0) * 0.9s);
+  }
+  .chip-in {
+    animation: chip-in 6s var(--ease-out-quart, ease-out) infinite;
+    animation-delay: calc(var(--i, 0) * 1.2s);
+  }
+  .coin-drop {
+    animation: coin-drop 6s var(--ease-out-quart, ease-out) infinite;
+    animation-delay: calc(var(--i, 0) * 0.5s);
+  }
+  .badge-pulse {
+    animation: badge-pulse 2.4s ease-in-out infinite;
+  }
+  .peek-side-l {
+    animation: peek-side-l 9s var(--ease-in-out-quart, ease-in-out) infinite;
+  }
+  .peek-up {
+    animation: peek-up 7s var(--ease-in-out-quart, ease-in-out) infinite;
+  }
+  .dot-bounce {
+    animation: dot-bounce 1s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.15s);
+  }
+}
+@keyframes chat-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.85);
+  }
+  8%,
+  86% {
+    opacity: 1;
+    transform: none;
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@keyframes chip-in {
+  0% {
+    opacity: 0;
+    transform: translateX(36px);
+  }
+  10%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  92%,
+  100% {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+@keyframes coin-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-46px);
+  }
+  12% {
+    opacity: 1;
+    transform: translateY(3px);
+  }
+  18%,
+  84% {
+    opacity: 1;
+    transform: none;
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+@keyframes badge-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.18);
+  }
+}
+@keyframes peek-side-l {
+  0%,
+  8% {
+    transform: translateX(30px) rotate(8deg);
+  }
+  20%,
+  70% {
+    transform: none;
+  }
+  82%,
+  100% {
+    transform: translateX(30px) rotate(8deg);
+  }
+}
+@keyframes peek-up {
+  0%,
+  10%,
+  90%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  30%,
+  50% {
+    transform: translateY(-6px) rotate(-4deg);
+  }
+  60%,
+  80% {
+    transform: translateY(-6px) rotate(4deg);
+  }
+}
+@keyframes dot-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* Range slider in the brand style (the vet earnings example). --fill: 0–100%. */
+@utility range {
+  appearance: none;
+  height: 0.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+  background: linear-gradient(
+    to right,
+    var(--primary) var(--fill, 50%),
+    color-mix(in oklch, var(--foreground) 12%, transparent) var(--fill, 50%)
+  );
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: var(--card);
+    border: 3px solid var(--primary);
+    box-shadow: var(--shadow-control);
+  }
+  &::-moz-range-thumb {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 999px;
+    background: var(--card);
+    border: 3px solid var(--primary);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 4px;
+  }
+}

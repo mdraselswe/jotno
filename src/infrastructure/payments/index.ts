@@ -29,7 +29,11 @@ export function payments(): PaymentGateway {
       sandbox: env.SSLCOMMERZ_SANDBOX,
     });
   }
-  const mockAllowed = !isProduction || publicEnv.NEXT_PUBLIC_DEMO;
-  if (!mockAllowed) throw new Error("PAYMENT_PROVIDER=mock is only allowed in development or the demo");
-  return mockGateway;
+  if (env.PAYMENT_PROVIDER === "mock") {
+    const mockAllowed = !isProduction || publicEnv.NEXT_PUBLIC_DEMO;
+    if (!mockAllowed) throw new Error("PAYMENT_PROVIDER=mock is only allowed in development or the demo");
+    return mockGateway;
+  }
+  // Manual mode has no gateway: payments are confirmed by an admin.
+  throw new Error("No payment gateway: PAYMENT_PROVIDER is manual");
 }

@@ -16,5 +16,7 @@ export function afterPaymentPath(result: SettleResult, locale: string): string {
           : result.purpose === "order"
             ? ROUTES.orders
             : ROUTES.home;
-  return `${localePath(locale, route)}/?payment=${status}`;
+  const path = localePath(locale, route);
+  // "/" + "/?…" would be "//?…", a protocol-relative URL.
+  return `${path.endsWith("/") ? path : `${path}/`}?payment=${status}`;
 }

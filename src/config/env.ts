@@ -44,7 +44,7 @@ const serverSchema = z.object({
   SSLCOMMERZ_STORE_ID: z.string().default(""),
   SSLCOMMERZ_STORE_PASSWORD: z.string().default(""),
   SSLCOMMERZ_SANDBOX: flag.default(true),
-  /** Shared secret for /api/cron/* (GitHub Actions schedule sends it). */
+  /** Shared secret for /api/cron/* (the Cloudflare cron worker sends it, worker/cron-worker.js). */
   CRON_SECRET: z.string().default(""),
   VAPID_PRIVATE_KEY: z.string().default(""),
   VAPID_SUBJECT: z.string().default("mailto:hello@jotnocare.com"),
@@ -75,5 +75,30 @@ export const buildEnv = buildSchema.parse({
   NODE_ENV: process.env.NODE_ENV,
 });
 
+let warned = false;
+/**
+ * Values a live site can't do without. Missing ones are logged loudly (once)
+ * instead of failing quietly: payment expiry, refunds and chat closing never
+ * run without CRON_SECRET, uploads fail without the service key, and a
+ * DATABASE_URL left on localhost means the real database was never set.
+ */
+function warnMissing(env: z.infer<typeof serverSchema>) {
+  if (warned || process.env.NODE_ENV !== "production" || process.env.NEXT_PHASE === "phase-production-build")
+    return;
+  warned = true;
+  const missing = [
+    env.DATABASE_URL.includes("127.0.0.1") && "DATABASE_URL (still the local default)",
+    !env.SUPABASE_SERVICE_ROLE_KEY && "SUPABASE_SERVICE_ROLE_KEY",
+    !env.CRON_SECRET && "CRON_SECRET",
+    env.ADMIN_EMAILS.length === 0 && "ADMIN_EMAILS",
+  ].filter(Boolean);
+  if (missing.length > 0)
+    console.error(`[jotno] Missing production settings: ${missing.join(", ")}. See docs/launch.md.`);
+}
+
 /** Server-only values. Never import this from a client component. */
-export const serverEnv = () => serverSchema.parse(process.env);
+export const serverEnv = () => {
+  const env = serverSchema.parse(process.env);
+  warnMissing(env);
+  return env;
+};

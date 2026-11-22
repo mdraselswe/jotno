@@ -61,6 +61,37 @@ test.describe("public flows", () => {
     await expect(page.locator("main a[href*='/shop/']").first()).toBeVisible();
   });
 
+  test("shop filters, search and sort work together", async ({ page }) => {
+    await page.goto("/en/shop/");
+    const count = page.locator("main p[aria-live]");
+    await expect(count).toContainText(/\d+ products/);
+    // On phones the filters fold away behind a button.
+    const show = page.getByRole("button", { name: "Show filters" });
+    if (await show.isVisible()) await show.click();
+    await page.getByRole("checkbox", { name: /^Food/ }).check();
+    await expect(page).toHaveURL(/category=food/);
+    await page.getByRole("searchbox").fill("cat");
+    await page.getByRole("searchbox").press("Enter");
+    await expect(page).toHaveURL(/q=cat/);
+    await expect(page).toHaveURL(/category=food/);
+    await expect(count).toContainText(/results for “cat”/);
+    await page.locator("select[name=sort]").selectOption("price_asc");
+    await expect(page).toHaveURL(/sort=price_asc/);
+    // Every filter that is on can be removed from its chip.
+    await page.getByRole("link", { name: /Remove filter: “cat”/ }).click();
+    await expect(page).not.toHaveURL(/q=cat/);
+    await expect(page).toHaveURL(/category=food/);
+  });
+
+  test("a gateway callback can't mark a manual payment paid", async ({ request }) => {
+    const res = await request.get(
+      "/api/pay/return/?value_a=00000000-0000-0000-0000-000000000000&amount=100&status=VALID",
+      { maxRedirects: 0 },
+    );
+    expect(res.status()).toBe(303);
+    expect(res.headers().location ?? "").toContain("payment=unknown");
+  });
+
   test("cron needs the secret", async ({ request }) => {
     const res = await request.post("/api/cron/frequent/");
     expect(res.status()).toBe(401);

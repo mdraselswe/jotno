@@ -7,6 +7,7 @@ import { ROUTES } from "@/config/routes";
 import { VetCard, VetFilters } from "@/features/providers";
 import { searchProviders } from "@/features/providers/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
+import { parseNear, parseRadius, widerRadius } from "@/lib/geo";
 import { localeHref } from "@/lib/locale-href";
 import { pageMetadata } from "@/lib/metadata";
 
@@ -24,11 +25,8 @@ async function Results({ searchParams }: { searchParams: Promise<Search> }) {
   const locale = await getLocale();
   const t = await getT();
   const fmt = await getFormatter();
-  const nearRaw = one(sp.near)?.split(",").map(Number);
-  const near =
-    nearRaw && nearRaw.length === 2 && nearRaw.every(Number.isFinite)
-      ? { lat: nearRaw[0] ?? 0, lon: nearRaw[1] ?? 0 }
-      : null;
+  const near = parseNear(one(sp.near));
+  const radiusKm = parseRadius(one(sp.r));
   const page = int(one(sp.page)) ?? 1;
   const { featured, results, total } = await searchProviders({
     districtId: int(one(sp.district)),
@@ -37,10 +35,34 @@ async function Results({ searchParams }: { searchParams: Promise<Search> }) {
     q: one(sp.q),
     onlyAvailable: one(sp.now) === "1",
     near,
+    radiusKm,
     page,
   });
 
   if (featured.length === 0 && results.length === 0) {
+    if (near) {
+      const wider = widerRadius(radiusKm);
+      const widen = new URLSearchParams();
+      for (const [k, v] of Object.entries(sp)) {
+        const value = one(v);
+        if (value && k !== "page") widen.set(k, value);
+      }
+      if (wider) widen.set("r", String(wider));
+      return (
+        <div className="grid justify-items-center gap-4 rounded-(--radius-xl) border-(length:--border-w) border-dashed p-10 text-center">
+          <Spot name="search" className="w-36" />
+          <p className="max-w-sm text-muted-foreground">{t("vets.noneNear", { km: fmt.number(radiusKm) })}</p>
+          {wider ? (
+            <ButtonLink
+              href={`${localeHref(locale, ROUTES.vets)}/?${widen.toString()}` as never}
+              scroll={false}
+            >
+              {t("vets.widen", { km: fmt.number(wider) })}
+            </ButtonLink>
+          ) : null}
+        </div>
+      );
+    }
     return (
       <div className="grid justify-items-center gap-4 rounded-(--radius-xl) border-(length:--border-w) border-dashed p-10 text-center">
         <Spot name="search" className="w-36" />

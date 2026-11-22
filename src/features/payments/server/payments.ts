@@ -5,7 +5,7 @@ import { business } from "@/config";
 import { publicEnv } from "@/config/env";
 import { chatPath, orderPath, payPath, ROUTES } from "@/config/routes";
 import { notify, notifyAdmins } from "@/features/notifications/server";
-import { releaseOrder } from "@/features/shop/server";
+import { PaymentInReview, releaseOrder } from "@/features/shop/server";
 import { db, schema } from "@/infrastructure/db";
 import { audit } from "@/infrastructure/db/helpers";
 import { payments as gateway, usesGateway, type VerifiedPayment } from "@/infrastructure/payments";
@@ -128,6 +128,10 @@ export async function markPaid(
  * Safe to call many times for the same payment (return URL + IPN + retries).
  */
 export async function settlePayment(fields: Record<string, string>, locale: string): Promise<SettleResult> {
+  const unknown = { paymentId: null, purpose: null, refId: null, status: "unknown" } as const;
+  // Manual wallets/COD are confirmed by an admin, never by a gateway callback:
+  // without this, anyone could post "paid" for a pending manual payment.
+  if (!usesGateway()) return unknown;
   let verified: VerifiedPayment;
   try {
     verified = await gateway().verify(fields);
@@ -135,7 +139,8 @@ export async function settlePayment(fields: Record<string, string>, locale: stri
     return { paymentId: null, purpose: null, refId: null, status: "unknown" };
   }
   const [payment] = await db().select().from(P).where(eq(P.id, verified.paymentId)).limit(1);
-  if (!payment) return { paymentId: null, purpose: null, refId: null, status: "unknown" };
+  // Only payments started with this gateway can be settled by it.
+  if (!payment || payment.gateway !== gateway().name) return unknown;
   const base = { paymentId: payment.id, purpose: payment.purpose, refId: payment.refId };
 
   if (payment.status === "paid") return { ...base, status: "paid" };
@@ -183,7 +188,10 @@ export async function cancelTarget(purpose: Purpose, refId: string) {
       .set({ status: "cancelled" })
       .where(and(eq(schema.appointments.id, refId), eq(schema.appointments.status, "pending_payment")));
   } else if (purpose === "order") {
-    await releaseOrder(refId, "payment not completed", null);
+    // Another payment for this order may be waiting for review: leave the order then.
+    await releaseOrder(refId, "payment not completed", null).catch((e: unknown) => {
+      if (!(e instanceof PaymentInReview)) throw e;
+    });
   }
 }
 

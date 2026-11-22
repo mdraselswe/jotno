@@ -98,16 +98,29 @@ export function ScrollScenes() {
         ScrollTrigger.refresh();
       };
 
-      scan();
       let timer = 0;
       const observer = new MutationObserver(() => {
         window.clearTimeout(timer);
         timer = window.setTimeout(scan, 150);
       });
-      const main = document.querySelector("main");
-      if (main) observer.observe(main, { childList: true, subtree: true });
+      // Start once the page has loaded and gone idle, so streamed sections have
+      // hydrated before GSAP writes inline styles onto them.
+      const begin = () => {
+        if (disposed) return;
+        scan();
+        const main = document.querySelector("main");
+        if (main) observer.observe(main, { childList: true, subtree: true });
+      };
+      const idle = () => {
+        if (typeof window.requestIdleCallback === "function")
+          window.requestIdleCallback(begin, { timeout: 800 });
+        else setTimeout(begin, 200); // Safari
+      };
+      if (document.readyState === "complete") idle();
+      else window.addEventListener("load", idle, { once: true });
 
       cleanup = () => {
+        window.removeEventListener("load", idle);
         observer.disconnect();
         window.clearTimeout(timer);
         ctx.revert();

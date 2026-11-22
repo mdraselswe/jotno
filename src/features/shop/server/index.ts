@@ -9,19 +9,25 @@ export {
   adminProducts,
   getProduct,
   listCoupons,
-  listProducts,
   lowStockProducts,
   myOrder,
   myOrders,
   orderCounts,
   ordersForExport,
-  PRODUCT_SORTS,
   productsByIds,
+  shopCatalog,
   shopReport,
   usableCoupon,
   type OrderDetail,
   type ProductCard,
-  type ProductSort,
 } from "./queries";
 export { notifyLowStock } from "./jobs";
-export { adjustStock, CANCELLABLE, OutOfStock, releaseOrder, reserveStock, returnOrder } from "./stock";
+export {
+  adjustStock,
+  CANCELLABLE,
+  OutOfStock,
+  PaymentInReview,
+  releaseOrder,
+  reserveStock,
+  returnOrder,
+} from "./stock";

@@ -17,6 +17,8 @@ export const ROUTES = {
   shop: "/shop",
   cart: "/shop/cart",
   forVets: "/for-vets",
+  /** Shareable sign-up page for pet owners. */
+  join: "/join",
   terms: "/legal/terms",
   privacy: "/legal/privacy",
   refund: "/legal/refund",
@@ -72,6 +74,7 @@ export const SITEMAP_ROUTES: readonly string[] = [
   ROUTES.articles,
   ROUTES.shop,
   ROUTES.forVets,
+  ROUTES.join,
   ROUTES.terms,
   ROUTES.privacy,
   ROUTES.refund,

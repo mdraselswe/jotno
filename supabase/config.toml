@@ -345,6 +345,23 @@ skip_nonce_check = false
 # If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
 email_optional = false
 
+# Google sign-in (the button shows when NEXT_PUBLIC_GOOGLE_AUTH=true). Local setup:
+# 1. Google Cloud → APIs & Services → Credentials → OAuth client ID (Web application).
+#    Authorised redirect URI: http://127.0.0.1:54321/auth/v1/callback
+# 2. Put the client ID below, and SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=<client secret> in .env.local.
+# 3. enabled = true, then `pnpm db:stop && pnpm db:start`.
+# Production: add the same client in Supabase dashboard → Auth → Providers → Google, with the
+# redirect URI https://<project-ref>.supabase.co/auth/v1/callback (see docs/launch.md).
+[auth.external.google]
+enabled = false
+client_id = ""
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+redirect_uri = ""
+url = ""
+# Required for local sign in with Google.
+skip_nonce_check = true
+email_optional = false
+
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS) standard.
 # You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.
 [auth.web3.solana]

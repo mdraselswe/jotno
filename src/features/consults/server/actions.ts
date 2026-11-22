@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { business } from "@/config";
+import { publicEnv } from "@/config/env";
 import { chatPath } from "@/config/routes";
 import { actionViewer } from "@/features/auth/server";
 import { notify } from "@/features/notifications/server";
@@ -47,12 +48,15 @@ export async function startConsult(
       status: schema.providers.status,
       profileId: schema.providers.profileId,
       name: schema.providers.displayName,
+      isDemo: schema.providers.isDemo,
     })
     .from(schema.providers)
     .where(eq(schema.providers.id, providerId))
     .limit(1);
   if (!vet || vet.status !== "verified" || vet.profileId === viewer.id)
     return { ok: false, error: "common.notAllowed" };
+  // Demo vets are for the preview only: never take real money for them.
+  if (vet.isDemo && !publicEnv.NEXT_PUBLIC_DEMO) return { ok: false, error: "common.notAllowed" };
 
   if (parsed.data.patientId) {
     const [pet] = await db()

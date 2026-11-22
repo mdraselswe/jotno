@@ -38,3 +38,16 @@ export {
   type OrderAction,
   type OrderStatus,
 } from "./status";
+export {
+  defaultSort,
+  hasFilters,
+  parseShopFilters,
+  SHOP_PAGE_SIZE,
+  SHOP_SORTS,
+  shopQuery,
+  toggle,
+  type Facets,
+  type ShopFilters,
+  type ShopSort,
+} from "./catalog";
+export { FilterPanel, SHOP_FORM_ID, ShopFilterForm, SortSelect } from "./components/shop-filters";

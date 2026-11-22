@@ -16,7 +16,12 @@ const worker = {
   fetch: handler.fetch,
   async scheduled(event, env, ctx) {
     const job = JOB_BY_CRON[event.cron];
-    if (!job || !env.CRON_SECRET) return;
+    if (!job) return;
+    if (!env.CRON_SECRET) {
+      // Without it no scheduled job runs: unpaid holds never expire, refunds and chat closing stop.
+      console.error(`cron ${event.cron}: CRON_SECRET is not set, job "${job}" skipped`);
+      return;
+    }
     const request = new Request(`https://cron.internal/api/cron/${job}/`, {
       method: "POST",
       headers: { authorization: `Bearer ${env.CRON_SECRET}` },

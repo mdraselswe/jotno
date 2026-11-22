@@ -4,9 +4,9 @@ import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { business } from "@/config";
-import { ROUTES, vetPath } from "@/config/routes";
+import { adminVetPath, ROUTES, vetPath } from "@/config/routes";
 import { actionViewer } from "@/features/auth/server";
-import { notify } from "@/features/notifications/server";
+import { notify, notifyAdmins } from "@/features/notifications/server";
 import { ownsUpload } from "@/features/uploads/server";
 import type { MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
@@ -44,7 +44,14 @@ export type VetProfileInput = z.input<typeof profileSchema>;
 
 async function myProvider(profileId: string) {
   const [row] = await db()
-    .select({ id: p.id, status: p.status, photoPath: p.photoPath, slug: p.slug })
+    .select({
+      id: p.id,
+      status: p.status,
+      photoPath: p.photoPath,
+      slug: p.slug,
+      displayName: p.displayName,
+      registrationNo: p.registrationNo,
+    })
     .from(p)
     .where(eq(p.profileId, profileId))
     .limit(1);
@@ -96,14 +103,23 @@ export async function saveVetProfile(locale: string, input: VetProfileInput): Pr
         ? sql`(select extensions.st_setsrid(extensions.st_makepoint(lon, lat), 4326) from public.areas where id = ${v.areaId} and lat is not null)`
         : null;
 
+  // The name and BVC number are what an admin checked against the register:
+  // changing either sends a verified vet back to review.
+  const same = (a: string | null | undefined, b: string | null | undefined) =>
+    (a ?? "").replace(/\s+/g, " ").trim().toLowerCase() ===
+    (b ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+  const recheck =
+    mine.status === "verified" &&
+    (!same(mine.registrationNo, v.registrationNo) || !same(mine.displayName, v.displayName));
+
   await db()
     .update(p)
     .set({
+      ...(recheck ? { status: "pending" as const } : {}),
       displayName: v.displayName,
       title: v.title || null,
       bio: v.bio || null,
       qualifications: v.qualifications || null,
-      // Changing the registration number of a verified vet sends it back to review.
       registrationNo: v.registrationNo || null,
       experienceYears: v.experienceYears ?? null,
       consultFee: v.consultFee,
@@ -128,6 +144,18 @@ export async function saveVetProfile(locale: string, input: VetProfileInput): Pr
   }
   if (mine.photoPath && mine.photoPath !== v.photoPath) await storage.remove("media", [mine.photoPath]);
   await refreshCompleteness(mine.id);
+  if (recheck) {
+    await audit(viewer.id, "vet.recheck", "provider", mine.id, {
+      from: { name: mine.displayName, bvc: mine.registrationNo },
+      to: { name: v.displayName, bvc: v.registrationNo },
+    });
+    await notifyAdmins("vet.recheck", {
+      title: "Vet changed name or BVC number",
+      body: `${v.displayName} · BVC ${v.registrationNo ?? "-"}: check again`,
+      url: adminVetPath(mine.id),
+      tag: `vet-${mine.id}`,
+    });
+  }
   revalidatePath(localeHref(locale, vetPath(mine.slug)));
   revalidatePath(localeHref(locale, ROUTES.vetProfile));
   return { ok: true };

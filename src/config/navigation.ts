@@ -18,6 +18,7 @@ export const NAV_LINKS: readonly NavLink[] = [
 /** Footer links. */
 export const FOOTER_LINKS: readonly NavLink[] = [
   { href: ROUTES.about, label: "nav.about" },
+  { href: ROUTES.join, label: "nav.join" },
   { href: ROUTES.forVets, label: "nav.forVets" },
   { href: ROUTES.emergency, label: "nav.emergency" },
   { href: ROUTES.terms, label: "nav.terms" },

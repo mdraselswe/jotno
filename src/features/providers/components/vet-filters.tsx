@@ -1,6 +1,6 @@
 "use client";
 
-import { LocateFixed, Search, X } from "lucide-react";
+import { LoaderCircle, LocateFixed, Search, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { SPECIES } from "@/content/geo";
-import { useLocale, useT } from "@/i18n/client";
+import { useFormatter, useLocale, useT } from "@/i18n/client";
+import { DEFAULT_RADIUS_KM, locate, NEAR_RADII, parseRadius, type LocateError } from "@/lib/geo";
 import { cn } from "@/lib/utils";
 
 const num = (v: string | null) => (v && /^\d+$/.test(v) ? Number(v) : null);
@@ -18,6 +19,7 @@ const num = (v: string | null) => (v && /^\d+$/.test(v) ? Number(v) : null);
 export function VetFilters() {
   const t = useT();
   const locale = useLocale();
+  const fmt = useFormatter();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -36,18 +38,21 @@ export function VetFilters() {
     start(() => router.replace(`${pathname}?${next.toString()}` as never, { scroll: false }));
   }
 
-  function locate() {
-    if (!("geolocation" in navigator)) return toast.error(t("vets.nearMeFailed"));
-    navigator.geolocation.getCurrentPosition(
-      (pos) =>
+  const [locating, setLocating] = useState(false);
+  const radius = parseRadius(params.get("r"));
+
+  function findMe() {
+    setLocating(true);
+    locate()
+      .then((pos) =>
         update({
-          near: `${pos.coords.latitude.toFixed(4)},${pos.coords.longitude.toFixed(4)}`,
+          near: `${pos.lat.toFixed(4)},${pos.lon.toFixed(4)}`,
           district: null,
           area: null,
         }),
-      () => toast.error(t("vets.nearMeFailed")),
-      { timeout: 10_000 },
-    );
+      )
+      .catch((reason: LocateError) => toast.error(t(`vets.locate.${reason}`)))
+      .finally(() => setLocating(false));
   }
 
   return (
@@ -81,10 +86,18 @@ export function VetFilters() {
           type="button"
           variant={near ? "default" : "outline"}
           size="sm"
-          onClick={near ? () => update({ near: null }) : locate}
+          onClick={near ? () => update({ near: null, r: null }) : findMe}
+          disabled={locating}
+          aria-busy={locating}
         >
-          {near ? <X aria-hidden="true" /> : <LocateFixed aria-hidden="true" />}
-          {t("vets.nearMe")}
+          {near ? (
+            <X aria-hidden="true" />
+          ) : locating ? (
+            <LoaderCircle aria-hidden="true" className="animate-spin" />
+          ) : (
+            <LocateFixed aria-hidden="true" />
+          )}
+          {locating ? t("vets.locating") : t("vets.nearMe")}
         </Button>
         <label className="flex items-center gap-2 rounded-(--control-radius) bg-card px-3 py-1.5 text-sm shadow-(--shadow-control)">
           <Switch
@@ -94,6 +107,32 @@ export function VetFilters() {
           {t("vets.onlyOnline")}
         </label>
       </div>
+
+      {near ? (
+        <fieldset className="flex flex-wrap items-center gap-2">
+          <legend className="sr-only">{t("vets.radius")}</legend>
+          <span aria-hidden="true" className="text-sm text-muted-foreground">
+            {t("vets.radius")}
+          </span>
+          {NEAR_RADII.map((km) => {
+            const on = radius === km;
+            return (
+              <button
+                key={km}
+                type="button"
+                aria-pressed={on}
+                onClick={() => update({ r: km === DEFAULT_RADIUS_KM ? null : String(km) })}
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-sm font-medium shadow-(--shadow-control) transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                  on ? "bg-foreground text-background" : "bg-card hover:bg-muted",
+                )}
+              >
+                {t("vets.km", { n: fmt.number(km) })}
+              </button>
+            );
+          })}
+        </fieldset>
+      ) : null}
 
       <fieldset className="flex flex-wrap gap-2">
         <legend className="sr-only">{t("common.species")}</legend>

@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
+import { and, count, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -26,10 +26,12 @@ import {
 } from "../cart";
 import { customerCanCancel, orderActions, type OrderAction, type OrderStatus } from "../status";
 import { productsByIds, usableCoupon, type ProductCard } from "./queries";
-import { adjustStock, OutOfStock, releaseOrder, reserveStock, returnOrder } from "./stock";
+import { adjustStock, OutOfStock, PaymentInReview, releaseOrder, reserveStock, returnOrder } from "./stock";
 
 export type ShopResult = { ok: true } | { ok: false; error: MessageKey };
 const O = schema.orders;
+/** Unpaid or not-yet-confirmed orders one account may have at a time. */
+const MAX_OPEN_ORDERS = 3;
 const PR = schema.products;
 const C = schema.coupons;
 const uuid = z.uuid();
@@ -74,15 +76,24 @@ const checkoutSchema = z.object({
 
 /**
  * Owner: creates the order from database prices, takes the stock right away
- * (so nobody else buys the last one) and sends them to the pay page, where
- * they choose bKash, Nagad or cash on delivery.
+ * (so nobody else buys the last one) and returns the pay page, where they
+ * choose bKash, Nagad or cash on delivery.
  */
-export async function checkout(locale: string, input: z.input<typeof checkoutSchema>): Promise<ShopResult> {
+export async function checkout(
+  locale: string,
+  input: z.input<typeof checkoutSchema>,
+): Promise<{ ok: true; url: string } | { ok: false; error: MessageKey }> {
   const viewer = await actionViewer();
   if (!viewer) return { ok: false, error: "common.signInFirst" };
   const parsed = checkoutSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "shop.invalid" };
   if (!(await rateLimit(`checkout:${viewer.id}`, 10, 3600))) return { ok: false, error: "common.tooMany" };
+  // Each order holds stock, so one account can't tie it all up with unpaid orders.
+  const [open] = await db()
+    .select({ n: count() })
+    .from(O)
+    .where(and(eq(O.userId, viewer.id), inArray(O.status, ["pending_payment", "placed"])));
+  if ((open?.n ?? 0) >= MAX_OPEN_ORDERS) return { ok: false, error: "shop.tooManyOpen" };
 
   const lines = normalizeCart(parsed.data.lines);
   const products = await productsByIds(
@@ -167,7 +178,8 @@ export async function checkout(locale: string, input: z.input<typeof checkoutSch
     },
     locale,
   });
-  redirect(url as never);
+  // The client empties the cart, then goes to the pay page (or the gateway).
+  return { ok: true, url };
 }
 
 /** Owner: cancel before packing. A paid order's money goes back through /admin/payments. */
@@ -180,7 +192,11 @@ export async function cancelMyOrder(locale: string, id: string): Promise<ShopRes
     .where(and(eq(O.id, id), eq(O.userId, viewer.id)))
     .limit(1);
   if (!o || !customerCanCancel(o.status)) return { ok: false, error: "shop.cantCancel" };
-  const moved = await releaseOrder(id, "cancelled by customer", viewer.id);
+  const moved = await releaseOrder(id, "cancelled by customer", viewer.id).catch((e: unknown) => {
+    if (e instanceof PaymentInReview) return "review" as const;
+    throw e;
+  });
+  if (moved === "review") return { ok: false, error: "shop.paymentInReview" };
   if (!moved) return { ok: false, error: "shop.cantCancel" };
   if (o.status === "paid")
     await refundPlatform("order", id, `order #${o.number} cancelled by customer`, viewer.id);
@@ -237,7 +253,11 @@ export async function updateOrder(
 
   if (action === "cancel") {
     if (reason.length < 3) return { ok: false, error: "admin.reasonHint" };
-    const moved = await releaseOrder(id, reason, me.id);
+    const moved = await releaseOrder(id, reason, me.id).catch((e: unknown) => {
+      if (e instanceof PaymentInReview) return "review" as const;
+      throw e;
+    });
+    if (moved === "review") return { ok: false, error: "shop.paymentInReviewAdmin" };
     if (!moved) return { ok: false, error: "shop.cantMove" };
     if (o.status === "paid" || (o.status === "processing" && o.paymentMethod !== "cod"))
       await refundPlatform("order", id, `order #${o.number}: ${reason}`, me.id);

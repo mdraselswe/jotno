@@ -9,3 +9,4 @@ export {
   type Role,
   type Viewer,
 } from "./session";
+export { removeUnconfirmedAccounts } from "./jobs";

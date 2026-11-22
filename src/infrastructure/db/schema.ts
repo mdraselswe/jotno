@@ -414,7 +414,9 @@ export const answerVotes = pgTable(
 ).enableRLS();
 
 // ── Consults (paid chat) ────────────────────────────────────────────────────
-const isParticipant = sql`(select auth.uid()) = owner_id or (select auth.uid()) = (select p.profile_id from public.providers p where p.id = provider_id)`;
+// public.my_provider_ids() (security definer, migration 20261122200000) returns the
+// caller's own provider ids; reading public.providers directly here would hit its RLS.
+const isParticipant = sql`(select auth.uid()) = owner_id or provider_id in (select public.my_provider_ids())`;
 
 export const consults = pgTable(
   "consults",
@@ -468,7 +470,7 @@ export const messages = pgTable(
     pgPolicy("messages_participants_read", {
       for: "select",
       to: authenticatedRole,
-      using: sql`exists (select 1 from public.consults c where c.id = consult_id and ((select auth.uid()) = c.owner_id or (select auth.uid()) = (select p.profile_id from public.providers p where p.id = c.provider_id)))`,
+      using: sql`exists (select 1 from public.consults c where c.id = consult_id and ((select auth.uid()) = c.owner_id or c.provider_id in (select public.my_provider_ids())))`,
     }),
   ],
 ).enableRLS();

@@ -25,6 +25,7 @@ const ROUTES = [
   "/shop",
   "/emergency",
   "/for-vets",
+  "/join",
   "/legal/terms",
   "/legal/refund",
 ];
@@ -112,8 +113,11 @@ test.describe("smoke", () => {
     const theme = new RegExp(text(DEFAULT_LOCALE)["theme.system"].split(":")[0] ?? "Theme");
     const messages = text(DEFAULT_LOCALE);
     const button = page.getByRole("button", { name: theme });
+    // On phones the toggle lives in the menu sheet.
+    const menu = page.getByRole("button", { name: messages["nav.menu"] });
     // A click before hydration is lost, so click again until the app reacts.
     await expect(async () => {
+      if ((await menu.isVisible()) && !(await button.isVisible())) await menu.click();
       if ((await button.getAttribute("aria-label")) === messages["theme.system"]) await button.click();
       await expect(button).toHaveAttribute("aria-label", messages["theme.light"], { timeout: 1000 });
     }).toPass(); // system → light
@@ -178,5 +182,7 @@ test.describe("server mode", () => {
     expect(headers["x-content-type-options"]).toBe("nosniff");
     expect(headers["x-frame-options"]).toBe("DENY");
     expect(headers["strict-transport-security"]).toContain("max-age=");
+    // "Near me" needs the browser's location on our own pages.
+    expect(headers["permissions-policy"]).toContain("geolocation=(self)");
   });
 });

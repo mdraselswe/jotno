@@ -3,6 +3,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
+import { PeekingPet, RollingBall } from "@/components/illustrations/pets";
 import { Spot, type SpotName } from "@/components/illustrations/spots";
 import { HeroOrbit, type OrbitPetItem } from "@/components/marketing/hero-orbit";
 import { Marquee } from "@/components/marketing/marquee";
@@ -83,7 +84,8 @@ async function CommunityRow() {
   ]);
   if (questions.length === 0 && articles.length === 0) return null;
   return (
-    <section className="surface-muted">
+    <section className="relative surface-muted dots">
+      <PeekingPet kind="bird" delay={2} className="right-[10%]" />
       <div className="container-page grid gap-10 py-20 md:py-24 lg:grid-cols-2">
         {questions.length > 0 ? (
           <div className="grid content-start gap-4">
@@ -140,7 +142,7 @@ function SectionTitle({ eyebrow, title, sub }: { eyebrow?: string; title: string
   return (
     <header className="grid max-w-2xl gap-3">
       {eyebrow ? (
-        <p className="justify-self-start rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold tracking-wide text-primary uppercase">
+        <p className="justify-self-start rounded-full bg-card px-3 py-1 text-xs font-semibold tracking-wide text-primary uppercase shadow-(--shadow-control)">
           {eyebrow}
         </p>
       ) : null}
@@ -271,7 +273,9 @@ export default async function HomePage() {
       </section>
 
       {/* Live vets */}
-      <section className="surface-soft">
+      <section className="relative surface-soft dots">
+        <PeekingPet kind="cat" className="right-[8%]" />
+        <RollingBall className="-top-9 left-[6%] [--roll:9rem] sm:[--roll:16rem]" />
         <div className="container-page grid gap-8 py-20 md:py-24 lg:grid-cols-[22rem_1fr]">
           <div className="grid content-start gap-6 lg:sticky lg:top-24">
             <SectionTitle title={t("home.vetsTitle")} />
@@ -313,7 +317,7 @@ export default async function HomePage() {
       </section>
 
       {/* Shop */}
-      <section className="surface-warm">
+      <section className="surface-warm dots">
         <div className="container-page grid items-center gap-10 py-20 md:grid-cols-[1fr_1.1fr] md:py-24">
           <div className="grid gap-4">
             <h2 className="font-heading text-4xl leading-[0.95] font-bold tracking-tight text-balance md:text-5xl">
@@ -330,6 +334,7 @@ export default async function HomePage() {
             </ButtonLink>
           </div>
           <div className="relative mx-auto w-full max-w-md">
+            <PeekingPet kind="dog" delay={1} className="right-8" />
             {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized local photo */}
             <img
               src="/images/pets/dog-bowl-800.webp"
@@ -370,7 +375,12 @@ export default async function HomePage() {
       </Suspense>
 
       {/* For vets */}
-      <section className="container-page py-20 md:py-24">
+      <section className="relative container-page py-20 md:py-24">
+        <PeekingPet
+          kind="cat"
+          delay={4}
+          className="top-20 bottom-auto left-[12%] -translate-y-full md:top-24"
+        />
         <div className="relative grid items-center gap-10 overflow-hidden rounded-(--radius-3xl) bg-primary p-8 text-primary-foreground shadow-(--shadow-card) sm:p-12 md:grid-cols-[1.3fr_1fr]">
           <div
             aria-hidden="true"
@@ -380,7 +390,7 @@ export default async function HomePage() {
             <h2 className="font-heading text-4xl leading-[0.95] font-extrabold tracking-tight text-balance md:text-6xl">
               {c.vetCta.title}
             </h2>
-            <p className="max-w-lg text-lg text-pretty text-primary-foreground/85">{c.vetCta.body}</p>
+            <p className="max-w-lg text-lg text-pretty text-primary-foreground/95">{c.vetCta.body}</p>
             <ButtonLink
               href={localeHref(locale, ROUTES.forVets)}
               size="lg"
@@ -395,7 +405,7 @@ export default async function HomePage() {
               <li
                 key={item}
                 data-animate
-                className="flex items-center gap-3 rounded-(--radius-xl) bg-primary-foreground/10 px-4 py-3 font-medium ring-1 ring-primary-foreground/15"
+                className="flex items-center gap-3 rounded-(--radius-xl) bg-primary-foreground/5 px-4 py-3 font-medium ring-1 ring-primary-foreground/20"
                 style={{ "--i": i } as CSSProperties}
               >
                 <CircleCheck aria-hidden="true" className="size-5 shrink-0 text-highlight" />

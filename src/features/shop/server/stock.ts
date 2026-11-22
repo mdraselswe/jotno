@@ -10,6 +10,17 @@ const SM = schema.stockMovements;
 type Tx = Parameters<Parameters<ReturnType<typeof db>["transaction"]>[0]>[0];
 
 /** Thrown inside a transaction when a line is no longer in stock (rolls everything back). */
+/**
+ * The customer has sent a TrxID that an admin hasn't checked yet. Cancelling
+ * now would drop money that may already have arrived, so the payment must be
+ * approved (then refunded) or rejected first.
+ */
+export class PaymentInReview extends Error {
+  constructor(public orderId: string) {
+    super("payment in review");
+  }
+}
+
 export class OutOfStock extends Error {
   constructor(public productId: string) {
     super("out of stock");
@@ -76,11 +87,24 @@ export const CANCELLABLE = ["pending_payment", "placed", "paid", "processing"] a
 /**
  * Cancels an order that hasn't shipped and puts its stock back. Payments still
  * waiting on it are cancelled too. Returns the order when it moved, null when
- * it was already past cancelling (or already cancelled). Refunding a paid
- * order is the caller's job (refundPlatform).
+ * it was already past cancelling (or already cancelled). Throws PaymentInReview
+ * while a TrxID is waiting for an admin. Refunding a paid order is the caller's
+ * job (refundPlatform).
  */
 export async function releaseOrder(orderId: string, reason: string, actorId: string | null) {
   return db().transaction(async (tx) => {
+    const [inReview] = await tx
+      .select({ id: schema.payments.id })
+      .from(schema.payments)
+      .where(
+        and(
+          eq(schema.payments.purpose, "order"),
+          eq(schema.payments.refId, orderId),
+          eq(schema.payments.status, "review"),
+        ),
+      )
+      .limit(1);
+    if (inReview) throw new PaymentInReview(orderId);
     const [o] = await tx
       .update(O)
       .set({ status: "cancelled", cancelReason: reason.slice(0, 300), cancelledAt: new Date() })
@@ -95,7 +119,7 @@ export async function releaseOrder(orderId: string, reason: string, actorId: str
         and(
           eq(schema.payments.purpose, "order"),
           eq(schema.payments.refId, orderId),
-          inArray(schema.payments.status, ["pending", "review"]),
+          eq(schema.payments.status, "pending"),
         ),
       );
     return o;

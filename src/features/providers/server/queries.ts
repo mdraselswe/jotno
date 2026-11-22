@@ -138,6 +138,8 @@ export interface SearchInput {
   /** Only vets who switched on "available now". */
   onlyAvailable?: boolean;
   near?: { lat: number; lon: number } | null;
+  /** With `near`: only vets within this many km (their clinic location). */
+  radiusKm?: number;
   q?: string | null;
   page?: number;
   pageSize?: number;
@@ -171,11 +173,18 @@ export async function searchProviders(input: SearchInput): Promise<{
   }
 
   const near = input.near;
-  const distanceSql = near
-    ? sql<
-        number | null
-      >`extensions.st_distance(${p.location}::extensions.geography, extensions.st_setsrid(extensions.st_makepoint(${near.lon}, ${near.lat}), 4326)::extensions.geography) / 1000`
+  const point = near
+    ? sql`extensions.st_setsrid(extensions.st_makepoint(${near.lon}, ${near.lat}), 4326)::extensions.geography`
+    : null;
+  const distanceSql = point
+    ? sql<number | null>`extensions.st_distance(${p.location}::extensions.geography, ${point}) / 1000`
     : sql<number | null>`null`;
+  if (point) {
+    // Only vets with a clinic location inside the radius (uses the location index).
+    conds.push(
+      sql`extensions.st_dwithin(${p.location}::extensions.geography, ${point}, ${(input.radiusKm ?? 10) * 1000})`,
+    );
+  }
 
   const rows = await db()
     .select({ ...cardColumns, distanceKm: distanceSql })
@@ -207,7 +216,13 @@ export async function searchProviders(input: SearchInput): Promise<{
       );
       return { card: toCard(row, distanceKm, false), score };
     })
-    .sort((x, y) => y.score - x.score);
+    // Near me: nearest first (to the half km), best ranked among equals.
+    .sort((x, y) =>
+      near
+        ? Math.round((x.card.distanceKm ?? 0) * 2) - Math.round((y.card.distanceKm ?? 0) * 2) ||
+          y.score - x.score
+        : y.score - x.score,
+    );
 
   const featured = input.emergency ? [] : await featuredFor(input.districtId ?? null, input.species ?? null);
   const featuredIds = new Set(featured.map((f) => f.id));

@@ -201,7 +201,10 @@ export function CartView({
               note,
               coupon: coupon?.code,
             });
-            if (!res.ok) setError(t(res.error));
+            if (!res.ok) return setError(t(res.error));
+            // The order holds the items now: empty the cart before leaving.
+            cart.clear();
+            window.location.assign(res.url);
           });
         }}
       >

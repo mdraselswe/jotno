@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SPECIES } from "@/content/geo";
 import { ImageUpload } from "@/features/uploads";
 import { useLocale, useT } from "@/i18n/client";
+import { locate as findPosition, type LocateError } from "@/lib/geo";
 import { saveVetProfile } from "../server/actions";
 
 export interface VetProfileValues {
@@ -71,20 +72,14 @@ export function VetProfileForm({ initial }: { initial: VetProfileValues }) {
   });
 
   function locate() {
-    if (!("geolocation" in navigator)) return;
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setV((s) => ({ ...s, lat: pos.coords.latitude, lon: pos.coords.longitude }));
-        setLocating(false);
+    findPosition()
+      .then((pos) => {
+        setV((s) => ({ ...s, lat: pos.lat, lon: pos.lon }));
         toast.success(t("vet.located"));
-      },
-      () => {
-        setLocating(false);
-        toast.error(t("vet.locateFailed"));
-      },
-      { enableHighAccuracy: true, timeout: 10_000 },
-    );
+      })
+      .catch((reason: LocateError) => toast.error(t(`vets.locate.${reason}`)))
+      .finally(() => setLocating(false));
   }
 
   function submit(e: FormEvent) {

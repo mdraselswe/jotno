@@ -19,7 +19,11 @@ psql "$DATABASE_URL_DIRECT" -f supabase/seeds/02_demo.sql        # optional: dem
 
 - Storage buckets `media` (public) and `private` come from the migration.
 - Auth → URL configuration: site URL = the workers.dev URL; redirect URL `https://<site>/auth/callback/`.
-- Auth → email: the free mailer is rate limited (a few emails an hour). Add Resend SMTP before real users.
+- Auth → email: **the built-in mailer is for testing only** (a few emails an hour, and it may send only to your project team's addresses). Real users will not get their sign-in code until you add SMTP:
+  1. Make a free [Resend](https://resend.com) account, add and verify your domain (DNS records in Cloudflare), create an API key.
+  2. Supabase → Project settings → Auth → SMTP: host `smtp.resend.com`, port `465`, user `resend`, password = the API key, sender `no-reply@<your domain>`, name `Jotno`.
+  3. Auth → Rate limits: raise "emails sent per hour" (e.g. 100).
+  4. Auth → Email templates → "Magic Link" **and** "Confirm signup": make sure the body shows `{{ .Token }}` (the 6-digit code people type), e.g. `Your Jotno code: {{ .Token }}`. The default template may show only a link, and the app signs in with the code.
 
 ## 3. First deploy
 
@@ -33,7 +37,7 @@ psql "$DATABASE_URL_DIRECT" -f supabase/seeds/02_demo.sql        # optional: dem
 - [ ] Legal pages (`src/content/legal.ts`) reviewed by a lawyer; first-aid text (`src/content/emergency.ts`) reviewed by a vet.
 - [ ] **Payments (manual, the default)**: open `/admin/settings`, enter the bKash and Nagad numbers (personal, agent or merchant), the charge people add on top (default bKash 1.85%, Nagad 1.49%), cash on delivery and delivery fees, and the support phone. Then test a chat, a booking, a featured pack and a shop order end to end (see "Payments day to day" below).
 - [ ] Later, if you want a gateway: SSLCommerz sandbox → live; set `PAYMENT_PROVIDER=sslcommerz`, `SSLCOMMERZ_SANDBOX=false`.
-- [ ] Google sign-in: OAuth client in Google Cloud, add it in Supabase Auth, set `NEXT_PUBLIC_GOOGLE_AUTH=true`.
+- [ ] Google sign-in: Google Cloud → OAuth consent screen (app name Jotno, your support email, publish it) → Credentials → OAuth client ID (Web). Authorised redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`. Paste the client ID and secret in Supabase → Auth → Providers → Google. Set `NEXT_PUBLIC_GOOGLE_AUTH=true` (GitHub variable) and redeploy. Local testing: see `[auth.external.google]` in `supabase/config.toml`.
 - [ ] Domain (`jotnocare.com`): add to Cloudflare, attach to the worker, set `NEXT_PUBLIC_SITE_URL`, update Supabase Auth URLs.
 - [ ] Turn on the backup: secret `DATABASE_URL_DIRECT`, variable `BACKUP_ENABLED=true`.
 - [ ] Sentry DSN (optional).
