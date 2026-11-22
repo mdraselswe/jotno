@@ -40,7 +40,7 @@ export async function verifyCode(
   email: string,
   code: string,
   next: string | null,
-): Promise<AuthResult> {
+): Promise<{ ok: true; url: string } | { ok: false; error: MessageKey }> {
   const token = code.replace(/\D/g, "");
   if (token.length !== 6) return { ok: false, error: "auth.codeInvalid" };
   const ip = await clientIp();
@@ -53,7 +53,9 @@ export async function verifyCode(
     type: "email",
   });
   if (error) return { ok: false, error: "auth.codeInvalid" };
-  redirect(safeNext(next, localeHref(locale, ROUTES.account), locale));
+  // The browser loads the page itself: a soft redirect would keep the header's
+  // Supabase client (which read the cookies at page load) signed out.
+  return { ok: true, url: safeNext(next, localeHref(locale, ROUTES.account), locale) };
 }
 
 export async function signOut(locale: string): Promise<void> {
@@ -76,7 +78,7 @@ export async function completeOnboarding(
   locale: string,
   input: OnboardingInput,
   next: string | null,
-): Promise<AuthResult> {
+): Promise<{ ok: true; url: string } | { ok: false; error: MessageKey }> {
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "common.signInFirst" };
   const parsed = onboardingSchema.safeParse(input);

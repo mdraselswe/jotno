@@ -55,8 +55,12 @@ export function LoginForm() {
     setError(null);
     start(async () => {
       const result = await verifyCode(locale, email, code, next);
-      // Success redirects on the server; we only get here on failure.
-      if (result && !result.ok) setError(t(result.error));
+      if (!result.ok) {
+        setError(t(result.error));
+        return;
+      }
+      // A full load, so the header and every cached page see the new session.
+      window.location.assign(result.url);
     });
   }
 

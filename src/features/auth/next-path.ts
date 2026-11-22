@@ -11,6 +11,8 @@ export function safeNext(next: string | null | undefined, fallback: string, loca
     !next.startsWith("/") ||
     next.startsWith("//") ||
     next.includes("\\") ||
+    // Browsers drop tabs and newlines from URLs: "/<tab>/evil.com" becomes "//evil.com".
+    /[\s\u0000-\u001f]/.test(next) ||
     next.includes("://")
   ) {
     return fallback as Route;

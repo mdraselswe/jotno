@@ -23,7 +23,7 @@ psql "$DATABASE_URL_DIRECT" -f supabase/seeds/02_demo.sql        # optional: dem
   1. Make a free [Resend](https://resend.com) account, add and verify your domain (DNS records in Cloudflare), create an API key.
   2. Supabase → Project settings → Auth → SMTP: host `smtp.resend.com`, port `465`, user `resend`, password = the API key, sender `no-reply@<your domain>`, name `Jotno`.
   3. Auth → Rate limits: raise "emails sent per hour" (e.g. 100).
-  4. Auth → Email templates → "Magic Link" **and** "Confirm signup": make sure the body shows `{{ .Token }}` (the 6-digit code people type), e.g. `Your Jotno code: {{ .Token }}`. The default template may show only a link, and the app signs in with the code.
+  4. Auth → Email templates → "Magic Link" **and** "Confirm signup": make sure the body shows `{{ .Token }}` (the 6-digit code people type), copy the HTML from `supabase/templates/sign-in-code.html` (local dev already uses it). The default template shows only a link, and the app signs in with the code.
 
 ## 3. First deploy
 
