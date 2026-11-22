@@ -10,6 +10,7 @@ const business: BusinessConfig = {
     commissionBps: 1_000,
     openHours: 24,
     replyWindowMinutes: 30,
+    intakePhotos: 3,
     minFee: 10_000,
     maxFee: 300_000,
   },

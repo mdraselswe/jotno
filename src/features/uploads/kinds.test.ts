@@ -12,6 +12,8 @@ describe("ownsUpload", () => {
     expect(ownsUpload(`pet/someone-else/a.webp`, "pet", me)).toBe(false);
     expect(ownsUpload(`pet/${me}/../x.webp`, "pet", me)).toBe(false);
     expect(ownsUpload(null, "pet", me)).toBe(false);
+    // The dot before the extension is literal, not "any character".
+    expect(ownsUpload(`pet/${me}/abcxwebp`, "pet", me)).toBe(false);
   });
 });
 

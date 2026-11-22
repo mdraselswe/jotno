@@ -1,11 +1,12 @@
 "use client";
 
-import { Lock, Star } from "lucide-react";
-import { useEffect, useState, useTransition, type FormEvent } from "react";
+import { Camera, Loader2, Lock, Star, X } from "lucide-react";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { useUpload } from "@/features/uploads";
 import { Textarea } from "@/components/ui/textarea";
 import { useLocale, useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
@@ -16,23 +17,39 @@ export function StartConsultForm({
   providerId,
   pets,
   feeLabel,
+  maxPhotos,
 }: {
   providerId: string;
   pets: { id: string; name: string }[];
   feeLabel: string;
+  /** How many photos can go with the booking (0 hides the field). */
+  maxPhotos: number;
 }) {
   const t = useT();
   const locale = useLocale();
   const [petId, setPetId] = useState<string>(pets[0]?.id ?? "");
   const [summary, setSummary] = useState("");
+  const [photos, setPhotos] = useState<{ path: string; preview: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const { upload, busy, error: uploadError } = useUpload("chat");
+  const picker = useRef<HTMLInputElement>(null);
+
+  async function addPhoto(file: File | undefined) {
+    if (!file || photos.length >= maxPhotos) return;
+    const path = await upload(file);
+    if (path) setPhotos((list) => [...list, { path, preview: URL.createObjectURL(file) }]);
+  }
 
   function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     start(async () => {
-      const r = await startConsult(locale, providerId, { patientId: petId || null, summary });
+      const r = await startConsult(locale, providerId, {
+        patientId: petId || null,
+        summary,
+        photos: photos.map((p) => p.path),
+      });
       if (r && !r.ok) setError(t(r.error));
     });
   }
@@ -65,12 +82,71 @@ export function StartConsultForm({
           placeholder={t("consult.problemHint")}
         />
       </div>
+      {maxPhotos > 0 ? (
+        <fieldset className="grid gap-2">
+          <legend className="mb-2 text-sm font-medium">{t("consult.photos", { max: maxPhotos })}</legend>
+          <p className="text-sm text-muted-foreground">{t("consult.photosHint")}</p>
+          <ul className="flex flex-wrap gap-3">
+            {photos.map((p, n) => (
+              <li
+                key={p.path}
+                className="relative size-20 overflow-hidden rounded-(--control-radius) bg-muted"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- local preview of the picked file */}
+                <img src={p.preview} alt="" className="size-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setPhotos((list) => list.filter((x) => x.path !== p.path))}
+                  aria-label={t("consult.removePhoto", { n: n + 1 })}
+                  className="absolute top-1 right-1 grid size-6 place-items-center rounded-full bg-background/90 text-foreground shadow-(--shadow-control)"
+                >
+                  <X aria-hidden="true" className="size-3.5" />
+                </button>
+              </li>
+            ))}
+            {photos.length < maxPhotos ? (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => picker.current?.click()}
+                  disabled={busy}
+                  className="grid size-20 place-items-center rounded-(--control-radius) border-(length:--border-w) border-dashed border-border bg-muted text-muted-foreground transition-colors hover:bg-muted/70 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                >
+                  {busy ? (
+                    <Loader2 aria-hidden="true" className="size-5 animate-spin" />
+                  ) : (
+                    <Camera aria-hidden="true" className="size-5" />
+                  )}
+                  <span className="sr-only">{t("consult.addPhoto")}</span>
+                </button>
+              </li>
+            ) : null}
+          </ul>
+          <input
+            ref={picker}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden="true"
+            onChange={(e) => {
+              void addPhoto(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+          {uploadError ? (
+            <p role="alert" className="text-sm text-destructive">
+              {t(uploadError)}
+            </p>
+          ) : null}
+        </fieldset>
+      ) : null}
       {error ? (
         <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       ) : null}
-      <Button type="submit" size="lg" disabled={pending || summary.trim().length < 10}>
+      <Button type="submit" size="lg" disabled={pending || busy || summary.trim().length < 10}>
         <Lock aria-hidden="true" />
         {pending ? t("pay.redirecting") : t("consult.pay", { fee: feeLabel })}
       </Button>

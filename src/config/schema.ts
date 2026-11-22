@@ -175,6 +175,8 @@ export const businessSchema = z.object({
     openHours: z.number().int().min(1),
     /** Full automatic refund if the vet doesn't reply within this. */
     replyWindowMinutes: z.number().int().min(1),
+    /** Photos an owner can add when booking (sent as the chat's first messages). */
+    intakePhotos: z.number().int().min(0).max(10),
     minFee: poisha,
     maxFee: poisha,
   }),

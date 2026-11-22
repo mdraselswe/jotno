@@ -65,6 +65,7 @@ async function Start({ params }: { params: Promise<{ slug: string }> }) {
             providerId={vet.id}
             pets={pets.map((p) => ({ id: p.id, name: p.name }))}
             feeLabel={fee}
+            maxPhotos={business.consult.intakePhotos}
           />
           <p className="text-center text-xs text-muted-foreground">{t("pay.secure")}</p>
         </>

@@ -13,6 +13,7 @@ import { getSettings } from "@/features/settings/server";
 import { ownsUpload } from "@/features/uploads/server";
 import type { MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
+import { storage } from "@/infrastructure/storage";
 import { audit, rateLimit } from "@/infrastructure/db/helpers";
 import { localeHref } from "@/lib/locale-href";
 import { slugify } from "@/lib/slug";
@@ -396,7 +397,11 @@ export async function saveProduct(
     unit: rest.unit || null,
   };
   if (id) {
+    const [before] = await db().select({ imagePath: PR.imagePath }).from(PR).where(eq(PR.id, id)).limit(1);
     await db().update(PR).set(values).where(eq(PR.id, id));
+    // A replaced photo is no longer used anywhere (orders keep name and price only).
+    if (before?.imagePath && before.imagePath !== values.imagePath)
+      await storage.remove("media", [before.imagePath]).catch(() => undefined);
     await audit(me.id, "product.update", "product", id);
   } else {
     const [row] = await db()

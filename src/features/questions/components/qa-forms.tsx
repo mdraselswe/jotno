@@ -86,7 +86,12 @@ export function AskForm() {
           required
         />
       </div>
-      <ImageUpload kind="question" value={photoPath} onChange={setPhotoPath} label={t("consult.photo")} />
+      <ImageUpload
+        kind="question"
+        value={photoPath}
+        onChange={setPhotoPath}
+        label={t("common.uploadPhoto")}
+      />
       <p className="rounded-(--control-radius) bg-warning/10 px-3 py-2 text-sm">{t("qa.emergencyNote")}</p>
       {error ? (
         <p role="alert" className="text-sm text-destructive">

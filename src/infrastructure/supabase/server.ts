@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { publicEnv, serverEnv } from "@/config/env";
 
 /**
@@ -10,6 +11,9 @@ import { publicEnv, serverEnv } from "@/config/env";
  */
 export async function supabaseServer() {
   const store = await cookies();
+  // The auth client reads the clock (Date.now) while it loads the session,
+  // which Next only allows once the render has reached request time.
+  await connection();
   return createServerClient(publicEnv.NEXT_PUBLIC_SUPABASE_URL, publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
     cookies: {
       getAll: () => store.getAll(),

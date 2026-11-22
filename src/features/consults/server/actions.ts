@@ -27,6 +27,8 @@ export type ConsultResult = { ok: true } | { ok: false; error: MessageKey };
 const startSchema = z.object({
   patientId: z.uuid().nullable(),
   summary: z.string().trim().min(10).max(1000),
+  /** Private chat uploads to show the vet first (paths from requestUpload). */
+  photos: z.array(z.string()).max(business.consult.intakePhotos).default([]),
 });
 
 /** Creates a consult awaiting payment and sends the owner to the gateway. */
@@ -39,6 +41,8 @@ export async function startConsult(
   if (!viewer) return { ok: false, error: "common.signInFirst" };
   const parsed = startSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "consult.summaryShort" };
+  if (!parsed.data.photos.every((p) => ownsUpload(p, "chat", viewer.id)))
+    return { ok: false, error: "common.notAllowed" };
   if (!(await rateLimit(`consult:${viewer.id}`, 10, 3600))) return { ok: false, error: "common.tooMany" };
 
   const [vet] = await db()
@@ -79,6 +83,13 @@ export async function startConsult(
     })
     .returning({ id: C.id });
   if (!consult) return { ok: false, error: "common.genericError" };
+  // The photos open the chat, so the vet sees them with the summary.
+  if (parsed.data.photos.length > 0)
+    await db()
+      .insert(schema.messages)
+      .values(
+        parsed.data.photos.map((imagePath) => ({ consultId: consult.id, senderId: viewer.id, imagePath })),
+      );
 
   const url = await beginPayment({
     userId: viewer.id,

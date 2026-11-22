@@ -27,5 +27,5 @@ export const extFor = (type: string) => EXT[type] ?? null;
 /** Was this path created for this user and kind? (Never trust a path from the browser otherwise.) */
 export function ownsUpload(path: string | null | undefined, kind: UploadKind, userId: string): boolean {
   if (!path) return false;
-  return new RegExp(`^${kind}/${userId}/[a-z0-9-]+\.(jpg|png|webp|pdf)$`).test(path);
+  return new RegExp(String.raw`^${kind}/${userId}/[a-z0-9-]+\.(jpg|png|webp|pdf)$`).test(path);
 }
