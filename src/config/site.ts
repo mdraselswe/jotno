@@ -24,14 +24,15 @@ const site: SiteConfig = {
   privatePaths: ["/account", "/dashboard", "/admin", "/chat", "/onboarding", "/pay", "/api", "/auth"],
   theme: {
     defaultMode: "light",
-    // Care teal: health and trust, calm, never hospital-cold. The only strong colour.
-    primary: { light: "oklch(0.47 0.085 185)", dark: "oklch(0.78 0.1 180)" },
-    primaryForeground: { light: "oklch(0.985 0.005 180)", dark: "oklch(0.18 0.03 185)" },
-    // Clean paper white (light) and deep teal-charcoal (dark).
-    background: { light: "#fbfbfa", dark: "#101413" },
-    // Amber: used sparingly (the logo's dot, highlights, "popular").
-    highlight: { light: "oklch(0.8 0.13 72)", dark: "oklch(0.78 0.12 72)" },
-    highlightForeground: { light: "oklch(0.27 0.06 60)", dark: "oklch(0.2 0.05 60)" },
+    // Royal blue (from the sticker-footer reference): trust and care, the one
+    // brand colour. Deep enough for white text (5:1). Buttons themselves are ink.
+    primary: { light: "oklch(0.53 0.2 268)", dark: "oklch(0.74 0.13 268)" },
+    primaryForeground: { light: "oklch(0.99 0 0)", dark: "oklch(0.18 0.03 268)" },
+    // Warm paper (light) and soft ink (dark), like the orbit reference.
+    background: { light: "#f5f3ef", dark: "#121212" },
+    // Sunny yellow (doodle-footer reference): highlights, the logo's cross, the footer.
+    highlight: { light: "oklch(0.89 0.16 92)", dark: "oklch(0.86 0.15 92)" },
+    highlightForeground: { light: "oklch(0.2 0.004 70)", dark: "oklch(0.2 0.004 70)" },
   },
   contact: {
     email: "hello@jotnocare.com",

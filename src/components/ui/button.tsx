@@ -3,20 +3,24 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "cn";
 
 const buttonVariants = cva(
-  "group/button relative inline-flex shrink-0 items-center justify-center rounded-(--control-radius) border-(length:--border-w) border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow,translate,scale] duration-(--motion-fast) ease-(--ease-press) outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:scale-(--press-scale) disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button relative inline-flex shrink-0 items-center justify-center rounded-(--control-radius) border-(length:--border-w) border-transparent bg-clip-padding text-sm font-semibold whitespace-nowrap transition-[color,background-color,border-color,box-shadow,translate,scale] duration-(--motion-fast) ease-(--ease-press) outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:scale-(--press-scale) disabled:pointer-events-none disabled:opacity-45 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
+        // Ink: the main action. Near-black with white text (inverts in dark mode).
         default:
-          "glass bg-primary bg-(image:--primary-sheen) text-primary-foreground shadow-(--shadow-primary) inset-ring inset-ring-white/15 hover:translate-x-(--hover-x) hover:translate-y-(--hover-y) hover:bg-primary/90 hover:shadow-(--shadow-primary-hover) active:shadow-(--shadow-primary-active) active:not-aria-[haspopup]:translate-x-(--press-x) active:not-aria-[haspopup]:translate-y-(--press-y)",
+          "glass bg-foreground text-background shadow-(--shadow-control) hover:bg-foreground/85 hover:shadow-(--shadow-control-hover) active:shadow-(--shadow-control-active)",
+        // Brand blue: the one coloured action on a page (sign up, find a vet).
+        brand:
+          "glass bg-primary text-primary-foreground shadow-(--shadow-primary) hover:bg-primary/90 hover:shadow-(--shadow-primary-hover) active:shadow-(--shadow-primary-active)",
         outline:
-          "glass border-(--line) bg-card/70 shadow-(--shadow-control) inset-ring inset-ring-foreground/8 hover:translate-x-(--hover-x) hover:translate-y-(--hover-y) hover:bg-card hover:text-foreground hover:shadow-(--shadow-control-hover) active:shadow-(--shadow-control-active) active:not-aria-[haspopup]:translate-x-(--press-x) active:not-aria-[haspopup]:translate-y-(--press-y) aria-expanded:bg-muted aria-expanded:text-foreground dark:bg-input/30 dark:hover:bg-input/50",
+          "bg-card text-foreground shadow-(--shadow-control) inset-ring inset-ring-foreground/18 hover:bg-muted hover:inset-ring-foreground/30 aria-expanded:bg-muted dark:bg-card dark:hover:bg-muted",
         secondary:
-          "glass bg-secondary/85 text-secondary-foreground shadow-(--shadow-control) hover:translate-x-(--hover-x) hover:translate-y-(--hover-y) hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] hover:shadow-(--shadow-control-hover) active:shadow-(--shadow-control-active) active:not-aria-[haspopup]:translate-x-(--press-x) active:not-aria-[haspopup]:translate-y-(--press-y) aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_8%)] aria-expanded:bg-secondary",
         ghost:
-          "glass hover:bg-foreground/6 hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "hover:bg-foreground/7 hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground",
         destructive:
-          "glass bg-destructive/12 text-destructive inset-ring inset-ring-destructive/15 hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
+          "glass bg-destructive text-white shadow-(--shadow-control) hover:bg-destructive/90 focus-visible:ring-destructive/30",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

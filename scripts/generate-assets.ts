@@ -95,14 +95,13 @@ write(
 const mode = site.theme.defaultMode === "dark" ? "dark" : "light";
 const brand = toHexColor(site.theme.primary.light);
 const onBrand = toHexColor(site.theme.primaryForeground.light);
-const heart = toHexColor(site.theme.highlight.light);
 const bg = toHexColor(site.theme.background[mode]);
 
 function iconSvg({ size, radius, scale }: { size: number; radius: number; scale: number }) {
   const r = size * radius;
   const inner = size * 0.74 * scale;
   const offset = (size - inner) / 2;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="${size}" height="${size}" rx="${r}" fill="${brand}"/><svg x="${offset}" y="${offset}" width="${inner}" height="${inner}" viewBox="${MARK_VIEWBOX}">${markSvg(onBrand, heart)}</svg></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="${size}" height="${size}" rx="${r}" fill="${brand}"/><svg x="${offset}" y="${offset}" width="${inner}" height="${inner}" viewBox="${MARK_VIEWBOX}">${markSvg(onBrand, brand)}</svg></svg>`;
 }
 
 write("icons/icon.svg", iconSvg({ size: 64, radius: 0.22, scale: 1 }));

@@ -9,11 +9,7 @@
   --color-foreground: var(--foreground);
   /* Latin family first, the Bangla one for Bengali glyphs (src/config/fonts.ts). */
   --font-sans: var(--font-latin), var(--font-bengali), ui-sans-serif, system-ui, sans-serif;
-  --font-heading:
-    var(--font-latin-heading), var(--font-bengali-heading), var(--font-bengali), ui-sans-serif, system-ui,
-    sans-serif;
-  /* Hand-lettered accents: footer wordmark, stickers, notes. */
-  --font-script: var(--font-latin-script), var(--font-bengali-script), cursive;
+  --font-heading: var(--font-sans);
   --font-mono: var(--font-latin-mono), ui-monospace, SFMono-Regular, monospace;
   --color-highlight: var(--highlight);
   --color-band-cat: var(--band-cat);
@@ -76,21 +72,21 @@
 :root,
 [data-design] {
   --background: var(--page-bg, oklch(1 var(--nc, 0) var(--nh, 0)));
-  --foreground: oklch(0.22 0.015 200);
+  --foreground: oklch(0.2 0.004 70);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.015 200);
+  --card-foreground: oklch(0.2 0.004 70);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.015 200);
+  --popover-foreground: oklch(0.2 0.004 70);
   --primary: var(--brand, oklch(0.205 var(--nc, 0) var(--nh, 0)));
   --primary-foreground: var(--brand-foreground, oklch(0.985 var(--nc, 0) var(--nh, 0)));
   --highlight: var(--brand-highlight, oklch(0.8 0.14 70));
   --highlight-foreground: var(--brand-highlight-foreground, oklch(0.28 0.06 60));
-  --secondary: oklch(0.945 0.008 185);
-  --secondary-foreground: oklch(0.28 0.02 200);
-  --muted: oklch(0.95 0.006 185);
-  --muted-foreground: oklch(0.5 0.015 200);
-  --accent: oklch(0.94 0.02 185);
-  --accent-foreground: oklch(0.28 0.03 200);
+  --secondary: oklch(0.925 0.01 80);
+  --secondary-foreground: oklch(0.2 0.004 70);
+  --muted: oklch(0.935 0.008 80);
+  --muted-foreground: oklch(0.46 0.012 70);
+  --accent: oklch(0.93 0.03 268);
+  --accent-foreground: oklch(0.2 0.004 70);
   --destructive: oklch(0.577 0.245 27.325);
   /* Status colours: badges, alerts, toasts. Text on them uses the -foreground token. */
   --success: oklch(0.52 0.14 150);
@@ -99,9 +95,9 @@
   --warning-foreground: oklch(0.25 0.05 70);
   --info: oklch(0.55 0.15 245);
   --info-foreground: oklch(0.985 var(--nc, 0) var(--nh, 0));
-  --border: oklch(0.9 0.008 190);
-  --input: oklch(0.86 0.01 190);
-  --ring: oklch(0.55 0.08 165);
+  --border: oklch(0.885 0.01 80);
+  --input: oklch(0.8 0.012 80);
+  --ring: oklch(0.53 0.2 268);
   --chart-1: oklch(0.87 var(--nc, 0) var(--nh, 0));
   --chart-2: oklch(0.556 var(--nc, 0) var(--nh, 0));
   --chart-3: oklch(0.439 var(--nc, 0) var(--nh, 0));
@@ -121,21 +117,21 @@
 .dark,
 .dark [data-design] {
   --background: var(--page-bg-dark, oklch(0.145 var(--nc, 0) var(--nh, 0)));
-  --foreground: oklch(0.95 0.006 180);
-  --card: oklch(0.205 0.01 190);
-  --card-foreground: oklch(0.95 0.006 180);
-  --popover: oklch(0.225 0.01 190);
-  --popover-foreground: oklch(0.95 0.006 180);
+  --foreground: oklch(0.95 0.004 80);
+  --card: oklch(0.21 0.004 70);
+  --card-foreground: oklch(0.95 0.004 80);
+  --popover: oklch(0.23 0.004 70);
+  --popover-foreground: oklch(0.95 0.004 80);
   --primary: var(--brand-dark, oklch(0.922 var(--nc, 0) var(--nh, 0)));
   --primary-foreground: var(--brand-foreground-dark, oklch(0.205 var(--nc, 0) var(--nh, 0)));
   --highlight: var(--brand-highlight-dark, oklch(0.78 0.13 70));
   --highlight-foreground: var(--brand-highlight-foreground-dark, oklch(0.22 0.05 60));
-  --secondary: oklch(0.27 0.01 190);
-  --secondary-foreground: oklch(0.94 0.006 180);
-  --muted: oklch(0.26 0.01 190);
-  --muted-foreground: oklch(0.72 0.012 190);
-  --accent: oklch(0.29 0.02 185);
-  --accent-foreground: oklch(0.95 0.006 180);
+  --secondary: oklch(0.27 0.004 70);
+  --secondary-foreground: oklch(0.95 0.004 80);
+  --muted: oklch(0.25 0.004 70);
+  --muted-foreground: oklch(0.72 0.008 80);
+  --accent: oklch(0.3 0.04 268);
+  --accent-foreground: oklch(0.95 0.004 80);
   --destructive: oklch(0.704 0.191 22.216);
   --success: oklch(0.72 0.15 150);
   --success-foreground: oklch(0.2 0.04 150);
@@ -145,7 +141,7 @@
   --info-foreground: oklch(0.2 0.04 245);
   --border: oklch(1 0 0 / 9%);
   --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.7 0.1 165);
+  --ring: oklch(0.74 0.13 268);
   --chart-1: oklch(0.87 var(--nc, 0) var(--nh, 0));
   --chart-2: oklch(0.556 var(--nc, 0) var(--nh, 0));
   --chart-3: oklch(0.439 var(--nc, 0) var(--nh, 0));
@@ -161,28 +157,29 @@
   --sidebar-ring: oklch(0.556 var(--nc, 0) var(--nh, 0));
 }
 
-/* Species bands: the tint behind each animal (home orbit, shop). One quiet
-   family (low chroma, close lightness) so they never fight the brand teal. */
+/* Species bands: flat pastels from the orbit reference (each animal's colour
+   in the hero, shop tiles, chips). Light: as is. Dark: the same hues, deep. */
 :root {
-  --band-cat: oklch(0.92 0.035 80);
-  --band-dog: oklch(0.91 0.035 55);
-  --band-bird: oklch(0.92 0.04 150);
-  --band-rabbit: oklch(0.92 0.025 250);
-  --band-cow: oklch(0.92 0.03 110);
-  --band-goat: oklch(0.91 0.02 60);
-  --band-chicken: oklch(0.92 0.045 85);
-  --band-care: oklch(0.92 0.035 185);
+  --band-cat: #f5d26a;
+  --band-dog: #f6a37c;
+  --band-bird: #bcd98e;
+  --band-rabbit: #f2a6c6;
+  --band-cow: #9fcbe8;
+  --band-goat: #e4cdb0;
+  --band-chicken: #f9bd8a;
+  --band-care: #c3cfff;
+  --warm-mix: 100%;
 }
 .dark {
-  --band-cat: oklch(0.28 0.02 80);
-  --band-dog: oklch(0.28 0.02 55);
-  --band-bird: oklch(0.28 0.025 150);
-  --band-rabbit: oklch(0.28 0.02 250);
-  --band-cow: oklch(0.28 0.02 110);
-  --band-goat: oklch(0.28 0.015 60);
-  --band-chicken: oklch(0.28 0.02 85);
-  --band-care: oklch(0.28 0.025 185);
-  --warm-mix: 8%;
+  --band-cat: oklch(0.42 0.07 90);
+  --band-dog: oklch(0.42 0.08 45);
+  --band-bird: oklch(0.42 0.07 130);
+  --band-rabbit: oklch(0.42 0.07 350);
+  --band-cow: oklch(0.42 0.06 235);
+  --band-goat: oklch(0.42 0.04 70);
+  --band-chicken: oklch(0.42 0.07 60);
+  --band-care: oklch(0.42 0.08 268);
+  --warm-mix: 30%;
 }
 
 /* ─── Design knobs (src/config/design.ts, docs/design-system.md) ──────────
@@ -248,7 +245,7 @@
   --border-w: 0px;
   /* Fields sit on the card colour with a hairline ring, so they never melt
      into the page or a muted panel. */
-  --field-bg: var(--card);
+  --field-bg: color-mix(in oklch, var(--muted) 55%, var(--card));
 }
 [data-border="bold"] {
   --border-w: 2px;
@@ -282,7 +279,7 @@
     0 14px 28px -10px color-mix(in oklch, var(--primary) 85%, transparent);
   --shadow-primary-active: inset 0 2px 6px oklch(0 0 0 / 0.25);
   --shadow-field:
-    inset 0 0 0 1px color-mix(in oklch, var(--foreground) 11%, transparent), inset 0 2px 4px var(--shade-1);
+    inset 0 0 0 1px color-mix(in oklch, var(--foreground) 22%, transparent), inset 0 1px 2px var(--shade-1);
   --shadow-field-focus:
     inset 0 0 0 1px color-mix(in oklch, var(--primary) 55%, transparent),
     0 0 0 4px color-mix(in oklch, var(--primary) 15%, transparent);
@@ -576,30 +573,6 @@ svg.lucide {
   }
 }
 
-/* Every page gets it without opting in: section headings, cards and photos
-   inside <main> sections and the footer. (A layer below utilities, so any
-   element with its own animation keeps it.) Opt a block out with
-   data-no-reveal (the hero, whose photos JavaScript animates). */
-@layer base {
-  @supports (animation-timeline: view()) {
-    @media (prefers-reduced-motion: no-preference) {
-      :where(main section, main [data-reveal], body > footer, body footer)
-        :where(h2, .glow-border, img, [data-reveal-item]):not(
-          [data-no-reveal],
-          :where(.reveal, .glow-border, [data-no-reveal]) *
-        ) {
-        animation:
-          reveal-up linear both,
-          reveal-away linear both;
-        animation-timeline: view(), view();
-        animation-range:
-          entry 0% entry 70%,
-          exit 45% exit 100%;
-      }
-    }
-  }
-}
-
 /* Draws hairline SVGs stroke by stroke. Give each shape pathLength="1" and,
    for a sequence, style={{ "--i": n }} (see src/components/illustrations). */
 @utility draw {
@@ -832,7 +805,7 @@ html.lenis body {
 @property --band-c {
   syntax: "<color>";
   inherits: true;
-  initial-value: oklch(0.92 0.035 185);
+  initial-value: #c3cfff;
 }
 @utility header-settle {
   @supports (animation-timeline: scroll()) {
@@ -879,7 +852,7 @@ html.lenis body {
    condensed Latin titles (leading 0.9) would make Bangla lines collide or,
    with the old per-element rule, fly far apart. */
 html:lang(bn) :is(h1, h2, h3, h4, .font-heading) {
-  line-height: 1.22;
+  line-height: 1.3;
 }
 
 /* The page itself: warm paper with two slow, soft lights (apricot and care
@@ -890,11 +863,7 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(
-    70rem 34rem at 50% -12%,
-    color-mix(in oklch, var(--primary) 9%, transparent),
-    transparent 70%
-  );
+  background: none;
 }
 .dark body::before {
   opacity: 0.55;
@@ -946,8 +915,8 @@ body::before {
       conic-gradient(
         from var(--angle),
         transparent 0 62%,
-        color-mix(in oklch, var(--primary) 70%, transparent) 76%,
-        color-mix(in oklch, var(--primary) 25%, var(--card)) 84%,
+        color-mix(in oklch, var(--primary) 75%, transparent) 76%,
+        color-mix(in oklch, var(--highlight) 80%, transparent) 84%,
         transparent 92%
       ),
       linear-gradient(var(--border), var(--border));
@@ -968,20 +937,32 @@ body::before {
   }
 }
 
-/* Section surfaces: neighbouring sections take different ones so each reads
-   as its own block, while staying inside one calm palette. */
+/* Section surfaces, after the references: pale blue (vets), latte (shop, the
+   coffee-pour reference), stone, sunny yellow (footer, the doodle reference)
+   and ink. Neighbouring sections take different ones. */
 @utility surface-soft {
-  background-color: color-mix(in oklch, var(--primary) 9%, var(--background));
+  background-color: color-mix(in oklch, var(--primary) 11%, var(--background));
 }
 @utility surface-muted {
   background-color: color-mix(in oklch, var(--foreground) 5%, var(--background));
 }
 @utility surface-warm {
-  background-color: color-mix(in oklch, var(--highlight) var(--warm-mix, 17%), var(--background));
+  background-color: color-mix(in oklch, #e4cdb0 var(--warm-mix, 100%), var(--background));
 }
-/* Deep teal ink. Add the `dark` class too, so everything inside switches to
-   the dark tokens. */
+/* Sunny yellow with ink text in both themes (tokens re-set for everything inside). */
+@utility surface-sun {
+  --foreground: oklch(0.2 0.004 70);
+  --muted-foreground: oklch(0.32 0.03 80);
+  --border: oklch(0.2 0.004 70 / 0.18);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.004 70);
+  --primary: oklch(0.2 0.004 70);
+  --primary-foreground: oklch(0.99 0 0);
+  background-color: #ffd94a;
+  color: var(--foreground);
+}
+/* Ink. Add the `dark` class too, so everything inside switches to the dark tokens. */
 @utility surface-ink {
-  background-color: oklch(0.24 0.035 195);
+  background-color: oklch(0.2 0.004 70);
   color: var(--foreground);
 }

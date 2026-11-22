@@ -32,7 +32,7 @@ export async function SiteFooter() {
   const locale = await getLocale();
   const word = locale === "bn" ? "যত্ন" : "Jotno";
   return (
-    <footer className="dark relative mt-auto overflow-hidden surface-ink pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
+    <footer className="relative mt-auto overflow-hidden surface-sun pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
       <div className="container-page grid gap-8 pt-16 pb-2 text-sm sm:grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr]">
         <div className="grid content-start gap-4 sm:col-span-2 md:col-span-1">
           <p className="flex items-center gap-2 font-heading text-2xl font-bold tracking-tight">
@@ -84,12 +84,12 @@ export async function SiteFooter() {
 
       {/* The wordmark, large and quiet (decorative; the name is in the logo above). */}
       <div aria-hidden="true" className="container-page flex justify-center pt-8 select-none">
-        <p className="m-0 flex font-heading [font-size:clamp(5rem,19vw,14rem)] leading-[0.9] font-extrabold tracking-tight text-primary/15 [font-stretch:80%]">
+        <p className="m-0 flex font-heading [font-size:clamp(5rem,19vw,14rem)] leading-[0.9] font-extrabold tracking-tight text-foreground">
           {/* Latin letters lift one by one; Bangla stays whole (splitting breaks the conjunct). */}
           {(locale === "bn" ? [word] : Array.from(word)).map((ch, i) => (
             <span
               key={`${ch}-${i}`}
-              className="inline-block transition-[translate,color] duration-(--motion-base) ease-out-expo hover:-translate-y-2 hover:text-primary/40"
+              className="inline-block transition-[translate,color] duration-(--motion-base) ease-out-expo hover:-translate-y-2"
             >
               {ch}
             </span>

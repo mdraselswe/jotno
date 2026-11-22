@@ -354,9 +354,7 @@ export function HeroOrbit({
             className="grid min-w-0 flex-1 basis-48 gap-0.5 ps-2"
             aria-live={playing ? "off" : "polite"}
           >
-            <p className="font-heading text-2xl leading-tight font-bold tracking-tight [font-stretch:85%]">
-              {current?.name}
-            </p>
+            <p className="font-heading text-2xl leading-tight font-bold tracking-tight">{current?.name}</p>
             <p className="truncate text-sm text-muted-foreground">{current?.line}</p>
           </div>
           <div className="flex items-center gap-2">

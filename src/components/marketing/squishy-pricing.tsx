@@ -57,23 +57,27 @@ function Card({ plan, index }: { plan: PricingCard; index: number }) {
       }
       className={cn(
         "glow-border relative grid content-start gap-5 rounded-(--radius-2xl) p-6 shadow-(--shadow-card) transition-shadow duration-(--motion-base) hover:shadow-(--shadow-card-hover) sm:p-8",
-        plan.featured ? "bg-primary text-primary-foreground lg:-my-4 lg:py-12" : "bg-card",
+        plan.featured
+          ? "bg-primary text-primary-foreground lg:-my-4 lg:py-12"
+          : "bg-card text-card-foreground",
       )}
     >
       {plan.featured && plan.tag ? (
-        <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-highlight px-3 py-1 text-xs font-bold text-highlight-foreground shadow-(--shadow-card)">
+        <span className="absolute top-5 right-5 inline-flex items-center gap-1 rounded-full bg-highlight px-3 py-1 text-xs font-bold text-highlight-foreground">
           <Sparkles aria-hidden="true" className="size-3.5" />
           {plan.tag}
         </span>
       ) : null}
       <header className="grid gap-1">
-        <h3 className="font-heading text-lg font-semibold">{plan.name}</h3>
+        <h3 className={cn("font-heading text-lg font-semibold", plan.featured && plan.tag && "pe-28")}>
+          {plan.name}
+        </h3>
         <p className={cn("text-sm", plan.featured ? "text-primary-foreground/80" : "text-muted-foreground")}>
           {plan.body}
         </p>
       </header>
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="relative isolate inline-block font-heading text-5xl font-bold tracking-tight whitespace-nowrap [font-stretch:80%] tabular-nums">
+        <span className="relative isolate inline-block font-heading text-5xl font-bold tracking-tight whitespace-nowrap tabular-nums">
           <span
             aria-hidden="true"
             className={cn(
@@ -111,7 +115,7 @@ function Card({ plan, index }: { plan: PricingCard; index: number }) {
             "glass relative inline-flex h-12 w-full items-center justify-center rounded-(--control-radius) px-6 font-semibold transition-colors duration-(--motion-fast)",
             plan.featured
               ? "bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-              : "bg-primary/10 text-primary hover:bg-primary/16",
+              : "bg-foreground text-background hover:bg-foreground/85",
           )}
         >
           {plan.cta}

@@ -1,7 +1,6 @@
 import { Search, Truck } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import type { CSSProperties } from "react";
 import { BowlMenu, type BowlItem } from "@/components/marketing/bowl-menu";
 import { Suspense } from "react";
 import { PageTransition } from "@/components/motion/page-transition";
@@ -50,7 +49,7 @@ async function readFilters(searchParams: Promise<Search>) {
 function Intro({ title, sub, secure }: { title: string; sub: string; secure: string }) {
   return (
     <div className="grid max-w-2xl gap-3">
-      <h1 className="font-heading text-5xl leading-[0.92] font-extrabold tracking-tight [font-stretch:78%] md:text-7xl">
+      <h1 className="font-heading text-5xl leading-[0.92] font-extrabold tracking-tight md:text-7xl">
         {title}
       </h1>
       <p className="text-lg text-pretty text-foreground/75">{sub}</p>
@@ -127,8 +126,8 @@ async function Products({ searchParams }: { searchParams: Promise<Search> }) {
         <p className="text-muted-foreground">{t("shop.empty")}</p>
       ) : (
         <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-          {products.map((p, i) => (
-            <li key={p.id} className="reveal" style={{ "--i": i % 4 } as CSSProperties}>
+          {products.map((p) => (
+            <li key={p.id}>
               <ProductTile p={p} locale={locale} t={t} fmt={fmt} />
             </li>
           ))}

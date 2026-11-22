@@ -39,7 +39,7 @@ async function LivePanel() {
           <span className="absolute inline-flex size-full rounded-full bg-success opacity-60 motion-safe:animate-ping" />
           <span className="relative inline-flex size-3 rounded-full bg-success" />
         </span>
-        <span className="font-heading text-5xl font-bold [font-stretch:80%] tabular-nums">
+        <span className="font-heading text-5xl font-bold tabular-nums">
           <NumberTicker value={stats.online} />
         </span>
         <span className="text-muted-foreground">{t("home.onlineNow")}</span>
@@ -64,8 +64,8 @@ async function FeaturedVets() {
   if (vets.length === 0) return null;
   return (
     <ul className="grid gap-3">
-      {vets.map((v, i) => (
-        <li key={v.id} className="reveal" style={{ "--i": i } as CSSProperties}>
+      {vets.map((v) => (
+        <li key={v.id}>
           <VetCard vet={v} locale={locale} t={t} fmt={fmt} />
         </li>
       ))}
@@ -88,9 +88,7 @@ async function CommunityRow() {
         {questions.length > 0 ? (
           <div className="grid content-start gap-4">
             <div className="flex items-end justify-between gap-3">
-              <h2 className="font-heading text-3xl font-bold tracking-tight [font-stretch:85%]">
-                {t("qa.highlights")}
-              </h2>
+              <h2 className="font-heading text-3xl font-bold tracking-tight">{t("qa.highlights")}</h2>
               <ButtonLink href={localeHref(locale, ROUTES.ask)} size="sm">
                 {t("qa.ask")}
               </ButtonLink>
@@ -101,9 +99,7 @@ async function CommunityRow() {
         {articles.length > 0 ? (
           <div className="grid content-start gap-4">
             <div className="flex items-end justify-between gap-3">
-              <h2 className="font-heading text-3xl font-bold tracking-tight [font-stretch:85%]">
-                {t("art.title")}
-              </h2>
+              <h2 className="font-heading text-3xl font-bold tracking-tight">{t("art.title")}</h2>
               <Link
                 href={localeHref(locale, ROUTES.articles)}
                 className="text-sm font-medium text-primary hover:underline"
@@ -112,8 +108,8 @@ async function CommunityRow() {
               </Link>
             </div>
             <ul className="grid gap-3">
-              {articles.slice(0, 3).map((a, i) => (
-                <li key={a.id} className="reveal" style={{ "--i": i } as CSSProperties}>
+              {articles.slice(0, 3).map((a) => (
+                <li key={a.id}>
                   <Link
                     href={localeHref(locale, articlePath(a.slug))}
                     className="group glow-border relative grid gap-1 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-[transform,box-shadow] duration-(--motion-base) ease-(--ease-ui) hover:shadow-(--shadow-card-hover)"
@@ -148,7 +144,7 @@ function SectionTitle({ eyebrow, title, sub }: { eyebrow?: string; title: string
           {eyebrow}
         </p>
       ) : null}
-      <h2 className="font-heading text-4xl leading-[0.95] font-bold tracking-tight text-balance [font-stretch:80%] md:text-6xl">
+      <h2 className="font-heading text-4xl leading-[0.95] font-bold tracking-tight text-balance md:text-6xl">
         {title}
       </h2>
       {sub ? <p className="text-lg text-pretty text-muted-foreground">{sub}</p> : null}
@@ -217,21 +213,21 @@ export default async function HomePage() {
           <BadgeCheck aria-hidden="true" className="size-4" />
           {c.hero.eyebrow}
         </p>
-        <h1 className="font-heading text-5xl leading-[0.92] font-extrabold tracking-tight text-balance [font-stretch:78%] sm:text-6xl lg:text-7xl xl:text-[5.5rem]">
+        {/* Two weights, as in the orbit reference: a light line, then the bold one. */}
+        <h1 className="font-heading text-[2.6rem] leading-[1.02] tracking-tight text-balance sm:text-6xl lg:text-[4.25rem] xl:text-7xl">
           {title.map((part, i) =>
             part.accent ? (
-              <span
-                key={i}
-                className="block font-script text-[1.08em] font-normal text-primary [font-stretch:100%]"
-              >
+              <span key={i} className="block font-extrabold">
                 <span className="scribble">{part.text}</span>
               </span>
             ) : (
-              <span key={i}>{part.text}</span>
+              <span key={i} className="font-light">
+                {part.text}
+              </span>
             ),
           )}
         </h1>
-        <p className="max-w-xl text-lg text-pretty text-foreground/75">{c.hero.body}</p>
+        <p className="max-w-xl text-lg text-pretty text-muted-foreground">{c.hero.body}</p>
         <HomeSearch />
         <ul className="flex flex-wrap gap-2 text-sm">
           {c.trust.map((item) => (
@@ -320,7 +316,7 @@ export default async function HomePage() {
       <section className="surface-warm">
         <div className="container-page grid items-center gap-10 py-20 md:grid-cols-[1fr_1.1fr] md:py-24">
           <div className="grid gap-4">
-            <h2 className="font-heading text-4xl leading-[0.95] font-bold tracking-tight text-balance [font-stretch:80%] md:text-5xl">
+            <h2 className="font-heading text-4xl leading-[0.95] font-bold tracking-tight text-balance md:text-5xl">
               {c.shopTeaser.title}
             </h2>
             <p className="max-w-md text-pretty text-foreground/75">{c.shopTeaser.body}</p>
@@ -381,7 +377,7 @@ export default async function HomePage() {
             className="absolute -top-24 -right-24 size-80 rounded-full bg-primary-foreground/6"
           />
           <div className="relative grid gap-5">
-            <h2 className="font-heading text-4xl leading-[0.95] font-extrabold tracking-tight text-balance [font-stretch:80%] md:text-6xl">
+            <h2 className="font-heading text-4xl leading-[0.95] font-extrabold tracking-tight text-balance md:text-6xl">
               {c.vetCta.title}
             </h2>
             <p className="max-w-lg text-lg text-pretty text-primary-foreground/85">{c.vetCta.body}</p>
@@ -398,7 +394,8 @@ export default async function HomePage() {
             {c.stickers.map((item, i) => (
               <li
                 key={item}
-                className="flex reveal items-center gap-3 rounded-(--radius-xl) bg-primary-foreground/10 px-4 py-3 font-medium ring-1 ring-primary-foreground/15"
+                data-animate
+                className="flex items-center gap-3 rounded-(--radius-xl) bg-primary-foreground/10 px-4 py-3 font-medium ring-1 ring-primary-foreground/15"
                 style={{ "--i": i } as CSSProperties}
               >
                 <CircleCheck aria-hidden="true" className="size-5 shrink-0 text-highlight" />

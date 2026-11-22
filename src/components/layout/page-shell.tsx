@@ -6,8 +6,7 @@ import { cn } from "@/lib/utils";
 
 const CONTAINER = "container-page relative overflow-x-clip py-14 md:py-20";
 const HEADER = "relative mb-12 grid max-w-3xl gap-4";
-const TITLE =
-  "font-heading text-5xl leading-[0.95] font-extrabold tracking-tight text-balance [font-stretch:80%] md:text-7xl";
+const TITLE = "font-heading text-5xl leading-[0.95] font-extrabold tracking-tight text-balance md:text-7xl";
 const SUB = "text-lg text-pretty text-muted-foreground";
 
 /** Standard page heading + content, with the page transition. PageShellSkeleton is its loading twin. */

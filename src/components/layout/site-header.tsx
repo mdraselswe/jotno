@@ -57,8 +57,8 @@ export function SiteHeader() {
           <ButtonLink
             href={localeHref(locale, ROUTES.emergency)}
             size="sm"
-            variant="destructive"
-            className="sos-breathe gap-1.5"
+            variant="outline"
+            className="sos-breathe gap-1.5 border border-destructive/40 text-destructive hover:bg-destructive/8 hover:text-destructive"
           >
             <Siren aria-hidden="true" />
             <span className="max-sm:sr-only">{t("nav.emergency")}</span>

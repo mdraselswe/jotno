@@ -4,6 +4,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { DemoBanner } from "@/components/layout/demo-banner";
 import { TabBar } from "@/components/layout/tab-bar";
+import { ScrollScenes } from "@/components/motion/scroll-scenes";
 import { brandStyle, fontVariables, htmlDesignAttributes } from "@/components/layout/brand-style";
 import { ThemeScript } from "@/components/layout/theme-script";
 import { features, isProduction, site } from "@/config";
@@ -99,6 +100,9 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
             {children}
           </main>
           <SiteFooter />
+          <Suspense fallback={null}>
+            <ScrollScenes />
+          </Suspense>
           <TabBar />
           {features.offlineBanner ? <ConnectionBanner /> : null}
           {features.toaster.enabled ? <Toaster /> : null}
