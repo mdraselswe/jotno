@@ -7,12 +7,26 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* Latin font first, Noto Sans Bengali for Bangla glyphs (src/config/fonts.ts). */
+  /* Latin family first, the Bangla one for Bengali glyphs (src/config/fonts.ts). */
   --font-sans: var(--font-latin), var(--font-bengali), ui-sans-serif, system-ui, sans-serif;
-  /* Anek Bangla covers Bangla and Latin, so headings use it for both. */
-  --font-heading: var(--font-latin-heading), var(--font-bengali), ui-sans-serif, system-ui, sans-serif;
+  --font-heading:
+    var(--font-latin-heading), var(--font-bengali-heading), var(--font-bengali), ui-sans-serif, system-ui,
+    sans-serif;
+  /* Hand-lettered accents: footer wordmark, stickers, notes. */
+  --font-script: var(--font-latin-script), var(--font-bengali-script), cursive;
   --font-mono: var(--font-latin-mono), ui-monospace, SFMono-Regular, monospace;
   --color-highlight: var(--highlight);
+  --color-band-cat: var(--band-cat);
+  --color-band-dog: var(--band-dog);
+  --color-band-bird: var(--band-bird);
+  --color-band-rabbit: var(--band-rabbit);
+  --color-band-cow: var(--band-cow);
+  --color-band-goat: var(--band-goat);
+  --color-band-chicken: var(--band-chicken);
+  --color-band-care: var(--band-care);
+  /* Wallet brand marks (bKash pink, Nagad orange): only on their own logos/chips. */
+  --color-bkash: #e2136e;
+  --color-nagad: #f6921e;
   --color-highlight-foreground: var(--highlight-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
@@ -62,21 +76,21 @@
 :root,
 [data-design] {
   --background: var(--page-bg, oklch(1 var(--nc, 0) var(--nh, 0)));
-  --foreground: oklch(0.145 var(--nc, 0) var(--nh, 0));
-  --card: oklch(1 var(--nc, 0) var(--nh, 0));
-  --card-foreground: oklch(0.145 var(--nc, 0) var(--nh, 0));
-  --popover: oklch(1 var(--nc, 0) var(--nh, 0));
-  --popover-foreground: oklch(0.145 var(--nc, 0) var(--nh, 0));
+  --foreground: oklch(0.24 0.018 55);
+  --card: oklch(0.988 0.005 85);
+  --card-foreground: oklch(0.24 0.018 55);
+  --popover: oklch(0.992 0.004 85);
+  --popover-foreground: oklch(0.24 0.018 55);
   --primary: var(--brand, oklch(0.205 var(--nc, 0) var(--nh, 0)));
   --primary-foreground: var(--brand-foreground, oklch(0.985 var(--nc, 0) var(--nh, 0)));
   --highlight: var(--brand-highlight, oklch(0.8 0.14 70));
   --highlight-foreground: var(--brand-highlight-foreground, oklch(0.28 0.06 60));
-  --secondary: oklch(0.97 var(--nc, 0) var(--nh, 0));
-  --secondary-foreground: oklch(0.205 var(--nc, 0) var(--nh, 0));
-  --muted: oklch(0.97 var(--nc, 0) var(--nh, 0));
-  --muted-foreground: oklch(0.556 var(--nc, 0) var(--nh, 0));
-  --accent: oklch(0.97 var(--nc, 0) var(--nh, 0));
-  --accent-foreground: oklch(0.205 var(--nc, 0) var(--nh, 0));
+  --secondary: oklch(0.93 0.016 80);
+  --secondary-foreground: oklch(0.3 0.02 55);
+  --muted: oklch(0.925 0.012 80);
+  --muted-foreground: oklch(0.5 0.02 60);
+  --accent: oklch(0.92 0.03 70);
+  --accent-foreground: oklch(0.3 0.03 55);
   --destructive: oklch(0.577 0.245 27.325);
   /* Status colours: badges, alerts, toasts. Text on them uses the -foreground token. */
   --success: oklch(0.52 0.14 150);
@@ -85,9 +99,9 @@
   --warning-foreground: oklch(0.25 0.05 70);
   --info: oklch(0.55 0.15 245);
   --info-foreground: oklch(0.985 var(--nc, 0) var(--nh, 0));
-  --border: oklch(0.922 var(--nc, 0) var(--nh, 0));
-  --input: oklch(0.922 var(--nc, 0) var(--nh, 0));
-  --ring: oklch(0.708 var(--nc, 0) var(--nh, 0));
+  --border: oklch(0.885 0.014 75);
+  --input: oklch(0.87 0.016 75);
+  --ring: oklch(0.55 0.08 165);
   --chart-1: oklch(0.87 var(--nc, 0) var(--nh, 0));
   --chart-2: oklch(0.556 var(--nc, 0) var(--nh, 0));
   --chart-3: oklch(0.439 var(--nc, 0) var(--nh, 0));
@@ -107,21 +121,21 @@
 .dark,
 .dark [data-design] {
   --background: var(--page-bg-dark, oklch(0.145 var(--nc, 0) var(--nh, 0)));
-  --foreground: oklch(0.985 var(--nc, 0) var(--nh, 0));
-  --card: oklch(0.205 var(--nc, 0) var(--nh, 0));
-  --card-foreground: oklch(0.985 var(--nc, 0) var(--nh, 0));
-  --popover: oklch(0.205 var(--nc, 0) var(--nh, 0));
-  --popover-foreground: oklch(0.985 var(--nc, 0) var(--nh, 0));
+  --foreground: oklch(0.95 0.008 80);
+  --card: oklch(0.215 0.01 60);
+  --card-foreground: oklch(0.95 0.008 80);
+  --popover: oklch(0.235 0.01 60);
+  --popover-foreground: oklch(0.95 0.008 80);
   --primary: var(--brand-dark, oklch(0.922 var(--nc, 0) var(--nh, 0)));
   --primary-foreground: var(--brand-foreground-dark, oklch(0.205 var(--nc, 0) var(--nh, 0)));
   --highlight: var(--brand-highlight-dark, oklch(0.78 0.13 70));
   --highlight-foreground: var(--brand-highlight-foreground-dark, oklch(0.22 0.05 60));
-  --secondary: oklch(0.269 var(--nc, 0) var(--nh, 0));
-  --secondary-foreground: oklch(0.985 var(--nc, 0) var(--nh, 0));
-  --muted: oklch(0.269 var(--nc, 0) var(--nh, 0));
-  --muted-foreground: oklch(0.708 var(--nc, 0) var(--nh, 0));
-  --accent: oklch(0.269 var(--nc, 0) var(--nh, 0));
-  --accent-foreground: oklch(0.985 var(--nc, 0) var(--nh, 0));
+  --secondary: oklch(0.28 0.012 60);
+  --secondary-foreground: oklch(0.94 0.008 80);
+  --muted: oklch(0.27 0.01 60);
+  --muted-foreground: oklch(0.72 0.014 70);
+  --accent: oklch(0.3 0.025 60);
+  --accent-foreground: oklch(0.95 0.008 80);
   --destructive: oklch(0.704 0.191 22.216);
   --success: oklch(0.72 0.15 150);
   --success-foreground: oklch(0.2 0.04 150);
@@ -129,9 +143,9 @@
   --warning-foreground: oklch(0.25 0.05 70);
   --info: oklch(0.72 0.12 245);
   --info-foreground: oklch(0.2 0.04 245);
-  --border: oklch(1 var(--nc, 0) var(--nh, 0) / 10%);
-  --input: oklch(1 var(--nc, 0) var(--nh, 0) / 15%);
-  --ring: oklch(0.556 var(--nc, 0) var(--nh, 0));
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.7 0.1 165);
   --chart-1: oklch(0.87 var(--nc, 0) var(--nh, 0));
   --chart-2: oklch(0.556 var(--nc, 0) var(--nh, 0));
   --chart-3: oklch(0.439 var(--nc, 0) var(--nh, 0));
@@ -145,6 +159,29 @@
   --sidebar-accent-foreground: oklch(0.985 var(--nc, 0) var(--nh, 0));
   --sidebar-border: oklch(1 var(--nc, 0) var(--nh, 0) / 10%);
   --sidebar-ring: oklch(0.556 var(--nc, 0) var(--nh, 0));
+}
+
+/* Species bands: the colour that blooms behind each animal (home orbit,
+   chips, shop). Soft in light mode, deep in dark mode. */
+:root {
+  --band-cat: oklch(0.86 0.1 75);
+  --band-dog: oklch(0.8 0.12 50);
+  --band-bird: oklch(0.86 0.1 135);
+  --band-rabbit: oklch(0.87 0.05 330);
+  --band-cow: oklch(0.85 0.07 95);
+  --band-goat: oklch(0.82 0.05 60);
+  --band-chicken: oklch(0.85 0.1 40);
+  --band-care: oklch(0.85 0.07 165);
+}
+.dark {
+  --band-cat: oklch(0.45 0.08 75);
+  --band-dog: oklch(0.45 0.1 45);
+  --band-bird: oklch(0.45 0.08 140);
+  --band-rabbit: oklch(0.42 0.06 330);
+  --band-cow: oklch(0.45 0.06 95);
+  --band-goat: oklch(0.42 0.05 60);
+  --band-chicken: oklch(0.45 0.09 40);
+  --band-care: oklch(0.42 0.07 165);
 }
 
 /* ─── Design knobs (src/config/design.ts, docs/design-system.md) ──────────

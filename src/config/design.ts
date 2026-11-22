@@ -1,19 +1,19 @@
 import { designSchema, type DesignConfig } from "./schema.ts";
 
 /**
- * ✏️ Jotno's look, as knobs (docs/design-system.md → Design knobs). Chosen on
- * /dev/directions: "Warm care" (soft, rounded, gentle spring, warm greys,
- * a little paper grain). The other two directions there are one edit away.
+ * ✏️ Jotno's look, as knobs (docs/design-system.md → Design knobs).
+ * "Soft & tactile" (direction 1 on /dev/directions): objects you can press,
+ * light from above, layered soft shadows, springy squash, warm greys.
  */
 const design: DesignConfig = {
-  radius: "1rem",
-  controlShape: "rounded",
+  radius: "1.1rem",
+  controlShape: "pill",
   border: "none",
-  elevation: "soft",
-  density: "comfortable",
+  elevation: "tactile",
+  density: "airy",
   motion: "bouncy",
   texture: "grain",
-  neutral: { hue: 70, chroma: 0.008 },
+  neutral: { hue: 75, chroma: 0.012 },
 };
 
 export const designConfig = designSchema.parse(design);

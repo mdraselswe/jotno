@@ -23,15 +23,15 @@ const site: SiteConfig = {
   host: "cloudflare",
   privatePaths: ["/account", "/dashboard", "/admin", "/chat", "/onboarding", "/pay", "/api", "/auth"],
   theme: {
-    defaultMode: "system",
-    // Warm teal: health and nature, trustworthy but not hospital-cold.
-    primary: { light: "oklch(0.52 0.1 180)", dark: "oklch(0.78 0.11 176)" },
-    primaryForeground: { light: "oklch(0.99 0.01 180)", dark: "oklch(0.2 0.04 182)" },
-    // Cream, not pure white; warm black in dark mode.
-    background: { light: "#fbf7f0", dark: "#14110e" },
-    // Soft amber: warmth, the mascot, "available now".
-    highlight: { light: "oklch(0.8 0.14 70)", dark: "oklch(0.78 0.13 70)" },
-    highlightForeground: { light: "oklch(0.28 0.06 60)", dark: "oklch(0.22 0.05 60)" },
+    defaultMode: "light",
+    // Deep care green: health and growth, calm and trustworthy, never hospital-cold.
+    primary: { light: "oklch(0.44 0.09 165)", dark: "oklch(0.8 0.12 165)" },
+    primaryForeground: { light: "oklch(0.985 0.01 120)", dark: "oklch(0.2 0.04 165)" },
+    // Warm studio paper (light) and warm charcoal (dark), like a photo backdrop.
+    background: { light: "#f2efe8", dark: "#151412" },
+    // Apricot: warmth, the mascot, "available now", the blobs behind the animals.
+    highlight: { light: "oklch(0.8 0.12 55)", dark: "oklch(0.76 0.12 55)" },
+    highlightForeground: { light: "oklch(0.26 0.05 45)", dark: "oklch(0.2 0.05 45)" },
   },
   contact: {
     email: "hello@jotnocare.com",
