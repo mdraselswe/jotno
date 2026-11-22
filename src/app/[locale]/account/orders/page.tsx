@@ -35,7 +35,7 @@ async function Orders() {
               <li key={o.id}>
                 <Link
                   href={localeHref(locale, orderPath(o.id))}
-                  className="group flex items-center gap-4 rounded-(--radius-xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-transform duration-(--motion-fast) ease-(--ease-out) hover:-translate-y-0.5"
+                  className="group flex items-center gap-4 rounded-(--radius-xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-transform duration-(--motion-fast) ease-(--ease-out)"
                 >
                   <span className="grid size-12 shrink-0 place-items-center rounded-full bg-highlight/25 text-primary">
                     <Package aria-hidden="true" className="size-5" />

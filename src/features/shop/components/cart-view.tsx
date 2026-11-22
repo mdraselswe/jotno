@@ -119,7 +119,7 @@ export function CartView({
         {priced.map((l) => (
           <li
             key={l.productId}
-            className="flex gap-3 rounded-(--radius-2xl) bg-card p-3 shadow-(--shadow-card)"
+            className="glow-border relative flex gap-3 rounded-(--radius-2xl) bg-card p-3 shadow-(--shadow-card)"
           >
             {l.product.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- storage URL
@@ -187,7 +187,7 @@ export function CartView({
       </ul>
 
       <form
-        className="grid content-start gap-4 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
+        className="glow-border relative grid content-start gap-4 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
         onSubmit={(e) => {
           e.preventDefault();
           setError(null);

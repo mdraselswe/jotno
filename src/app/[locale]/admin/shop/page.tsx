@@ -141,7 +141,7 @@ async function Orders({
             <li key={o.id}>
               <Link
                 href={localeHref(locale, adminOrderPath(o.id))}
-                className="grid gap-2 rounded-(--radius-xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-transform duration-(--motion-fast) hover:-translate-y-0.5"
+                className="grid gap-2 rounded-(--radius-xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-transform duration-(--motion-fast)"
               >
                 <span className="flex flex-wrap items-center gap-3">
                   <span className="font-heading font-semibold">#{o.number}</span>

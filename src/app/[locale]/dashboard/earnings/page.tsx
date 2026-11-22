@@ -33,7 +33,7 @@ async function Earnings() {
         {tiles.map((tile) => (
           <div
             key={tile.label}
-            className={`grid gap-1 rounded-(--radius-2xl) p-(--card-pad) ${tile.strong ? "bg-primary/5" : "bg-card shadow-(--shadow-card)"}`}
+            className={`glow-border relative grid gap-1 rounded-(--radius-2xl) p-(--card-pad) ${tile.strong ? "bg-primary/5" : "bg-card shadow-(--shadow-card)"}`}
           >
             <dt className="text-xs text-muted-foreground">{tile.label}</dt>
             <dd className="font-heading text-2xl font-semibold tabular-nums">{taka(fmt, tile.value)}</dd>

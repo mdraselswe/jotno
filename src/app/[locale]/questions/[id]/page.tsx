@@ -104,7 +104,7 @@ async function Question({ params }: { params: Promise<{ id: string }> }) {
         {q.answers.map((a) => (
           <div
             key={a.id}
-            className="grid gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
+            className="glow-border relative grid gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
           >
             <Link href={localeHref(locale, vetPath(a.vet.slug))} className="flex items-center gap-3">
               {a.vet.photoUrl ? (
@@ -137,7 +137,7 @@ async function Question({ params }: { params: Promise<{ id: string }> }) {
                 canVote={Boolean(viewer)}
               />
               <ButtonLink href={localeHref(locale, consultStartPath(a.vet.slug))} variant="outline" size="sm">
-                {t("vets.startChat")}
+                {t("vets.chatNow")}
               </ButtonLink>
               {viewer ? <ReportButton entity="answer" id={a.id} /> : null}
               <span className="ml-auto text-xs text-muted-foreground">{fmt.date(a.createdAt)}</span>

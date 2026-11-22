@@ -45,7 +45,7 @@ async function Profile() {
         }}
       />
       <section
-        className="grid max-w-3xl gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
+        className="glow-border relative grid max-w-3xl gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
         aria-labelledby="docs-h"
       >
         <h2 id="docs-h" className="font-heading text-lg font-semibold">

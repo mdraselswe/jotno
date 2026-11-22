@@ -41,7 +41,7 @@ async function Products() {
               <li key={p.id}>
                 <Link
                   href={localeHref(locale, adminProductPath(p.id))}
-                  className="flex flex-wrap items-center gap-3 rounded-(--radius-lg) bg-card px-4 py-3 shadow-(--shadow-card) transition-transform duration-(--motion-fast) hover:-translate-y-0.5"
+                  className="flex flex-wrap items-center gap-3 rounded-(--radius-lg) bg-card px-4 py-3 shadow-(--shadow-card) transition-transform duration-(--motion-fast)"
                 >
                   <span className="grid min-w-0 flex-1">
                     <span className="truncate font-medium">{locale === "bn" ? p.nameBn : p.nameEn}</span>

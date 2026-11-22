@@ -1,11 +1,23 @@
-import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import { Doodle, type DoodleName } from "@/components/illustrations/doodles";
 import { productPath } from "@/config/routes";
 import type { Formatter, Translate } from "@/i18n";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 import type { ProductCard } from "../server/queries";
 import { AddToCartButton } from "./add-to-cart";
+
+/** Placeholder art per category, until a product has a photo. */
+const ART: Record<string, { doodle: DoodleName; tone: string }> = {
+  food: { doodle: "bone", tone: "bg-band-dog/45" },
+  grooming: { doodle: "cat", tone: "bg-band-rabbit/55" },
+  accessories: { doodle: "paw", tone: "bg-band-cow/55" },
+  toys: { doodle: "ball", tone: "bg-band-bird/50" },
+  dress: { doodle: "heart", tone: "bg-band-chicken/45" },
+};
+
+export const productArt = (category: string) =>
+  ART[category] ?? { doodle: "paw" as const, tone: "bg-band-care/50" };
 
 /** Product card for the shop grid. */
 export function ProductTile({
@@ -20,17 +32,18 @@ export function ProductTile({
   fmt: Formatter;
 }) {
   const href = localeHref(locale, productPath(p.slug));
+  const art = productArt(p.category);
   return (
-    <div className="group grid h-full grid-rows-[auto_1fr_auto] overflow-hidden rounded-(--radius-3xl) bg-card shadow-(--shadow-card) transition-[transform,box-shadow] duration-(--motion-base) ease-(--ease-ui) hover:-translate-y-1.5 hover:shadow-(--shadow-card-hover)">
+    <div className="group glow-border relative grid h-full grid-rows-[auto_1fr_auto] overflow-hidden rounded-(--radius-3xl) bg-card shadow-(--shadow-card) transition-[transform,box-shadow] duration-(--motion-base) ease-(--ease-ui) hover:shadow-(--shadow-card-hover)">
       <Link
         href={href}
-        className="relative m-2 block aspect-square overflow-hidden rounded-(--radius-2xl) bg-band-care/50"
+        className={`relative m-2 block aspect-square overflow-hidden rounded-(--radius-2xl) ${art.tone}`}
         tabIndex={-1}
         aria-hidden="true"
       >
         {p.compareAt && p.compareAt > p.price ? (
           <span className="absolute top-2 left-2 z-10 rounded-full bg-highlight px-2 py-0.5 text-xs font-bold text-highlight-foreground">
-            −{Math.round((1 - p.price / p.compareAt) * 100)}%
+            −{fmt.number(Math.round((1 - p.price / p.compareAt) * 100))}%
           </span>
         ) : null}
         {p.imageUrl ? (
@@ -43,7 +56,10 @@ export function ProductTile({
           />
         ) : (
           <span className="grid size-full place-items-center">
-            <ShoppingBag className="size-10 text-muted-foreground" />
+            <Doodle
+              name={art.doodle}
+              className="size-2/5 text-foreground/45 transition-transform duration-(--motion-slow) ease-(--ease-ui) group-hover:scale-110 group-hover:-rotate-6"
+            />
           </span>
         )}
       </Link>

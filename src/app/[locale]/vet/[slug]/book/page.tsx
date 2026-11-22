@@ -62,7 +62,7 @@ async function Book({ params }: { params: Promise<{ slug: string }> }) {
         <div className="grid justify-items-center gap-3 rounded-(--radius-xl) bg-card p-6 text-center shadow-(--shadow-control)">
           <CalendarX aria-hidden="true" className="size-8 text-muted-foreground" />
           <p>{t("appt.noSlots")}</p>
-          <ButtonLink href={localeHref(locale, consultStartPath(slug))}>{t("vets.startChat")}</ButtonLink>
+          <ButtonLink href={localeHref(locale, consultStartPath(slug))}>{t("vets.chatNow")}</ButtonLink>
         </div>
       ) : viewer ? (
         <SlotPicker

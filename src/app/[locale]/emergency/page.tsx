@@ -79,7 +79,7 @@ export default async function EmergencyPage() {
               <li
                 key={card.id}
                 id={card.id}
-                className="grid content-start gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
+                className="glow-border relative grid content-start gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
               >
                 <h3 className="font-heading text-lg font-semibold">{card.title}</h3>
                 <ol className="grid list-decimal gap-1.5 pl-5 text-sm">

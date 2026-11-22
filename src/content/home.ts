@@ -31,6 +31,8 @@ export interface HomeContent {
     label: string;
     prev: string;
     next: string;
+    pause: string;
+    play: string;
     /** One line per animal, under its name. */
     pets: Record<OrbitPet, string>;
     find: string;
@@ -94,6 +96,8 @@ export const homeContent: Record<string, HomeContent> = {
       label: "Animals we care for",
       prev: "Previous animal",
       next: "Next animal",
+      pause: "Pause the slideshow",
+      play: "Play the slideshow",
       pets: {
         cat: "Vaccines, worms, skin and tummy trouble",
         dog: "Puppy shots, rabies, ticks and limps",
@@ -104,7 +108,7 @@ export const homeContent: Record<string, HomeContent> = {
         chicken: "Flock health, Newcastle and feed",
       },
       find: "Find a {pet} vet",
-      badges: ["BVC verified", "Reply in 30 min", "Refund if not"],
+      badges: ["BVC verified", "Reply in 30 min", "Money-back promise"],
     },
     marquee: [
       "Verified vets",
@@ -219,6 +223,8 @@ export const homeContent: Record<string, HomeContent> = {
       label: "যাদের যত্ন নিই",
       prev: "আগের প্রাণী",
       next: "পরের প্রাণী",
+      pause: "স্লাইড থামান",
+      play: "স্লাইড চালু করুন",
       pets: {
         cat: "টিকা, কৃমি, চামড়া আর পেটের সমস্যা",
         dog: "ছানার টিকা, জলাতঙ্ক, আঁটালি আর খোঁড়ানো",

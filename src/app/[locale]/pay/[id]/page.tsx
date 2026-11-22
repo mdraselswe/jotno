@@ -17,7 +17,7 @@ export const metadata = { title: "Pay", robots: { index: false } };
 
 function Card({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto grid w-full max-w-md gap-6 rounded-(--radius-2xl) bg-card p-6 shadow-(--shadow-card) sm:p-8">
+    <div className="glow-border relative mx-auto grid w-full max-w-md gap-6 rounded-(--radius-2xl) bg-card p-6 shadow-(--shadow-card) sm:p-8">
       {children}
     </div>
   );

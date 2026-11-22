@@ -33,7 +33,7 @@ export function QuestionList({
         <li key={q.id}>
           <Link
             href={localeHref(locale, questionPath(q.id))}
-            className="grid gap-2 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-colors hover:bg-muted/40"
+            className="glow-border relative grid gap-2 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-colors hover:bg-muted/40"
           >
             <span className="font-heading text-lg leading-snug font-semibold">{q.title}</span>
             <span className="line-clamp-2 text-sm text-muted-foreground">{q.excerpt}</span>

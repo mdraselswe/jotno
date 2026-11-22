@@ -30,7 +30,7 @@ export default async function AboutPage() {
           {c.values.map((v) => (
             <li
               key={v.title}
-              className="grid gap-2 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
+              className="glow-border relative grid gap-2 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
             >
               <h2 className="font-heading font-semibold">{v.title}</h2>
               <p className="text-sm text-muted-foreground">{v.body}</p>

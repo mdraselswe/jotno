@@ -25,18 +25,16 @@ export async function generateMetadata() {
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? null;
 
-async function Products({ searchParams }: { searchParams: Promise<Search> }) {
+/** The filters in the address, and a link builder that keeps the others. */
+async function readFilters(searchParams: Promise<Search>) {
   const sp = await searchParams;
   const locale = await getLocale();
-  const t = await getT();
-  const fmt = await getFormatter();
   const category = SHOP_CATEGORIES.find((c) => c.slug === one(sp.category))?.slug ?? null;
   const q = one(sp.q)?.slice(0, 60) ?? "";
   const rawSort = one(sp.sort);
   const sort: ProductSort = (PRODUCT_SORTS as readonly string[]).includes(rawSort ?? "")
     ? (rawSort as ProductSort)
     : "popular";
-  const products = await listProducts({ category, q, sort, locale });
   const base = localeHref(locale, ROUTES.shop);
   const href = (patch: { category?: string | null; sort?: ProductSort }) => {
     const p = new URLSearchParams();
@@ -47,6 +45,27 @@ async function Products({ searchParams }: { searchParams: Promise<Search> }) {
     const str = p.toString();
     return (str ? `${base}/?${str}` : base) as Route;
   };
+  return { locale, category, q, sort, base, href };
+}
+
+function Intro({ title, sub, secure }: { title: string; sub: string; secure: string }) {
+  return (
+    <div className="grid max-w-2xl gap-3">
+      <h1 className="font-heading text-5xl leading-[0.92] font-extrabold tracking-tight [font-stretch:78%] md:text-7xl">
+        {title}
+      </h1>
+      <p className="text-lg text-pretty text-foreground/75">{sub}</p>
+      <p className="flex items-center gap-2 text-sm font-medium">
+        <Truck aria-hidden="true" className="size-4 text-primary" />
+        {secure}
+      </p>
+    </div>
+  );
+}
+
+async function Menu({ searchParams }: { searchParams: Promise<Search> }) {
+  const { locale, category, href } = await readFilters(searchParams);
+  const t = await getT();
   const menu: BowlItem[] = [
     { key: "all", label: t("common.all"), href: href({ category: null }), active: !category },
     ...SHOP_CATEGORIES.map((c) => ({
@@ -57,8 +76,21 @@ async function Products({ searchParams }: { searchParams: Promise<Search> }) {
     })),
   ];
   return (
+    <BowlMenu
+      items={menu}
+      label={t("shop.category")}
+      intro={<Intro title={t("shop.title")} sub={t("shop.sub")} secure={t("shop.secure")} />}
+    />
+  );
+}
+
+async function Products({ searchParams }: { searchParams: Promise<Search> }) {
+  const { locale, category, q, sort, base, href } = await readFilters(searchParams);
+  const t = await getT();
+  const fmt = await getFormatter();
+  const products = await listProducts({ category, q, sort, locale });
+  return (
     <div className="grid gap-8">
-      <BowlMenu items={menu} label={t("shop.category")} />
       <div className="flex flex-wrap items-center gap-3">
         <form action={base} role="search" className="relative min-w-0 flex-1 basis-64">
           {category ? <input type="hidden" name="category" value={category} /> : null}
@@ -111,24 +143,26 @@ export default async function ShopPage({ searchParams }: PageProps<"/[locale]/sh
   const t = await getT();
   return (
     <PageTransition>
-      <div className="container-page grid gap-10 py-10 md:py-16">
-        <header className="relative flex flex-wrap items-end justify-between gap-4">
+      <div className="container-page grid gap-10 py-8 md:py-12">
+        <section className="relative overflow-hidden rounded-(--radius-4xl) bg-band-dog/45 p-6 shadow-(--shadow-card) sm:p-10">
           <Doodle
             name="bone"
-            className="absolute -top-4 right-[30%] size-12 rotate-12 draw text-band-dog max-md:hidden"
+            className="absolute top-6 right-[22%] size-12 rotate-12 draw text-foreground/20 max-md:hidden"
           />
-          <div className="grid max-w-2xl gap-3">
-            <h1 className="font-heading text-5xl leading-[0.92] font-extrabold tracking-tight [font-stretch:78%] md:text-7xl">
-              {t("shop.title")}
-            </h1>
-            <p className="text-lg text-pretty text-muted-foreground">{t("shop.sub")}</p>
-            <p className="flex items-center gap-2 text-sm font-medium">
-              <Truck aria-hidden="true" className="size-4 text-primary" />
-              {t("shop.secure")}
-            </p>
+          <div className="absolute top-4 right-4 z-10 sm:top-6 sm:right-6">
+            <CartLink />
           </div>
-          <CartLink />
-        </header>
+          <Suspense
+            fallback={
+              <div className="grid gap-6">
+                <Intro title={t("shop.title")} sub={t("shop.sub")} secure={t("shop.secure")} />
+                <Skeleton className="h-10 w-full max-w-lg rounded-full" />
+              </div>
+            }
+          >
+            <Menu searchParams={searchParams} />
+          </Suspense>
+        </section>
         <Suspense
           fallback={
             <div role="status" className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">

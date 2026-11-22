@@ -61,9 +61,14 @@ function cacheable(response) {
   return !/\b(no-store|private)\b/i.test(control);
 }
 
+/**
+ * Exact match only. Matching "ignoring the query" would hand back another
+ * page's copy: /questions/?species=dog would get the cat list, and a
+ * filtered router payload the unfiltered one.
+ */
 async function fromCache(request) {
   const cache = await caches.open(CACHE);
-  return (await cache.match(request)) ?? (await cache.match(request, { ignoreSearch: true }));
+  return cache.match(request);
 }
 
 async function store(request, response) {
@@ -97,12 +102,17 @@ async function cacheFirst(request) {
   return (await fromCache(request)) ?? store(request, await fetch(request));
 }
 
-async function staleWhileRevalidate(request) {
-  const cached = await fromCache(request);
-  const network = fetch(request)
-    .then((res) => store(request, res))
-    .catch(() => undefined);
-  return cached ?? (await network) ?? Response.error();
+/**
+ * Router data (client navigations, prefetches): always fresh from the
+ * network, so filters, lists and prices are never stale; the saved copy is
+ * only for when the network fails.
+ */
+async function networkFirst(request) {
+  try {
+    return await store(request, await fetch(request));
+  } catch {
+    return (await fromCache(request)) ?? Response.error();
+  }
 }
 
 self.addEventListener("fetch", (event) => {
@@ -124,7 +134,7 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") event.respondWith(page(request));
   else if (isImmutable(url)) event.respondWith(cacheFirst(request));
-  else if (isRouterData(url, request)) event.respondWith(staleWhileRevalidate(request));
+  else if (isRouterData(url, request)) event.respondWith(networkFirst(request));
   else event.respondWith(fetch(request).catch(async () => (await fromCache(request)) ?? Response.error()));
 });
 

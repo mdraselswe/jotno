@@ -34,14 +34,14 @@ async function Overview() {
       <div className="grid gap-3 sm:grid-cols-2">
         <Link
           href={localeHref(locale, ROUTES.ask)}
-          className="flex items-center gap-3 rounded-(--radius-xl) bg-primary p-(--card-pad) text-primary-foreground shadow-(--shadow-card) transition-transform hover:-translate-y-0.5"
+          className="flex items-center gap-3 rounded-(--radius-xl) bg-primary p-(--card-pad) text-primary-foreground shadow-(--shadow-card) transition-transform"
         >
           <MessageCircleQuestion aria-hidden="true" className="size-6" />
           <span className="font-medium">{t("account.quickAsk")}</span>
         </Link>
         <Link
           href={localeHref(locale, ROUTES.vets)}
-          className="flex items-center gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-transform hover:-translate-y-0.5"
+          className="glow-border relative flex items-center gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-transform"
         >
           <Stethoscope aria-hidden="true" className="size-6 text-primary" />
           <span className="font-medium">{t("account.quickFind")}</span>

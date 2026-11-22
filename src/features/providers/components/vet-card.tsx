@@ -53,7 +53,7 @@ export function VetCard({
     <Link
       href={localeHref(locale, vetPath(vet.slug))}
       className={cn(
-        "group relative flex gap-4 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-[box-shadow,translate] duration-(--motion-base) ease-(--ease-ui) hover:-translate-y-1 hover:shadow-(--shadow-card-hover)",
+        "group glow-border relative flex h-full gap-4 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-[box-shadow,translate] duration-(--motion-base) ease-(--ease-ui) hover:shadow-(--shadow-card-hover)",
         vet.featured && "ring-2 ring-highlight",
       )}
     >
@@ -66,17 +66,12 @@ export function VetCard({
         ) : null}
       </span>
       <span className="grid min-w-0 flex-1 gap-1">
-        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="flex min-w-0 items-center gap-1.5">
           <span className="truncate font-heading text-lg leading-tight font-semibold">{vet.displayName}</span>
           <BadgeCheck aria-label={t("common.verified")} className="size-4 shrink-0 text-primary" />
           {vet.featured ? (
-            <span className="rounded-full bg-highlight/20 px-2 py-0.5 text-[0.6875rem] font-medium text-highlight-foreground">
+            <span className="ms-auto shrink-0 rounded-full bg-highlight/25 px-2 py-0.5 text-[0.6875rem] font-semibold text-highlight-foreground">
               {t("common.sponsored")}
-            </span>
-          ) : null}
-          {vet.isDemo ? (
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[0.6875rem] text-muted-foreground">
-              {t("common.demo")}
             </span>
           ) : null}
         </span>
@@ -110,6 +105,11 @@ export function VetCard({
             <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
               <Home aria-hidden="true" className="size-3" />
               {t("vets.homeVisit")}
+            </span>
+          ) : null}
+          {vet.isDemo ? (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+              {t("common.demo")}
             </span>
           ) : null}
         </span>

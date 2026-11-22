@@ -16,8 +16,8 @@ import { SECURITY_HEADERS } from "./src/config/security.ts";
  *   and Partial Prefetching, the current Next defaults.
  *
  * Languages: pages live in app/[locale]. The default locale is served without a
- * prefix: server mode (and `pnpm dev` in both modes) rewrites `/about/` →
- * `/bn/about/` and redirects `/bn/about/` → `/about/`; a static build copies the
+ * prefix: server mode rewrites `/about/` → `/bn/about/` in src/proxy.ts (static
+ * `pnpm dev` with the rewrites below) and redirects `/bn/about/` → `/about/`; a static build copies the
  * default locale's export to the root instead (scripts/postbuild.ts).
  * See docs/adr/0004-i18n-routing.md.
  */
@@ -68,7 +68,11 @@ export default function config(phase: string): NextConfig {
           async headers() {
             return [{ source: "/:path*", headers: SECURITY_HEADERS }];
           },
-          ...localeRouting,
+          // The unprefixed → default-locale rewrite lives in src/proxy.ts here: a
+          // next.config rewrite drops the query from the router payload's
+          // rewrite header, so client navigations between ?filter= URLs on
+          // default-locale pages showed the first page's results.
+          redirects: localeRouting.redirects,
         }),
     // Tailwind v4 through its Turbopack loader (set up by create-next-app).
     turbopack: {

@@ -76,7 +76,7 @@ async function Article({ params }: { params: Promise<{ slug: string }> }) {
         </p>
       </header>
       <ArticleBody body={a.body} />
-      <aside className="grid gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) sm:flex sm:items-center">
+      <aside className="glow-border relative grid gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) sm:flex sm:items-center">
         <Link href={localeHref(locale, vetPath(a.vet.slug))} className="flex flex-1 items-center gap-3">
           {a.vet.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- storage URL
@@ -92,7 +92,7 @@ async function Article({ params }: { params: Promise<{ slug: string }> }) {
             {a.vet.title ? <span className="text-sm text-muted-foreground">{a.vet.title}</span> : null}
           </span>
         </Link>
-        <ButtonLink href={localeHref(locale, consultStartPath(a.vet.slug))}>{t("vets.startChat")}</ButtonLink>
+        <ButtonLink href={localeHref(locale, consultStartPath(a.vet.slug))}>{t("vets.chatNow")}</ButtonLink>
       </aside>
       <p className="text-xs text-muted-foreground">{t("footer.notAdvice")}</p>
     </article>

@@ -65,7 +65,7 @@ async function List({ searchParams }: { searchParams: Promise<Search> }) {
             <li key={a.id}>
               <Link
                 href={localeHref(locale, articlePath(a.slug))}
-                className="grid h-full gap-2 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-colors hover:bg-muted/40"
+                className="glow-border relative grid h-full gap-2 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-colors hover:bg-muted/40"
               >
                 {a.speciesId ? (
                   <span className="text-xs font-medium text-primary">{speciesName(a.speciesId, locale)}</span>

@@ -21,6 +21,25 @@ test.describe("public flows", () => {
     await expect(signIn).toBeVisible();
   });
 
+  test("filter links change the results on default-locale pages (client navigation)", async ({ page }) => {
+    // Regression: with a next.config rewrite for unprefixed URLs, the router
+    // reused the first page's payload for every ?species= link.
+    await page.goto("/questions/");
+    const filters = page.locator("main nav").first();
+    for (const species of ["dog", "cat"]) {
+      await filters.locator(`a[href$='species=${species}']`).click();
+      await expect(page).toHaveURL(new RegExp(`species=${species}`));
+      await expect(filters.locator(`a[href$='species=${species}']`)).toHaveClass(/bg-primary/);
+    }
+    await page.goto("/shop/");
+    await page.locator("main a[href$='category=toys']").first().click();
+    await expect(page).toHaveURL(/category=toys/);
+    await expect(page.locator("main a[href$='category=toys']").first()).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
   test("private pages send signed-out people to sign in", async ({ page }) => {
     for (const path of ["/account/", "/dashboard/", "/admin/"]) {
       await page.goto(path);

@@ -34,7 +34,7 @@ export function ConsultList({
         <li key={c.id}>
           <Link
             href={localeHref(locale, chatPath(c.id))}
-            className="flex items-center gap-3 rounded-(--radius-2xl) bg-card p-4 shadow-(--shadow-card) hover:bg-muted/40"
+            className="glow-border relative flex items-center gap-3 rounded-(--radius-2xl) bg-card p-4 shadow-(--shadow-card) hover:bg-muted/40"
           >
             <MessageCircle aria-hidden="true" className="size-5 shrink-0 text-primary" />
             <span className="grid min-w-0 flex-1 gap-0.5">

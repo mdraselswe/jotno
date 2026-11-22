@@ -25,16 +25,23 @@ const NETWORK_NAMES: Record<string, string> = {
 /** Year of the build (module scope, so it is fixed at build time). */
 const YEAR = new Date().getFullYear();
 
-/** The doodle crew round the wordmark: where each one sits and how it moves. */
+/** The doodle crew hugging the wordmark: where each one sits and how it moves. */
 const CREW: readonly { name: DoodleName; className: string; motion: "float" | "wiggle" }[] = [
-  { name: "cat", className: "left-[4%] top-[6%] size-14 rotate-[-10deg] md:size-20", motion: "float" },
-  { name: "bone", className: "left-[22%] top-[0%] size-10 rotate-12 md:size-14", motion: "wiggle" },
-  { name: "heart", className: "left-[46%] top-[2%] size-9 md:size-12 text-destructive/70", motion: "float" },
-  { name: "dog", className: "right-[20%] top-[4%] size-14 rotate-6 md:size-20", motion: "float" },
-  { name: "bird", className: "right-[3%] top-[18%] size-12 -rotate-6 md:size-16", motion: "wiggle" },
-  { name: "paw", className: "left-[12%] bottom-[10%] size-10 rotate-[20deg] md:size-12", motion: "wiggle" },
-  { name: "fish", className: "right-[10%] bottom-[8%] size-12 rotate-[-8deg] md:size-14", motion: "float" },
-  { name: "ball", className: "left-[58%] bottom-[4%] size-9 md:size-11", motion: "wiggle" },
+  { name: "cat", className: "-left-[34%] top-[24%] size-[30%] -rotate-12", motion: "float" },
+  { name: "bone", className: "-left-[14%] -top-[4%] size-[17%] rotate-12 max-sm:hidden", motion: "wiggle" },
+  { name: "heart", className: "left-[42%] -top-[16%] size-[14%] text-destructive/70", motion: "float" },
+  { name: "dog", className: "-right-[34%] top-[18%] size-[30%] rotate-6", motion: "float" },
+  { name: "bird", className: "-right-[12%] -top-[8%] size-[18%] -rotate-6 max-sm:hidden", motion: "wiggle" },
+  {
+    name: "paw",
+    className: "-left-[12%] bottom-[4%] size-[14%] rotate-[20deg] max-sm:hidden",
+    motion: "wiggle",
+  },
+  {
+    name: "fish",
+    className: "-right-[14%] bottom-[2%] size-[17%] -rotate-[8deg] max-sm:hidden",
+    motion: "float",
+  },
 ];
 
 /**
@@ -51,8 +58,8 @@ export async function SiteFooter() {
         aria-hidden="true"
         className="absolute inset-x-0 top-0 h-6 bg-background [mask:radial-gradient(14px_at_50%_0,#000_98%,#0000)_50%/28px_100%]"
       />
-      <div className="container-page grid gap-10 pt-16 pb-6 text-sm md:grid-cols-[1.4fr_1fr_1fr]">
-        <div className="grid content-start gap-4">
+      <div className="container-page grid gap-8 pt-14 pb-2 text-sm sm:grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr]">
+        <div className="grid content-start gap-4 sm:col-span-2 md:col-span-1">
           <p className="flex items-center gap-2 font-heading text-2xl font-bold tracking-tight">
             <LogoMark className="size-9" />
             {site.name}
@@ -80,7 +87,7 @@ export async function SiteFooter() {
             <Link
               key={link.href}
               href={localeHref(locale, link.href)}
-              className="justify-self-start font-medium underline-offset-4 transition-transform duration-(--motion-fast) hover:translate-x-1 hover:underline"
+              className="justify-self-start font-medium underline-offset-4 transition-colors duration-(--motion-fast) hover:text-primary hover:underline"
             >
               {t(link.label)}
             </Link>
@@ -92,7 +99,7 @@ export async function SiteFooter() {
             <Link
               key={link.href}
               href={localeHref(locale, link.href)}
-              className="justify-self-start text-foreground/80 underline-offset-4 transition-transform duration-(--motion-fast) hover:translate-x-1 hover:text-foreground hover:underline"
+              className="justify-self-start text-foreground/80 underline-offset-4 transition-colors duration-(--motion-fast) hover:text-primary hover:underline"
             >
               {t(link.label)}
             </Link>
@@ -100,32 +107,33 @@ export async function SiteFooter() {
         </nav>
       </div>
 
-      {/* Doodle crew + giant wordmark (decorative; the name is in the logo above). */}
-      <div aria-hidden="true" className="relative container-page select-none">
-        {CREW.map((d, i) => (
-          <span
-            key={d.name}
-            className={`absolute text-foreground/70 ${d.className}`}
-            style={{ "--i": i } as CSSProperties}
-          >
-            <Doodle
-              name={d.name}
-              className={`size-full draw ${d.motion === "float" ? "float" : "hover:animate-wiggle"}`}
-              style={{ "--i": i } as CSSProperties}
-            />
-          </span>
-        ))}
-        <p className="flex justify-center pt-16 pb-2 font-script [font-size:clamp(6rem,26vw,20rem)] leading-[0.8] text-primary md:pt-10">
-          {/* Latin letters hop one by one; Bangla stays whole (splitting breaks the conjunct). */}
-          {(locale === "bn" ? [word] : Array.from(word)).map((ch, i) => (
-            <span
-              key={`${ch}-${i}`}
-              className="inline-block transition-transform duration-(--motion-base) ease-spring hover:-translate-y-6 hover:-rotate-6"
-            >
-              {ch}
+      {/* Doodle crew + big wordmark (decorative; the name is in the logo above). */}
+      <div
+        aria-hidden="true"
+        className="container-page flex justify-center overflow-hidden pt-6 pb-4 select-none"
+      >
+        <div className="relative mx-[28%] w-fit">
+          {CREW.map((d, i) => (
+            <span key={d.name} className={`absolute text-foreground/65 ${d.className}`}>
+              <Doodle
+                name={d.name}
+                className={`size-full draw ${d.motion === "float" ? "float" : "hover:animate-wiggle"}`}
+                style={{ "--i": i } as CSSProperties}
+              />
             </span>
           ))}
-        </p>
+          <p className="m-0 flex font-script [font-size:clamp(4.5rem,17vw,12rem)] leading-[1.05] text-primary">
+            {/* Latin letters hop one by one; Bangla stays whole (splitting breaks the conjunct). */}
+            {(locale === "bn" ? [word] : Array.from(word)).map((ch, i) => (
+              <span
+                key={`${ch}-${i}`}
+                className="inline-block transition-transform duration-(--motion-base) ease-out-expo hover:-translate-y-3 hover:-rotate-3"
+              >
+                {ch}
+              </span>
+            ))}
+          </p>
+        </div>
       </div>
 
       <div className="container-page flex flex-wrap items-center justify-between gap-3 border-t border-foreground/15 py-4 text-xs text-foreground/70">

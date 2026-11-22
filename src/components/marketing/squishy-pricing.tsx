@@ -4,7 +4,7 @@ import { Check, Sparkles } from "lucide-react";
 import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from "motion/react";
 import type { Route } from "next";
 import Link from "next/link";
-import type { PointerEvent } from "react";
+import type { CSSProperties, PointerEvent } from "react";
 import { cn } from "@/lib/utils";
 
 export interface PricingCard {
@@ -45,14 +45,17 @@ function Card({ plan, index }: { plan: PricingCard; index: number }) {
       initial={reduce ? false : { opacity: 0, y: 60, scale: 0.92 }}
       whileInView={{ opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, margin: "-80px" }}
-      transition={{ type: "spring", stiffness: 160, damping: 18, delay: index * 0.08 }}
-      whileHover={reduce ? undefined : { y: -10 }}
+      transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: index * 0.08 }}
       whileTap={reduce ? undefined : { scaleX: 1.04, scaleY: 0.95 }}
       onPointerMove={move}
       onPointerLeave={reset}
-      style={reduce ? undefined : { rotateX: rx, rotateY: ry, transformPerspective: 900 }}
+      style={
+        reduce
+          ? ({ "--i": index } as CSSProperties)
+          : ({ rotateX: rx, rotateY: ry, transformPerspective: 900, "--i": index } as CSSProperties)
+      }
       className={cn(
-        "relative grid content-start gap-5 rounded-(--radius-3xl) p-6 shadow-(--shadow-card) sm:p-8",
+        "glow-border relative grid content-start gap-5 rounded-(--radius-3xl) p-6 shadow-(--shadow-card) transition-shadow duration-(--motion-base) hover:shadow-(--shadow-card-hover) sm:p-8",
         plan.featured ? "bg-primary text-primary-foreground lg:-my-4 lg:py-12" : "bg-card",
       )}
     >
@@ -68,21 +71,17 @@ function Card({ plan, index }: { plan: PricingCard; index: number }) {
           {plan.body}
         </p>
       </header>
-      <p className="flex items-baseline gap-2">
-        <motion.span
-          className="relative inline-block font-heading text-5xl font-bold tracking-tight [font-stretch:80%] tabular-nums"
-          whileHover={reduce ? undefined : { scale: [1, 1.18, 0.94, 1.04, 1] }}
-          transition={{ duration: 0.6 }}
-        >
+      <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="relative isolate inline-block font-heading text-5xl font-bold tracking-tight whitespace-nowrap [font-stretch:80%] tabular-nums">
           <span
             aria-hidden="true"
             className={cn(
-              "absolute -inset-x-3 -inset-y-1 -z-10 jelly rounded-[45%_55%_60%_40%/55%_45%_55%_45%]",
-              plan.featured ? "bg-primary-foreground/15" : "bg-highlight/35",
+              "absolute inset-x-0 bottom-[0.08em] -z-10 h-[0.28em] -rotate-1 rounded-full",
+              plan.featured ? "bg-primary-foreground/20" : "bg-highlight/70",
             )}
           />
           {plan.price}
-        </motion.span>
+        </span>
         <span
           className={cn("text-sm", plan.featured ? "text-primary-foreground/80" : "text-muted-foreground")}
         >
@@ -108,7 +107,7 @@ function Card({ plan, index }: { plan: PricingCard; index: number }) {
         <Link
           href={plan.href}
           className={cn(
-            "inline-flex h-12 w-full items-center justify-center rounded-full px-6 font-semibold transition-colors duration-(--motion-fast)",
+            "glass relative inline-flex h-12 w-full items-center justify-center rounded-full px-6 font-semibold transition-colors duration-(--motion-fast)",
             plan.featured
               ? "bg-primary-foreground text-primary hover:bg-primary-foreground/90"
               : "bg-foreground text-background hover:bg-foreground/85",

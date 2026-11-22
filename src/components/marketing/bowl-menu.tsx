@@ -3,7 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { Route } from "next";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export interface BowlItem {
@@ -30,7 +30,16 @@ const TONES = [
  * into the bowl, which fills to that category's level in its colour. The
  * links are ordinary links; the bowl is decoration.
  */
-export function BowlMenu({ items, label }: { items: readonly BowlItem[]; label: string }) {
+export function BowlMenu({
+  items,
+  label,
+  intro,
+}: {
+  items: readonly BowlItem[];
+  label: string;
+  /** Heading content shown above the categories, beside the bowl. */
+  intro?: ReactNode;
+}) {
   const reduce = useReducedMotion();
   const activeIndex = Math.max(
     0,
@@ -44,30 +53,35 @@ export function BowlMenu({ items, label }: { items: readonly BowlItem[]; label: 
   const fillY = 92 - 40 * level;
 
   return (
-    <div className="grid items-center gap-6 md:grid-cols-[1fr_15rem]">
-      <nav aria-label={label} onPointerLeave={() => setHover(null)}>
-        <ul className="flex flex-wrap gap-2">
-          {items.map((item, i) => (
-            <li key={item.key}>
-              <Link
-                href={item.href}
-                aria-current={item.active ? "page" : undefined}
-                onPointerEnter={() => setHover(i)}
-                onFocus={() => setHover(i)}
-                onBlur={() => setHover(null)}
-                className={cn(
-                  "inline-flex items-center rounded-full px-4 py-2 text-sm font-medium shadow-(--shadow-control) transition-[transform,background-color,color] duration-(--motion-fast) ease-spring hover:-translate-y-0.5 active:scale-95",
-                  item.active ? "bg-foreground text-background" : "bg-card text-foreground hover:bg-card/70",
-                )}
-              >
-                {item.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+    <div className="grid items-center gap-8 md:grid-cols-[1fr_12rem] lg:grid-cols-[1fr_15rem]">
+      <div className="grid gap-6">
+        {intro}
+        <nav aria-label={label} onPointerLeave={() => setHover(null)}>
+          <ul className="flex flex-wrap gap-2">
+            {items.map((item, i) => (
+              <li key={item.key}>
+                <Link
+                  href={item.href}
+                  aria-current={item.active ? "page" : undefined}
+                  onPointerEnter={() => setHover(i)}
+                  onFocus={() => setHover(i)}
+                  onBlur={() => setHover(null)}
+                  className={cn(
+                    "inline-flex items-center rounded-full px-4 py-2 text-sm font-medium shadow-(--shadow-control) transition-[transform,background-color,color] duration-(--motion-fast) ease-out-expo active:scale-95",
+                    item.active
+                      ? "bg-foreground text-background"
+                      : "bg-card text-foreground hover:bg-card/70",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
 
-      <div aria-hidden="true" className="relative mx-auto w-48 max-md:hidden md:w-full">
+      <div aria-hidden="true" className="relative mx-auto w-full max-w-60 max-md:hidden">
         <svg viewBox="0 0 120 100" className="w-full overflow-visible">
           <defs>
             <clipPath id="bowl-inside">

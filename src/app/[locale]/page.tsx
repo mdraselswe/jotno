@@ -45,7 +45,7 @@ async function LivePanel() {
   const t = await getT();
   const stats = await liveStats();
   return (
-    <div className="grid gap-4 rounded-(--radius-3xl) bg-card p-6 shadow-(--shadow-card)">
+    <div className="glow-border relative grid gap-4 rounded-(--radius-3xl) bg-card p-6 shadow-(--shadow-card)">
       <p className="flex items-baseline gap-2">
         <span className="relative flex size-3 self-center">
           <span className="absolute inline-flex size-full rounded-full bg-success opacity-60 motion-safe:animate-ping" />
@@ -127,7 +127,7 @@ async function CommunityRow() {
               <li key={a.id} className="reveal" style={{ "--i": i } as CSSProperties}>
                 <Link
                   href={localeHref(locale, articlePath(a.slug))}
-                  className="group grid gap-1 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-[transform,box-shadow] duration-(--motion-base) ease-(--ease-ui) hover:-translate-y-1 hover:shadow-(--shadow-card-hover)"
+                  className="group glow-border relative grid gap-1 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-[transform,box-shadow] duration-(--motion-base) ease-(--ease-ui) hover:shadow-(--shadow-card-hover)"
                 >
                   <span className="font-heading text-lg font-semibold">{a.title}</span>
                   {a.excerpt ? (
@@ -213,6 +213,8 @@ export default async function HomePage() {
         label={c.orbit.label}
         prev={c.orbit.prev}
         next={c.orbit.next}
+        pause={c.orbit.pause}
+        play={c.orbit.play}
         badges={c.orbit.badges}
         footer={
           <Marquee
@@ -263,17 +265,17 @@ export default async function HomePage() {
             return (
               <li
                 key={s.title}
-                className="group relative grid reveal gap-4 overflow-hidden rounded-(--radius-3xl) bg-card p-7 shadow-(--shadow-card) transition-[transform,box-shadow] duration-(--motion-base) ease-(--ease-ui) hover:-translate-y-1.5 hover:shadow-(--shadow-card-hover)"
+                className="group glow-border relative grid reveal gap-4 overflow-hidden rounded-(--radius-3xl) bg-card p-7 shadow-(--shadow-card) transition-[transform,box-shadow] duration-(--motion-base) ease-(--ease-ui) hover:shadow-(--shadow-card-hover)"
                 style={{ "--i": i } as CSSProperties}
               >
                 <span
                   aria-hidden="true"
-                  className="absolute -top-6 -right-2 font-heading text-[8rem] leading-none font-extrabold text-foreground/5 [font-stretch:75%]"
+                  className="absolute top-4 right-6 font-heading text-7xl leading-none! font-extrabold text-foreground/7 [font-stretch:75%]"
                 >
-                  {i + 1}
+                  {fmt.number(i + 1)}
                 </span>
                 <span
-                  className={`grid size-14 place-items-center rounded-2xl ${STEP_TONES[i] ?? "bg-band-care"} transition-transform duration-(--motion-base) ease-spring group-hover:scale-110 group-hover:-rotate-6`}
+                  className={`grid size-14 place-items-center rounded-2xl ${STEP_TONES[i] ?? "bg-band-care"} transition-transform duration-(--motion-base) ease-out-expo group-hover:scale-110 group-hover:-rotate-6`}
                 >
                   <Icon aria-hidden="true" className="size-7" />
                 </span>

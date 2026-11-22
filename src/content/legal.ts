@@ -34,7 +34,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "Paid chats, bookings and the shop",
           body: [
-            "Prices are shown before you pay. Payments go through a licensed payment gateway (SSLCommerz); Jotno never sees your card or wallet PIN. A chat consult stays open for 24 hours after payment. Refunds follow our Refund policy.",
+            "Prices are shown before you pay. You pay by bKash or Nagad Send Money to the number shown on the payment page (plus the wallet's cash-out charge), then enter your number and the transaction ID; we check it, usually within 30 minutes, and your chat or booking starts. Shop orders can also be paid in cash on delivery. Never share your wallet PIN or OTP with anyone, including us. A chat consult stays open for 24 hours after it starts. Refunds follow our Refund policy.",
           ],
         },
         {
@@ -82,7 +82,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "পেইড চ্যাট, বুকিং আর শপ",
           body: [
-            "পেমেন্টের আগে দাম দেখানো হয়। পেমেন্ট লাইসেন্সপ্রাপ্ত গেটওয়ে (SSLCommerz) দিয়ে হয়; যত্ন কখনো আপনার কার্ড বা ওয়ালেটের পিন দেখে না। পেমেন্টের পর চ্যাট ২৪ ঘণ্টা খোলা থাকে। রিফান্ড আমাদের রিফান্ড নীতি অনুযায়ী হয়।",
+            "পেমেন্টের আগে দাম দেখানো হয়। পেমেন্ট পেজে দেখানো নম্বরে বিকাশ বা নগদে সেন্ড মানি করুন (ওয়ালেটের ক্যাশ-আউট চার্জসহ), তারপর আপনার নম্বর আর ট্রানজেকশন আইডি দিন; আমরা সাধারণত ৩০ মিনিটের মধ্যে যাচাই করি, তারপর চ্যাট বা বুকিং শুরু হয়। শপের অর্ডারে ক্যাশ অন ডেলিভারিও আছে। আপনার ওয়ালেটের পিন বা ওটিপি কাউকে দেবেন না, আমাদেরও না। চ্যাট শুরু হওয়ার পর ২৪ ঘণ্টা খোলা থাকে। রিফান্ড আমাদের রিফান্ড নীতি অনুযায়ী হয়।",
           ],
         },
         {
@@ -132,7 +132,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "Who sees it",
           body: [
-            "A vet sees your chat, your pet's details and photos only for chats you start with them. Questions and answers in the public Q&A are public (without your contact details). Our service providers (database and storage hosting, payment gateway, email delivery) process data only to provide their service.",
+            "A vet sees your chat, your pet's details and photos only for chats you start with them. Questions and answers in the public Q&A are public (without your contact details). Our service providers (database and storage hosting, email delivery) process data only to provide their service. For payments we keep the number you paid from and the transaction ID, to match your payment and send any refund.",
           ],
         },
         {
@@ -168,7 +168,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "কে দেখে",
           body: [
-            "আপনি যে ভেটের সাথে চ্যাট শুরু করেন, শুধু তিনিই সেই চ্যাট, পোষা প্রাণীর তথ্য আর ছবি দেখেন। পাবলিক প্রশ্নোত্তর সবাই দেখতে পারে (আপনার যোগাযোগের তথ্য ছাড়া)। আমাদের সেবাদাতারা (ডেটাবেস ও স্টোরেজ হোস্টিং, পেমেন্ট গেটওয়ে, ইমেইল) শুধু তাদের সেবা দিতে তথ্য ব্যবহার করে।",
+            "আপনি যে ভেটের সাথে চ্যাট শুরু করেন, শুধু তিনিই সেই চ্যাট, পোষা প্রাণীর তথ্য আর ছবি দেখেন। পাবলিক প্রশ্নোত্তর সবাই দেখতে পারে (আপনার যোগাযোগের তথ্য ছাড়া)। আমাদের সেবাদাতারা (ডেটাবেস ও স্টোরেজ হোস্টিং, ইমেইল) শুধু তাদের সেবা দিতে তথ্য ব্যবহার করে। পেমেন্টের জন্য আমরা যে নম্বর থেকে টাকা পাঠিয়েছেন সেটি আর ট্রানজেকশন আইডি রাখি, যাতে পেমেন্ট মেলানো আর রিফান্ড পাঠানো যায়।",
           ],
         },
         {
@@ -212,7 +212,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "How refunds reach you",
           body: [
-            "Refunds go back to the same bKash, Nagad, card or bank you paid with, through the payment gateway. It usually takes 3–10 working days depending on your provider.",
+            "We send refunds by bKash or Nagad to the number you paid from (for cash on delivery, to a number you give us), usually within 2 working days. You get a notification with the refund's transaction ID.",
           ],
         },
       ],
@@ -242,7 +242,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "টাকা কীভাবে ফেরত যায়",
           body: [
-            "যে বিকাশ, নগদ, কার্ড বা ব্যাংকে পেমেন্ট করেছেন, পেমেন্ট গেটওয়ের মাধ্যমে সেখানেই ফেরত যায়। আপনার প্রোভাইডারের উপর নির্ভর করে সাধারণত ৩–১০ কর্মদিবস লাগে।",
+            "যে নম্বর থেকে পেমেন্ট করেছেন, সেই বিকাশ বা নগদ নম্বরে আমরা টাকা ফেরত পাঠাই (ক্যাশ অন ডেলিভারির ক্ষেত্রে আপনার দেওয়া নম্বরে), সাধারণত ২ কর্মদিবসের মধ্যে। রিফান্ডের ট্রানজেকশন আইডিসহ নোটিফিকেশন পাবেন।",
           ],
         },
       ],
