@@ -12,9 +12,11 @@ export type Database = PostgresJsDatabase<typeof schema>;
  * page or component: call a feature's queries instead.
  *
  * Cloudflare Workers can not share a socket between requests, so there each
- * request opens one small client (React `cache` scopes it to the request; the
- * Supabase pooler or Hyperdrive keeps the real connections). On Node (dev,
- * tests) one client is reused.
+ * request opens exactly one small client, kept in OpenNext's per-request store
+ * (React `cache` only covers renders; route handlers, server actions and
+ * "use cache" fills would otherwise open a new connection, with its password
+ * handshake, for every query). The Supabase pooler keeps the real connections.
+ * On Node (dev, tests) one client is reused.
  */
 // `WebSocketPair` exists only on Cloudflare Workers; the user agent check alone
 // missed it inside the OpenNext bundle, which shared one socket across requests.
@@ -35,10 +37,28 @@ function connect(): Database {
   return drizzle(client, { schema, casing: "snake_case" });
 }
 
-const perRequest = cache(connect);
+const perRender = cache(connect);
+
+/** OpenNext's AsyncLocalStorage: one store per incoming request on Workers. */
+interface OpenNextStore {
+  requestCache?: { getOrCreate(key: string): Map<string, Database> };
+}
+function requestStore(): Map<string, Database> | undefined {
+  const als = (globalThis as { __openNextAls?: { getStore(): OpenNextStore | undefined } }).__openNextAls;
+  return als?.getStore()?.requestCache?.getOrCreate("jotno:db");
+}
 
 export function db(): Database {
-  if (onWorkers) return perRequest();
+  if (onWorkers) {
+    const store = requestStore();
+    if (!store) return perRender();
+    let client = store.get("client");
+    if (!client) {
+      client = connect();
+      store.set("client", client);
+    }
+    return client;
+  }
   shared ??= connect();
   return shared;
 }
