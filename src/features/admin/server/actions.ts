@@ -5,13 +5,14 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { business } from "@/config";
 import { ROUTES } from "@/config/routes";
-import { actionViewer } from "@/features/auth/server";
+import { actionViewer, setRole, type Role } from "@/features/auth/server";
 import { notify } from "@/features/notifications/server";
 import { canPayout, vetBalance } from "@/features/payments";
-import { refundConsult } from "@/features/payments/server";
+import { refundConsult, refundPlatform } from "@/features/payments/server";
 import type { MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
 import { audit } from "@/infrastructure/db/helpers";
+import { supabaseAdmin } from "@/infrastructure/supabase/server";
 
 const P = schema.providers;
 export type AdminResult = { ok: true } | { ok: false; error: MessageKey };
@@ -239,4 +240,123 @@ export async function adminDocumentUrl(documentId: string): Promise<string | nul
   await audit(me.id, "document.view", "provider_document", documentId);
   const { storage } = await import("@/infrastructure/storage");
   return storage.signedUrl(doc.path, 120);
+}
+
+const ROLES = ["owner", "vet", "admin"] as const satisfies readonly Role[];
+
+/**
+ * Admin: change someone's role. A vet who stops being a vet is suspended, so
+ * the profile leaves search; making someone a vet gives them a draft profile
+ * the first time they open the dashboard.
+ */
+export async function changeUserRole(userId: string, role: string): Promise<AdminResult> {
+  const me = await admin();
+  if (!me || me.role !== "admin" || !uuid.safeParse(userId).success)
+    return { ok: false, error: "common.notAllowed" };
+  if (userId === me.id) return { ok: false, error: "manage.notYourself" };
+  if (!(ROLES as readonly string[]).includes(role)) return { ok: false, error: "common.notAllowed" };
+  const [before] = await db()
+    .select({ role: schema.profiles.role })
+    .from(schema.profiles)
+    .where(eq(schema.profiles.id, userId))
+    .limit(1);
+  if (!before) return { ok: false, error: "common.notAllowed" };
+  if (before.role === role) return { ok: true };
+  await setRole(userId, role as Role);
+  if (before.role === "vet" && role === "owner")
+    await db()
+      .update(P)
+      .set({ status: "suspended", availableNow: false })
+      .where(and(eq(P.profileId, userId), eq(P.status, "verified")));
+  await audit(me.id, "user.role", "profile", userId, { from: before.role, to: role });
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Admin: block (or unblock) sign-in. A blocked person is signed out on their next page load. */
+export async function setUserBlocked(userId: string, blocked: boolean): Promise<AdminResult> {
+  const me = await admin();
+  if (!me || me.role !== "admin" || !uuid.safeParse(userId).success)
+    return { ok: false, error: "common.notAllowed" };
+  if (userId === me.id) return { ok: false, error: "manage.notYourself" };
+  const { error } = await supabaseAdmin().auth.admin.updateUserById(userId, {
+    ban_duration: blocked ? "876000h" : "none",
+  });
+  if (error) return { ok: false, error: "common.genericError" };
+  if (blocked) await db().update(P).set({ availableNow: false }).where(eq(P.profileId, userId));
+  await audit(me.id, blocked ? "user.block" : "user.unblock", "profile", userId);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Admin: take an article down (back to draft) or put it back up. */
+export async function setArticlePublished(articleId: string, publish: boolean): Promise<AdminResult> {
+  const me = await admin();
+  if (!me || me.role !== "admin" || !uuid.safeParse(articleId).success)
+    return { ok: false, error: "common.notAllowed" };
+  const AR = schema.articles;
+  const [row] = await db()
+    .update(AR)
+    .set(
+      publish
+        ? { status: "published", publishedAt: sql`coalesce(${AR.publishedAt}, now())` }
+        : { status: "draft" },
+    )
+    .where(eq(AR.id, articleId))
+    .returning({ providerId: AR.providerId, title: AR.title });
+  if (!row) return { ok: false, error: "common.notAllowed" };
+  await audit(me.id, publish ? "article.publish" : "article.unpublish", "article", articleId);
+  if (!publish) {
+    const to = await vetProfileId(row.providerId);
+    if (to)
+      await notify(to, "article.unpublished", {
+        title: "Your article was taken down",
+        body: row.title,
+        url: ROUTES.vetArticles,
+        tag: `article-${articleId}`,
+      });
+  }
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function adminDeleteArticle(articleId: string): Promise<AdminResult> {
+  const me = await admin();
+  if (!me || me.role !== "admin" || !uuid.safeParse(articleId).success)
+    return { ok: false, error: "common.notAllowed" };
+  const [row] = await db()
+    .delete(schema.articles)
+    .where(eq(schema.articles.id, articleId))
+    .returning({ title: schema.articles.title });
+  if (!row) return { ok: false, error: "common.notAllowed" };
+  await audit(me.id, "article.delete", "article", articleId, { title: row.title });
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Admin: cancel a visit for the vet or owner; a paid booking fee goes to the refund queue. */
+export async function adminCancelAppointment(id: string, reason: string): Promise<AdminResult> {
+  const me = await admin();
+  const why = reason.trim().slice(0, 200) || "cancelled by Jotno";
+  if (!me || me.role !== "admin" || !uuid.safeParse(id).success)
+    return { ok: false, error: "common.notAllowed" };
+  const A = schema.appointments;
+  const [row] = await db()
+    .update(A)
+    .set({ status: "cancelled" })
+    .where(and(eq(A.id, id), sql`${A.status} in ('pending_payment', 'confirmed')`))
+    .returning({ ownerId: A.ownerId, providerId: A.providerId, startsAt: A.startsAt });
+  if (!row) return { ok: false, error: "common.notAllowed" };
+  const refunded = await refundPlatform("appointment", id, why, me.id);
+  await audit(me.id, "appointment.admin_cancel", "appointment", id, { reason: why, refunded });
+  const note = {
+    title: "Visit cancelled by Jotno",
+    body: refunded ? `${why}. The booking fee will be refunded.` : why,
+    tag: `appt-${id}`,
+  };
+  await notify(row.ownerId, "appointment.cancelled", { ...note, url: ROUTES.appointments });
+  const vet = await vetProfileId(row.providerId);
+  if (vet) await notify(vet, "appointment.cancelled", { ...note, url: ROUTES.vetAppointments });
+  revalidatePath("/", "layout");
+  return { ok: true };
 }

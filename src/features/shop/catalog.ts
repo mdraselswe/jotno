@@ -1,4 +1,3 @@
-import { SHOP_CATEGORIES } from "@/content/shop";
 import { SPECIES } from "@/content/geo";
 
 /**
@@ -21,7 +20,18 @@ export const SHOP_SORTS = [
 export type ShopSort = (typeof SHOP_SORTS)[number];
 export const SHOP_PAGE_SIZE = 24;
 
-const CATEGORY_SLUGS = SHOP_CATEGORIES.map((c) => c.slug) as readonly string[];
+/** A shop category (admins edit them; the page loads them from the database). */
+export interface ShopCategoryRef {
+  slug: string;
+  en: string;
+  bn: string;
+}
+
+export const categoryLabel = (categories: readonly ShopCategoryRef[], slug: string, locale: string) => {
+  const c = categories.find((x) => x.slug === slug);
+  return c ? (locale === "bn" ? c.bn : c.en) : slug;
+};
+
 const PET_SLUGS = SPECIES.map((s) => s.slug) as readonly string[];
 
 export interface ShopFilters {
@@ -67,7 +77,10 @@ export function defaultSort(q: string): ShopSort {
 }
 
 /** Filters from the query string; anything unknown is dropped. */
-export function parseShopFilters(sp: Record<string, Param>): ShopFilters {
+export function parseShopFilters(
+  sp: Record<string, Param>,
+  categories: readonly ShopCategoryRef[],
+): ShopFilters {
   const q = first(sp.q).replace(/\s+/g, " ").trim().slice(0, 60);
   const uniq = (xs: string[], allowed: readonly string[]) => allowed.filter((a) => xs.includes(a)); // allowed order, no duplicates
   let min = taka(sp.min);
@@ -78,7 +91,10 @@ export function parseShopFilters(sp: Record<string, Param>): ShopFilters {
   const page = Math.max(1, Math.min(500, Number.parseInt(first(sp.page), 10) || 1));
   return {
     q,
-    categories: uniq(all(sp.category), CATEGORY_SLUGS),
+    categories: uniq(
+      all(sp.category),
+      categories.map((c) => c.slug),
+    ),
     pets: uniq(all(sp.pet), PET_SLUGS),
     min,
     max,
@@ -174,7 +190,11 @@ const startsWithAny = (word: string, keys: string[] | undefined) =>
  * match somewhere: the name (best, especially at a word start), the
  * category or pet it is for, the description, the SKU or pack size.
  */
-export function matchScore(item: CatalogItem, words: string[]): number {
+export function matchScore(
+  item: CatalogItem,
+  words: string[],
+  categories: readonly ShopCategoryRef[] = [],
+): number {
   if (words.length === 0) return 1;
   const names = normalize(`${item.nameEn} ${item.nameBn}`);
   const nameWords = names.split(" ");
@@ -182,7 +202,7 @@ export function matchScore(item: CatalogItem, words: string[]): number {
     `${item.descriptionEn ?? ""} ${item.descriptionBn ?? ""} ${item.sku ?? ""} ${item.unit ?? ""}`,
   );
   const pet = SPECIES.find((s) => s.id === item.speciesId);
-  const cat = SHOP_CATEGORIES.find((c) => c.slug === item.category);
+  const cat = categories.find((c) => c.slug === item.category);
   const petWords = pet ? [...(PET_WORDS[pet.slug] ?? []), pet.en, pet.bn] : [];
   const catWords = cat ? [...(CATEGORY_WORDS[cat.slug] ?? []), cat.en, cat.bn] : [];
   let score = 0;
@@ -255,11 +275,12 @@ export function runCatalog<T extends CatalogItem>(
   items: T[],
   f: ShopFilters,
   locale: string,
+  categories: readonly ShopCategoryRef[] = [],
 ): CatalogResult<T> {
   const words = searchWords(f.q);
   const found: { item: T; score: number }[] = [];
   for (const item of items) {
-    const score = matchScore(item, words);
+    const score = matchScore(item, words, categories);
     if (score > 0) found.push({ item, score });
   }
 

@@ -1,6 +1,7 @@
 export { AddToCartButton, CartLink } from "./components/add-to-cart";
 export {
   CouponForm,
+  DeleteProductButton,
   EMPTY_COUPON,
   EMPTY_PRODUCT,
   OrderControls,
@@ -15,6 +16,8 @@ export { CancelMyOrder } from "./components/my-order";
 export { OrderTimeline } from "./components/order-parts";
 export { CartView, type Buyer } from "./components/cart-view";
 export { productArt, ProductArt, ProductTile } from "./components/product-tile";
+export { ProductGallery } from "./components/product-gallery";
+export { CategoryForm, type CategoryRow } from "./components/admin-categories";
 export { useCart } from "./components/cart-store";
 export {
   clampQty,
@@ -39,6 +42,7 @@ export {
   type OrderStatus,
 } from "./status";
 export {
+  categoryLabel,
   defaultSort,
   hasFilters,
   parseShopFilters,
@@ -47,6 +51,7 @@ export {
   shopQuery,
   toggle,
   type Facets,
+  type ShopCategoryRef,
   type ShopFilters,
   type ShopSort,
 } from "./catalog";

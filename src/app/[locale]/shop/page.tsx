@@ -11,9 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ROUTES } from "@/config/routes";
 import { SPECIES } from "@/content/geo";
-import { SHOP_CATEGORIES, categoryName } from "@/content/shop";
 import {
   CartLink,
+  categoryLabel,
   defaultSort,
   FilterPanel,
   hasFilters,
@@ -28,7 +28,7 @@ import {
   toggle,
   type ShopFilters,
 } from "@/features/shop";
-import { shopCatalog } from "@/features/shop/server";
+import { shopCatalog, shopCategories } from "@/features/shop/server";
 import type { Formatter, Translate } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -51,14 +51,14 @@ const PRICE_BANDS: [number | null, number | null][] = [
 ];
 
 async function context(searchParams: Promise<SP>) {
-  const [sp, locale] = await Promise.all([searchParams, getLocale()]);
-  const f = parseShopFilters(sp);
+  const [sp, locale, categories] = await Promise.all([searchParams, getLocale(), shopCategories()]);
+  const f = parseShopFilters(sp, categories);
   const base = localeHref(locale, ROUTES.shop);
   const href = (next: ShopFilters) => {
     const q = shopQuery(next);
     return (q ? `${base}/?${q}` : base) as Route;
   };
-  return { f, locale, base, href };
+  return { f, locale, base, href, categories };
 }
 
 function Intro({ t }: { t: Translate }) {
@@ -157,12 +157,12 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
 }
 
 async function Catalog({ searchParams }: { searchParams: Promise<SP> }) {
-  const [{ f, locale, base, href }, t, fmt] = await Promise.all([
+  const [{ f, locale, base, href, categories }, t, fmt] = await Promise.all([
     context(searchParams),
     getT(),
     getFormatter(),
   ]);
-  const { items, total, pages, page, facets } = await shopCatalog(f, locale);
+  const { items, total, pages, page, facets } = await shopCatalog(f, locale, categories);
   const tk = (n: number) => fmt.money(n, { maximumFractionDigits: 0 });
   const fresh = { ...f, page: 1 };
   const active =
@@ -185,7 +185,7 @@ async function Catalog({ searchParams }: { searchParams: Promise<SP> }) {
       : []),
     ...f.categories.map((c) => ({
       key: `c-${c}`,
-      label: categoryName(c, locale),
+      label: categoryLabel(categories, c, locale),
       href: href(toggle(f, "categories", c)),
     })),
     ...f.pets.map((p) => {
@@ -238,7 +238,7 @@ async function Catalog({ searchParams }: { searchParams: Promise<SP> }) {
         <ShopFilterForm action={base as Route}>
           <FilterPanel badge={active > 0 ? fmt.number(active) : null}>
             <Group title={t("shop.category")}>
-              {SHOP_CATEGORIES.map((c) => {
+              {categories.map((c) => {
                 const Icon = productArt(c.slug).icon;
                 return (
                   <Check
@@ -363,7 +363,7 @@ async function Catalog({ searchParams }: { searchParams: Promise<SP> }) {
         <nav aria-label={t("shop.category")} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {[
             { slug: null, label: t("common.all") },
-            ...SHOP_CATEGORIES.map((c) => ({ slug: c.slug, label: locale === "bn" ? c.bn : c.en })),
+            ...categories.map((c) => ({ slug: c.slug, label: locale === "bn" ? c.bn : c.en })),
           ].map((c) => {
             const on =
               c.slug === null

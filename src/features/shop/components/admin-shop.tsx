@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, Check, PackageCheck, Printer, RotateCcw, Save, Truck } from "lucide-react";
+import { Ban, Check, PackageCheck, Printer, RotateCcw, Save, Trash2, Truck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -11,19 +11,20 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { SPECIES } from "@/content/geo";
-import { SHOP_CATEGORIES } from "@/content/shop";
-import { ImageUpload } from "@/features/uploads";
+import { ImageListUpload, ImageUpload } from "@/features/uploads";
 import { useLocale, useT } from "@/i18n/client";
 import { toPoisha } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import {
   changeStock,
+  deleteProduct,
   saveCoupon,
   saveOrderNote,
   saveProduct,
   updateOrder,
   type ShopResult,
 } from "../server/actions";
+import type { ShopCategoryRef } from "../catalog";
 import { orderActions, type OrderAction, type OrderStatus } from "../status";
 
 function useRun() {
@@ -401,6 +402,7 @@ export interface ProductFormValues {
   sku: string;
   unit: string;
   imagePath: string | null;
+  images: string[];
   active: boolean;
 }
 
@@ -418,14 +420,30 @@ export const EMPTY_PRODUCT: ProductFormValues = {
   sku: "",
   unit: "",
   imagePath: null,
+  images: [],
   active: true,
 };
 
 /** Admin: create or edit a product (prices in taka). Stock is set here only for a new product. */
-export function ProductForm({ id, initial }: { id: string | null; initial: ProductFormValues }) {
+export function ProductForm({
+  id,
+  initial,
+  categories,
+  galleryMax,
+}: {
+  id: string | null;
+  initial: ProductFormValues;
+  categories: ShopCategoryRef[];
+  galleryMax: number;
+}) {
   const locale = useLocale();
   const { t, pending, run } = useRun();
-  const [v, setV] = useState(initial);
+  // A new product starts in the first category that exists.
+  const [v, setV] = useState(() =>
+    id || categories.some((c) => c.slug === initial.category)
+      ? initial
+      : { ...initial, category: categories[0]?.slug ?? initial.category },
+  );
   const set = (patch: Partial<ProductFormValues>) => setV((x) => ({ ...x, ...patch }));
   const text = (
     key: "nameEn" | "nameBn" | "price" | "compareAt" | "stock" | "lowStockAt" | "sku" | "unit",
@@ -461,6 +479,7 @@ export function ProductForm({ id, initial }: { id: string | null; initial: Produ
             sku: v.sku,
             unit: v.unit,
             imagePath: v.imagePath,
+            images: v.images,
             active: v.active,
           }),
         );
@@ -471,6 +490,14 @@ export function ProductForm({ id, initial }: { id: string | null; initial: Produ
         value={v.imagePath}
         onChange={(path) => set({ imagePath: path })}
         label={t("shop.image")}
+      />
+      <ImageListUpload
+        kind="product"
+        value={v.images}
+        onChange={(images) => set({ images })}
+        max={galleryMax}
+        label={t("shopAdmin.morePhotos", { max: galleryMax })}
+        hint={t("shopAdmin.morePhotosHint")}
       />
       <div className="grid gap-4 sm:grid-cols-2">
         {text("nameEn", "Name (English)")}
@@ -483,7 +510,10 @@ export function ProductForm({ id, initial }: { id: string | null; initial: Produ
             value={v.category}
             onChange={(e) => set({ category: e.target.value })}
           >
-            {SHOP_CATEGORIES.map((c) => (
+            {categories.some((c) => c.slug === v.category) ? null : (
+              <option value={v.category}>{v.category}</option>
+            )}
+            {categories.map((c) => (
               <option key={c.slug} value={c.slug}>
                 {locale === "bn" ? c.bn : c.en}
               </option>
@@ -540,5 +570,24 @@ export function ProductForm({ id, initial }: { id: string | null; initial: Produ
         {pending ? t("common.saving") : t("common.save")}
       </Button>
     </form>
+  );
+}
+
+/** Admin: delete a product that was never ordered (otherwise turn it off). */
+export function DeleteProductButton({ id }: { id: string }) {
+  const locale = useLocale();
+  const { t, pending, run } = useRun();
+  return (
+    <Button
+      type="button"
+      variant="destructive"
+      disabled={pending}
+      onClick={() => {
+        if (window.confirm(t("shopAdmin.deleteConfirm"))) run(() => deleteProduct(locale, id));
+      }}
+    >
+      <Trash2 aria-hidden="true" />
+      {t("shopAdmin.delete")}
+    </Button>
   );
 }

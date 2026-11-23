@@ -6,7 +6,9 @@ import { z } from "zod";
 import { ROUTES } from "@/config/routes";
 import { db, schema } from "@/infrastructure/db";
 import { clientIp, rateLimit } from "@/infrastructure/db/helpers";
-import { supabaseServer } from "@/infrastructure/supabase/server";
+import { ownsUpload } from "@/features/uploads/server";
+import { storage } from "@/infrastructure/storage";
+import { supabaseAdmin, supabaseServer } from "@/infrastructure/supabase/server";
 import type { MessageKey } from "@/i18n";
 import { localeHref } from "@/lib/locale-href";
 import { safeNext } from "../next-path";
@@ -113,9 +115,11 @@ export async function completeOnboarding(
   redirect(safeNext(next, localeHref(locale, role === "vet" ? ROUTES.dashboard : ROUTES.account), locale));
 }
 
-const profileSchema = onboardingSchema.omit({ role: true });
+const profileSchema = onboardingSchema
+  .omit({ role: true })
+  .extend({ avatarPath: z.string().max(200).nullable().optional() });
 
-/** Settings page: name, phone and home area. */
+/** Settings page: name, phone, home area and photo. */
 export async function updateProfile(input: z.input<typeof profileSchema>): Promise<AuthResult> {
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "common.signInFirst" };
@@ -124,6 +128,9 @@ export async function updateProfile(input: z.input<typeof profileSchema>): Promi
     const field = parsed.error.issues[0]?.path[0];
     return { ok: false, error: field === "phone" ? "common.phoneInvalid" : "onboarding.nameInvalid" };
   }
+  const avatarPath = parsed.data.avatarPath === undefined ? viewer.avatarPath : parsed.data.avatarPath;
+  if (avatarPath && avatarPath !== viewer.avatarPath && !ownsUpload(avatarPath, "avatar", viewer.id))
+    return { ok: false, error: "common.notAllowed" };
   await db()
     .update(schema.profiles)
     .set({
@@ -131,7 +138,15 @@ export async function updateProfile(input: z.input<typeof profileSchema>): Promi
       phone: parsed.data.phone || null,
       homeDistrictId: parsed.data.districtId ?? null,
       homeAreaId: parsed.data.areaId ?? null,
+      avatarPath,
     })
     .where(eq(schema.profiles.id, viewer.id));
+  if (avatarPath !== viewer.avatarPath) {
+    // The header reads the photo from the session, so keep a copy in the account's metadata.
+    await supabaseAdmin()
+      .auth.admin.updateUserById(viewer.id, { user_metadata: { avatar_path: avatarPath } })
+      .catch(() => undefined);
+    if (viewer.avatarPath) await storage.remove("media", [viewer.avatarPath]).catch(() => undefined);
+  }
   return { ok: true };
 }

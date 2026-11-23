@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import { Private, PrivateHeading } from "@/components/layout/private-page";
 import { adminProductPath } from "@/config/routes";
 import { requireRole } from "@/features/auth/server";
-import { EMPTY_PRODUCT, ProductForm, StockAdjust } from "@/features/shop";
-import { adminProduct } from "@/features/shop/server";
+import { business } from "@/config";
+import { DeleteProductButton, EMPTY_PRODUCT, ProductForm, StockAdjust } from "@/features/shop";
+import { adminProduct, shopCategories } from "@/features/shop/server";
 import type { MessageKey } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -27,12 +28,14 @@ async function Product({ params }: { params: Promise<{ id: string }> }) {
   const t = await getT();
   const fmt = await getFormatter();
   await requireRole(["admin"], locale, localeHref(locale, adminProductPath(id)));
+  const categories = await shopCategories(true);
+  const galleryMax = business.shop.galleryMax;
   if (id === "new") {
     return (
       <div className="grid max-w-3xl gap-6">
         <PrivateHeading title={t("shop.newProduct")} />
         <section className="rounded-(--radius-xl) bg-card p-(--card-pad) shadow-(--shadow-card)">
-          <ProductForm id={null} initial={EMPTY_PRODUCT} />
+          <ProductForm id={null} initial={EMPTY_PRODUCT} categories={categories} galleryMax={galleryMax} />
         </section>
       </div>
     );
@@ -41,7 +44,10 @@ async function Product({ params }: { params: Promise<{ id: string }> }) {
   if (!p) notFound();
   return (
     <div className="grid max-w-3xl gap-6">
-      <PrivateHeading title={locale === "bn" ? p.nameBn : p.nameEn} />
+      <PrivateHeading
+        title={locale === "bn" ? p.nameBn : p.nameEn}
+        action={p.ordered ? null : <DeleteProductButton id={p.id} />}
+      />
       <section className="grid gap-4 rounded-(--radius-xl) bg-card p-(--card-pad) shadow-(--shadow-card)">
         <h2 className="flex items-baseline gap-3 font-heading text-lg font-semibold">
           {t("shopAdmin.stock")}
@@ -78,9 +84,12 @@ async function Product({ params }: { params: Promise<{ id: string }> }) {
           </details>
         ) : null}
       </section>
+      {p.ordered ? <p className="text-sm text-muted-foreground">{t("shopAdmin.cantDelete")}</p> : null}
       <section className="rounded-(--radius-xl) bg-card p-(--card-pad) shadow-(--shadow-card)">
         <ProductForm
           id={p.id}
+          categories={categories}
+          galleryMax={galleryMax}
           initial={{
             nameEn: p.nameEn,
             nameBn: p.nameBn,
@@ -95,6 +104,7 @@ async function Product({ params }: { params: Promise<{ id: string }> }) {
             sku: p.sku ?? "",
             unit: p.unit ?? "",
             imagePath: p.imagePath,
+            images: p.images,
             active: p.active,
           }}
         />

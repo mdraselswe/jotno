@@ -2,6 +2,7 @@
 
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
+import { publicEnv } from "@/config/env";
 import { supabaseBrowser } from "@/infrastructure/supabase/browser";
 
 export interface AuthUser {
@@ -9,6 +10,8 @@ export interface AuthUser {
   email: string | null;
   name: string | null;
   role: "owner" | "vet" | "admin";
+  /** Photo URL: one uploaded on Jotno, else the Google one. */
+  avatarUrl: string | null;
 }
 
 /**
@@ -33,10 +36,17 @@ export function useAuthUser(): AuthUser | null | undefined {
             : typeof meta.name === "string"
               ? meta.name
               : null;
+        const avatarUrl =
+          typeof meta.avatar_path === "string" && meta.avatar_path
+            ? `${publicEnv.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${meta.avatar_path}`
+            : typeof meta.avatar_url === "string" && meta.avatar_url.startsWith("https://")
+              ? meta.avatar_url
+              : null;
         setUser({
           id: u.id,
           email: u.email ?? null,
           name,
+          avatarUrl,
           role: role === "vet" || role === "admin" ? role : "owner",
         });
       },

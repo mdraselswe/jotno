@@ -13,7 +13,7 @@ import { SPECIES } from "@/content/geo";
 import { ImageUpload } from "@/features/uploads";
 import { useLocale, useT } from "@/i18n/client";
 import { locate as findPosition, type LocateError } from "@/lib/geo";
-import { saveVetProfile } from "../server/actions";
+import { adminSaveVetProfile, saveVetProfile } from "../server/actions";
 
 export interface VetProfileValues {
   displayName: string;
@@ -57,7 +57,8 @@ function Field({
   );
 }
 
-export function VetProfileForm({ initial }: { initial: VetProfileValues }) {
+/** `providerId` set: an admin is editing someone else's profile. */
+export function VetProfileForm({ initial, providerId }: { initial: VetProfileValues; providerId?: string }) {
   const t = useT();
   const locale = useLocale();
   const [v, setV] = useState(initial);
@@ -85,7 +86,7 @@ export function VetProfileForm({ initial }: { initial: VetProfileValues }) {
   function submit(e: FormEvent) {
     e.preventDefault();
     start(async () => {
-      const r = await saveVetProfile(locale, {
+      const input = {
         displayName: v.displayName,
         title: v.title,
         bio: v.bio,
@@ -105,7 +106,10 @@ export function VetProfileForm({ initial }: { initial: VetProfileValues }) {
         homeVisit: v.homeVisit,
         photoPath: v.photoPath,
         speciesIds: v.speciesIds,
-      });
+      };
+      const r = providerId
+        ? await adminSaveVetProfile(locale, providerId, input)
+        : await saveVetProfile(locale, input);
       if (r.ok) toast.success(t("common.saved"));
       else toast.error(t(r.error));
     });

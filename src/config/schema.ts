@@ -201,6 +201,8 @@ export const businessSchema = z.object({
     freeDeliveryFrom: poisha,
     /** District id for "inside" delivery (47 = Dhaka). */
     homeDistrictId: z.number().int(),
+    /** Extra product photos after the main one. */
+    galleryMax: z.number().int().min(0).max(12),
   }),
   /** "Available now" turns itself off after this many hours. */
   availableHours: z.number().int().min(1).max(24),

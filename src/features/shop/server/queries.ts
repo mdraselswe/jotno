@@ -2,7 +2,7 @@ import "server-only";
 import { and, asc, count, desc, eq, gte, ilike, inArray, lte, ne, or, sql, type SQL } from "drizzle-orm";
 import { db, schema } from "@/infrastructure/db";
 import { mediaUrl } from "@/infrastructure/storage";
-import { runCatalog, type ShopFilters } from "../catalog";
+import { runCatalog, type ShopCategoryRef, type ShopFilters } from "../catalog";
 import { ORDER_STATUSES, type OrderStatus } from "../status";
 
 const PR = schema.products;
@@ -42,7 +42,34 @@ export const toProductCard = (p: ProductRow, locale: string): ProductCard => ({
  * for "popular"), then search, filters, facets, sort and paging in
  * `runCatalog`. Returns cards plus the facet counts for the filter panel.
  */
-export async function shopCatalog(filters: ShopFilters, locale: string) {
+/** Shop categories in their order; `all` includes the hidden ones (admin). */
+export async function shopCategories(
+  all = false,
+): Promise<(ShopCategoryRef & { sort: number; active: boolean })[]> {
+  const C = schema.productCategories;
+  const rows = await db()
+    .select()
+    .from(C)
+    .where(all ? undefined : eq(C.active, true))
+    .orderBy(asc(C.sort), asc(C.nameEn));
+  return rows.map((c) => ({ slug: c.slug, en: c.nameEn, bn: c.nameBn, sort: c.sort, active: c.active }));
+}
+
+/** Admin: every category with how many products use it. */
+export async function categoriesWithCounts() {
+  const [cats, counts] = await Promise.all([
+    shopCategories(true),
+    db().select({ category: PR.category, n: count() }).from(PR).groupBy(PR.category),
+  ]);
+  const used = new Map(counts.map((c) => [c.category, Number(c.n)]));
+  return cats.map((c) => ({ ...c, products: used.get(c.slug) ?? 0 }));
+}
+
+export async function shopCatalog(
+  filters: ShopFilters,
+  locale: string,
+  categories: readonly ShopCategoryRef[],
+) {
   const sold = sql<number>`coalesce((
     select sum(oi.qty)::int from ${OI} oi join ${O} o on o.id = oi.order_id
     where oi.product_id = "products"."id" and o.status not in ('cancelled', 'returned')
@@ -53,6 +80,7 @@ export async function shopCatalog(filters: ShopFilters, locale: string) {
     rows.map((r) => ({ ...r.p, sold: Number(r.sold) })),
     filters,
     locale,
+    categories,
   );
   return { ...result, items: result.items.map((p) => toProductCard(p, locale)) };
 }
@@ -75,6 +103,7 @@ export async function getProduct(slug: string, locale: string) {
     ...toProductCard(p, locale),
     sku: p.sku,
     description: locale === "bn" ? p.descriptionBn : p.descriptionEn,
+    gallery: [p.imagePath, ...p.images].map((path) => mediaUrl(path)).filter((u): u is string => Boolean(u)),
     related: related.map((r) => toProductCard(r, locale)),
   };
 }
@@ -203,13 +232,16 @@ export async function adminProduct(id: string) {
   if (!/^[0-9a-f-]{36}$/.test(id)) return null;
   const [p] = await db().select().from(PR).where(eq(PR.id, id)).limit(1);
   if (!p) return null;
-  const movements = await db()
-    .select()
-    .from(schema.stockMovements)
-    .where(eq(schema.stockMovements.productId, id))
-    .orderBy(desc(schema.stockMovements.createdAt))
-    .limit(30);
-  return { ...p, imageUrl: mediaUrl(p.imagePath), movements };
+  const [movements, [ordered]] = await Promise.all([
+    db()
+      .select()
+      .from(schema.stockMovements)
+      .where(eq(schema.stockMovements.productId, id))
+      .orderBy(desc(schema.stockMovements.createdAt))
+      .limit(30),
+    db().select({ id: OI.id }).from(OI).where(eq(OI.productId, id)).limit(1),
+  ]);
+  return { ...p, imageUrl: mediaUrl(p.imagePath), movements, ordered: Boolean(ordered) };
 }
 
 /** Active products at or below their low-stock mark. */

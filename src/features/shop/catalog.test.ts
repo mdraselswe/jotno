@@ -7,7 +7,15 @@ import {
   shopQuery,
   toggle,
   type CatalogItem,
+  type ShopCategoryRef,
 } from "./catalog";
+
+const CATS: ShopCategoryRef[] = [
+  { slug: "food", en: "Food", bn: "খাবার" },
+  { slug: "grooming", en: "Grooming & litter", bn: "গ্রুমিং ও লিটার" },
+  { slug: "accessories", en: "Beds & leashes", bn: "বেড ও লিশ" },
+  { slug: "toys", en: "Toys", bn: "খেলনা" },
+];
 
 const item = (over: Partial<CatalogItem> & { nameEn: string }): CatalogItem => ({
   nameBn: over.nameEn,
@@ -54,7 +62,7 @@ const ITEMS = [
   }),
 ];
 
-const f = (sp: Record<string, string> = {}) => parseShopFilters(sp);
+const f = (sp: Record<string, string> = {}) => parseShopFilters(sp, CATS);
 
 describe("parseShopFilters", () => {
   it("drops unknown values and keeps a known order", () => {
@@ -73,7 +81,7 @@ describe("parseShopFilters", () => {
   });
   it("round-trips through the query string, leaving defaults out", () => {
     const x = toggle(f({ q: "food", pet: "dog", stock: "1", page: "3" }), "categories", "food");
-    const back = parseShopFilters(Object.fromEntries(new URLSearchParams(shopQuery(x))));
+    const back = parseShopFilters(Object.fromEntries(new URLSearchParams(shopQuery(x))), CATS);
     expect(back).toEqual(x);
     expect(shopQuery(f())).toBe("");
     expect(x.page).toBe(1);
@@ -85,11 +93,11 @@ describe("search", () => {
     expect(searchWords("  Dog,  FOOD dog ")).toEqual(["dog", "food"]);
   });
   it("needs every word to match", () => {
-    expect(matchScore(ITEMS[1] as CatalogItem, searchWords("dog food"))).toBeGreaterThan(0);
-    expect(matchScore(ITEMS[1] as CatalogItem, searchWords("dog litter"))).toBe(0);
+    expect(matchScore(ITEMS[1] as CatalogItem, searchWords("dog food"), CATS)).toBeGreaterThan(0);
+    expect(matchScore(ITEMS[1] as CatalogItem, searchWords("dog litter"), CATS)).toBe(0);
   });
   it("matches pets and categories by their everyday words, in both languages", () => {
-    const names = (q: string) => runCatalog(ITEMS, f({ q }), "en").items.map((i) => i.nameEn);
+    const names = (q: string) => runCatalog(ITEMS, f({ q }), "en", CATS).items.map((i) => i.nameEn);
     expect(names("cat")).toEqual(expect.arrayContaining(["Kitten dry food", "Feather wand"]));
     expect(names("বিড়ালের খাবার")).toEqual(["Kitten dry food"]);
     expect(names("puppy")).toEqual(["Adult dog food"]);
@@ -97,44 +105,44 @@ describe("search", () => {
     expect(names("litter")).toEqual(["Clumping litter"]);
   });
   it("ranks name matches above description matches", () => {
-    const items = runCatalog(ITEMS, f({ q: "food" }), "en").items.map((i) => i.nameEn);
+    const items = runCatalog(ITEMS, f({ q: "food" }), "en", CATS).items.map((i) => i.nameEn);
     expect(items.slice(0, 2)).toEqual(expect.arrayContaining(["Kitten dry food", "Adult dog food"]));
   });
 });
 
 describe("runCatalog", () => {
   it("filters by pet, counting pet-neutral products for every pet", () => {
-    const r = runCatalog(ITEMS, f({ pet: "dog" }), "en");
+    const r = runCatalog(ITEMS, f({ pet: "dog" }), "en", CATS);
     expect(r.items.map((i) => i.nameEn).sort()).toEqual(["Adult dog food", "Steel bowl"]);
   });
   it("counts each facet without its own filter", () => {
-    const r = runCatalog(ITEMS, f({ category: "food" }), "en");
+    const r = runCatalog(ITEMS, f({ category: "food" }), "en", CATS);
     expect(r.total).toBe(3);
     expect(r.facets.categories).toMatchObject({ food: 3, grooming: 1, toys: 1, accessories: 1 });
     expect(r.facets.pets).toMatchObject({ cat: 1, dog: 1, bird: 1 });
     expect(r.facets.onSale).toBe(2);
   });
   it("filters by price in taka", () => {
-    const r = runCatalog(ITEMS, f({ min: "400", max: "600" }), "en");
+    const r = runCatalog(ITEMS, f({ min: "400", max: "600" }), "en", CATS);
     expect(r.items.map((i) => i.price).every((p) => p >= 40_000 && p <= 60_000)).toBe(true);
     expect(r.facets.price).toEqual({ min: 18_000, max: 145_000 });
   });
   it("sorts, always putting out-of-stock last", () => {
-    const asc = runCatalog(ITEMS, f({ sort: "price_asc" }), "en").items.map((i) => i.price);
+    const asc = runCatalog(ITEMS, f({ sort: "price_asc" }), "en", CATS).items.map((i) => i.price);
     expect(asc).toEqual([18_000, 26_000, 42_000, 65_000, 145_000, 55_000]);
-    const pop = runCatalog(ITEMS, f(), "en").items.map((i) => i.nameEn);
+    const pop = runCatalog(ITEMS, f(), "en", CATS).items.map((i) => i.nameEn);
     expect(pop[0]).toBe("Bird seed mix");
     expect(pop.at(-1)).toBe("Clumping litter");
-    const sale = runCatalog(ITEMS, f({ sort: "discount" }), "en").items.map((i) => i.nameEn);
+    const sale = runCatalog(ITEMS, f({ sort: "discount" }), "en", CATS).items.map((i) => i.nameEn);
     expect(sale[0]).toBe("Kitten dry food");
-    const az = runCatalog(ITEMS, f({ sort: "name" }), "en").items.map((i) => i.nameEn);
+    const az = runCatalog(ITEMS, f({ sort: "name" }), "en", CATS).items.map((i) => i.nameEn);
     expect(az.slice(0, 2)).toEqual(["Adult dog food", "Bird seed mix"]);
   });
   it("hides out-of-stock and keeps only discounts when asked", () => {
-    expect(runCatalog(ITEMS, f({ stock: "1" }), "en").total).toBe(5);
-    expect(runCatalog(ITEMS, f({ sale: "1" }), "en").total).toBe(2);
+    expect(runCatalog(ITEMS, f({ stock: "1" }), "en", CATS).total).toBe(5);
+    expect(runCatalog(ITEMS, f({ sale: "1" }), "en", CATS).total).toBe(2);
   });
   it("clamps the page", () => {
-    expect(runCatalog(ITEMS, f({ page: "9" }), "en").page).toBe(1);
+    expect(runCatalog(ITEMS, f({ page: "9" }), "en", CATS).page).toBe(1);
   });
 });

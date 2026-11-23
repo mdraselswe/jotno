@@ -6,7 +6,9 @@ import { AreaPicker } from "@/components/forms/area-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ImageUpload } from "@/features/uploads";
 import { useT } from "@/i18n/client";
+import { supabaseBrowser } from "@/infrastructure/supabase/browser";
 import { updateProfile } from "../server/actions";
 
 export interface ProfileValues {
@@ -14,6 +16,7 @@ export interface ProfileValues {
   phone: string;
   districtId: number | null;
   areaId: number | null;
+  avatarPath: string | null;
 }
 
 export function ProfileForm({ initial }: { initial: ProfileValues }) {
@@ -29,14 +32,25 @@ export function ProfileForm({ initial }: { initial: ProfileValues }) {
         phone: v.phone,
         districtId: v.districtId ?? undefined,
         areaId: v.areaId ?? undefined,
+        avatarPath: v.avatarPath,
       });
-      if (r.ok) toast.success(t("common.saved"));
-      else toast.error(t(r.error));
+      if (r.ok) {
+        toast.success(t("common.saved"));
+        // Pick up the new photo in the header (it comes from the session).
+        if (v.avatarPath !== initial.avatarPath) await supabaseBrowser().auth.refreshSession();
+      } else toast.error(t(r.error));
     });
   }
 
   return (
     <form onSubmit={submit} className="grid max-w-xl gap-4" noValidate>
+      <ImageUpload
+        kind="avatar"
+        shape="circle"
+        value={v.avatarPath}
+        onChange={(avatarPath) => setV({ ...v, avatarPath })}
+        label={t("settings.photo")}
+      />
       <div className="grid gap-2">
         <Label htmlFor="pf-name">{t("common.yourName")}</Label>
         <Input

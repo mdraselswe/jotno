@@ -72,8 +72,8 @@ async function refreshCompleteness(providerId: string) {
       areaId: p.areaId,
       hasLocation: sql<boolean>`${p.location} is not null`,
       phonePublic: p.phonePublic,
-      speciesCount: sql<number>`(select count(*)::int from ${schema.providerSpecies} ps where ps.provider_id = ${p.id})`,
-      hasAvailability: sql<boolean>`exists (select 1 from ${schema.availability} av where av.provider_id = ${p.id})`,
+      speciesCount: sql<number>`(select count(*)::int from ${schema.providerSpecies} ps where ps.provider_id = "providers"."id")`,
+      hasAvailability: sql<boolean>`exists (select 1 from ${schema.availability} av where av.provider_id = "providers"."id")`,
     })
     .from(p)
     .where(eq(p.id, providerId))
@@ -88,12 +88,43 @@ export async function saveVetProfile(locale: string, input: VetProfileInput): Pr
   if (!viewer) return { ok: false, error: "common.notAllowed" };
   const mine = await myProvider(viewer.id);
   if (!mine) return { ok: false, error: "common.notAllowed" };
+  return writeProfile(locale, mine, viewer.id, input, false);
+}
+
+/** Admin: edit any vet's profile (no re-review; the change is in the audit log). */
+export async function adminSaveVetProfile(
+  locale: string,
+  providerId: string,
+  input: VetProfileInput,
+): Promise<VetResult> {
+  const viewer = await actionViewer(["admin"]);
+  if (!viewer || viewer.role !== "admin" || !z.uuid().safeParse(providerId).success)
+    return { ok: false, error: "common.notAllowed" };
+  const [row] = await db().select({ profileId: p.profileId }).from(p).where(eq(p.id, providerId)).limit(1);
+  const target = row ? await myProvider(row.profileId) : null;
+  if (!target) return { ok: false, error: "common.notAllowed" };
+  const r = await writeProfile(locale, target, viewer.id, input, true);
+  if (r.ok) {
+    await audit(viewer.id, "provider.edit", "provider", providerId);
+    revalidatePath(localeHref(locale, adminVetPath(providerId)));
+  }
+  return r;
+}
+
+async function writeProfile(
+  locale: string,
+  mine: NonNullable<Awaited<ReturnType<typeof myProvider>>>,
+  actorId: string,
+  input: VetProfileInput,
+  byAdmin: boolean,
+): Promise<VetResult> {
   const parsed = profileSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "vet.invalid" };
   const v = parsed.data;
   if (v.consultFee < business.consult.minFee || v.consultFee > business.consult.maxFee)
     return { ok: false, error: "vet.feeRange" };
-  if (v.photoPath && v.photoPath !== mine.photoPath && !ownsUpload(v.photoPath, "vetPhoto", viewer.id))
+  // A new photo must be one this person (the vet, or the admin editing) just uploaded.
+  if (v.photoPath && v.photoPath !== mine.photoPath && !ownsUpload(v.photoPath, "vetPhoto", actorId))
     return { ok: false, error: "common.notAllowed" };
 
   const location =
@@ -109,6 +140,7 @@ export async function saveVetProfile(locale: string, input: VetProfileInput): Pr
     (a ?? "").replace(/\s+/g, " ").trim().toLowerCase() ===
     (b ?? "").replace(/\s+/g, " ").trim().toLowerCase();
   const recheck =
+    !byAdmin &&
     mine.status === "verified" &&
     (!same(mine.registrationNo, v.registrationNo) || !same(mine.displayName, v.displayName));
 
@@ -145,7 +177,7 @@ export async function saveVetProfile(locale: string, input: VetProfileInput): Pr
   if (mine.photoPath && mine.photoPath !== v.photoPath) await storage.remove("media", [mine.photoPath]);
   await refreshCompleteness(mine.id);
   if (recheck) {
-    await audit(viewer.id, "vet.recheck", "provider", mine.id, {
+    await audit(actorId, "vet.recheck", "provider", mine.id, {
       from: { name: mine.displayName, bvc: mine.registrationNo },
       to: { name: v.displayName, bvc: v.registrationNo },
     });
@@ -199,8 +231,8 @@ export async function submitForReview(locale: string): Promise<VetResult> {
       registrationNo: p.registrationNo,
       photoPath: p.photoPath,
       areaId: p.areaId,
-      docs: sql<number>`(select count(*)::int from ${schema.providerDocuments} d where d.provider_id = ${p.id})`,
-      species: sql<number>`(select count(*)::int from ${schema.providerSpecies} s where s.provider_id = ${p.id})`,
+      docs: sql<number>`(select count(*)::int from ${schema.providerDocuments} d where d.provider_id = "providers"."id")`,
+      species: sql<number>`(select count(*)::int from ${schema.providerSpecies} s where s.provider_id = "providers"."id")`,
     })
     .from(p)
     .where(eq(p.profileId, viewer.id))

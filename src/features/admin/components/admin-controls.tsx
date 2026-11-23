@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, Eye, Pause, X } from "lucide-react";
+import { Ban, Check, Eye, EyeOff, Pause, RotateCcw, Save, Trash2, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,12 +12,17 @@ import { DISTRICTS } from "@/content/geo";
 import { useT } from "@/i18n/client";
 import {
   addFeatured,
+  adminCancelAppointment,
+  adminDeleteArticle,
   adminDocumentUrl,
   adminRefund,
+  changeUserRole,
   endFeatured,
   recordPayout,
   rejectProvider,
   resolveReport,
+  setArticlePublished,
+  setUserBlocked,
   suspendProvider,
   verifyProvider,
   type AdminResult,
@@ -24,6 +30,7 @@ import {
 
 function useAction() {
   const t = useT();
+  const router = useRouter();
   const [pending, start] = useTransition();
   const run = (fn: () => Promise<AdminResult>, done?: () => void) =>
     start(async () => {
@@ -31,6 +38,7 @@ function useAction() {
       if (r.ok) {
         toast.success(t("common.saved"));
         done?.();
+        router.refresh();
       } else toast.error(t(r.error));
     });
   return { pending, run, t };
@@ -242,5 +250,111 @@ export function ReportActions({ id }: { id: string }) {
         {t("admin.dismiss")}
       </Button>
     </div>
+  );
+}
+
+/** Admin: someone's role and whether they can sign in. */
+export function UserControls({
+  userId,
+  role,
+  blocked,
+  self,
+}: {
+  userId: string;
+  role: "owner" | "vet" | "admin";
+  blocked: boolean;
+  self: boolean;
+}) {
+  const { pending, run, t } = useAction();
+  const [next, setNext] = useState(role);
+  if (self) return <span className="text-xs text-muted-foreground">{t("manage.you")}</span>;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Label htmlFor={`role-${userId}`} className="sr-only">
+        {t("manage.role")}
+      </Label>
+      <NativeSelect
+        id={`role-${userId}`}
+        value={next}
+        onChange={(e) => setNext(e.target.value as typeof role)}
+        className="w-32"
+      >
+        <option value="owner">{t("manage.role.owner")}</option>
+        <option value="vet">{t("manage.role.vet")}</option>
+        <option value="admin">{t("manage.role.admin")}</option>
+      </NativeSelect>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={pending || next === role}
+        onClick={() => {
+          if (next !== "admin" || window.confirm(t("manage.makeAdminConfirm")))
+            run(() => changeUserRole(userId, next));
+        }}
+      >
+        <Save aria-hidden="true" />
+        {t("common.save")}
+      </Button>
+      <Button
+        size="sm"
+        variant={blocked ? "outline" : "ghost"}
+        disabled={pending}
+        onClick={() => {
+          if (blocked || window.confirm(t("manage.blockConfirm")))
+            run(() => setUserBlocked(userId, !blocked));
+        }}
+      >
+        {blocked ? <RotateCcw aria-hidden="true" /> : <Ban aria-hidden="true" />}
+        {blocked ? t("manage.unblock") : t("manage.block")}
+      </Button>
+    </div>
+  );
+}
+
+/** Admin: take an article down, put it back, or delete it. */
+export function ArticleControls({ id, published }: { id: string; published: boolean }) {
+  const { pending, run, t } = useAction();
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={pending}
+        onClick={() => run(() => setArticlePublished(id, !published))}
+      >
+        {published ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+        {published ? t("manage.unpublish") : t("manage.publish")}
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        disabled={pending}
+        onClick={() => {
+          if (window.confirm(t("manage.deleteArticleConfirm"))) run(() => adminDeleteArticle(id));
+        }}
+      >
+        <Trash2 aria-hidden="true" />
+        {t("common.delete")}
+      </Button>
+    </div>
+  );
+}
+
+/** Admin: cancel a visit (with a reason both sides see). */
+export function CancelAppointmentButton({ id }: { id: string }) {
+  const { pending, run, t } = useAction();
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      disabled={pending}
+      onClick={() => {
+        const reason = window.prompt(t("manage.cancelReason"));
+        if (reason !== null) run(() => adminCancelAppointment(id, reason));
+      }}
+    >
+      <X aria-hidden="true" />
+      {t("manage.cancelVisit")}
+    </Button>
   );
 }

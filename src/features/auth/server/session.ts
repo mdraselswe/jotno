@@ -1,5 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import type { Route } from "next";
 import { cache } from "react";
@@ -35,12 +35,17 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   const claims = data?.claims;
   if (!claims?.sub) return null;
 
-  const [profile] = await db()
-    .select()
+  const [row] = await db()
+    .select({
+      profile: schema.profiles,
+      // An admin can block someone; their token stays valid until it expires, so check here too.
+      blocked: sql<boolean>`coalesce((select u.banned_until > now() from auth.users u where u.id = "profiles"."id"), false)`,
+    })
     .from(schema.profiles)
     .where(eq(schema.profiles.id, claims.sub))
     .limit(1);
-  if (!profile) return null;
+  if (!row || row.blocked) return null;
+  const profile = row.profile;
 
   // First admins come from ADMIN_EMAILS (no admin exists to promote them).
   const email =

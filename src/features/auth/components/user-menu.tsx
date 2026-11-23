@@ -59,9 +59,14 @@ export function UserMenu() {
       <DropdownMenuTrigger
         render={
           <Button variant="ghost" size="icon" className="rounded-full" aria-label={t("nav.account")}>
-            <span className="grid size-8 place-items-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-              {initial}
-            </span>
+            {user.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- storage or Google URL, 32px
+              <img src={user.avatarUrl} alt="" className="size-8 rounded-full object-cover" />
+            ) : (
+              <span className="grid size-8 place-items-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                {initial}
+              </span>
+            )}
           </Button>
         }
       />

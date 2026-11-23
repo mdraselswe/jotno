@@ -5,6 +5,8 @@ import { adminVetPath } from "@/config/routes";
 import { DocumentButton, ReviewActions } from "@/features/admin";
 import { providerForReview } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
+import { VetProfileForm, vetProfileValues } from "@/features/providers";
+import { getMyProvider } from "@/features/providers/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
@@ -20,6 +22,7 @@ async function Review({ params }: { params: Promise<{ id: string }> }) {
   const r = await providerForReview(id);
   if (!r) notFound();
   const p = r.p;
+  const editable = await getMyProvider(p.profileId);
   const facts: [string, string | null][] = [
     ["Email", r.email],
     ["Phone", r.phone],
@@ -80,6 +83,15 @@ async function Review({ params }: { params: Promise<{ id: string }> }) {
         </div>
         <ReviewActions providerId={p.id} status={p.status} />
       </div>
+      {editable ? (
+        <details className="group grid gap-4">
+          <summary className="cursor-pointer font-heading text-lg font-semibold">
+            {t("manage.editProfile")}
+          </summary>
+          <p className="mt-2 mb-4 text-sm text-muted-foreground">{t("manage.editProfileHint")}</p>
+          <VetProfileForm initial={vetProfileValues(editable)} providerId={p.id} />
+        </details>
+      ) : null}
     </div>
   );
 }

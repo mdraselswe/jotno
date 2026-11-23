@@ -4,6 +4,9 @@ export {
   activeFeatured,
   adminCounts,
   auditEntries,
+  listAppointments,
+  listArticles,
+  listUsers,
   openReports,
   payoutQueue,
   providerForReview,
@@ -11,4 +14,6 @@ export {
   recentPayouts,
   recentRefundable,
   verifiedVetOptions,
+  type AppointmentFilter,
+  type UserRoleFilter,
 } from "./queries";

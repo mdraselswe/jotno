@@ -8,3 +8,4 @@ export { VetFilters } from "./components/vet-filters";
 export { BuyFeaturedButton } from "./components/buy-featured";
 export { HomeSearch } from "./components/home-search";
 export { VetDotMap } from "./components/vet-dot-map";
+export { vetProfileValues } from "./profile-values";

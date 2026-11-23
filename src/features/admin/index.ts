@@ -1,4 +1,6 @@
 export {
+  ArticleControls,
+  CancelAppointmentButton,
   DocumentButton,
   EndFeaturedButton,
   FeaturedForm,
@@ -6,4 +8,6 @@ export {
   RefundButton,
   ReportActions,
   ReviewActions,
+  UserControls,
 } from "./components/admin-controls";
+export { FilterChips } from "./components/filter-chips";

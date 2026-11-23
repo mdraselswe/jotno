@@ -30,6 +30,7 @@ async function Settings() {
             phone: viewer.phone ?? "",
             districtId: viewer.homeDistrictId,
             areaId: viewer.homeAreaId,
+            avatarPath: viewer.avatarPath,
           }}
         />
       </section>

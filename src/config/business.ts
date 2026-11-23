@@ -23,7 +23,13 @@ const business: BusinessConfig = {
     ],
     maxPerDistrict: 3,
   },
-  shop: { deliveryInside: 6_000, deliveryOutside: 12_000, freeDeliveryFrom: 200_000, homeDistrictId: 47 },
+  shop: {
+    deliveryInside: 6_000,
+    deliveryOutside: 12_000,
+    freeDeliveryFrom: 200_000,
+    homeDistrictId: 47,
+    galleryMax: 5,
+  },
   availableHours: 6,
   emergencyHotline: undefined,
 };

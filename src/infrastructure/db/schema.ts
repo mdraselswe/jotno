@@ -622,6 +622,16 @@ export const articles = pgTable(
 ).enableRLS();
 
 // ── Shop ────────────────────────────────────────────────────────────────────
+/** Shop categories, edited by admins (products.category holds the slug). */
+export const productCategories = pgTable("product_categories", {
+  slug: text("slug").primaryKey(),
+  nameEn: text("name_en").notNull(),
+  nameBn: text("name_bn").notNull(),
+  sort: integer("sort").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+  createdAt: createdAt(),
+}).enableRLS();
+
 export const products = pgTable(
   "products",
   {
@@ -642,6 +652,11 @@ export const products = pgTable(
     /** Pack size shown next to the price, e.g. "1.5 kg", "400 g". */
     unit: text("unit"),
     imagePath: text("image_path"),
+    /** More photos after the main one (media bucket paths), shown as a gallery. */
+    images: text("images")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     active: boolean("active").notNull().default(true),
     isDemo: boolean("is_demo").notNull().default(false),
     createdAt: createdAt(),

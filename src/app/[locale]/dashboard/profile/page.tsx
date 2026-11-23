@@ -1,6 +1,6 @@
 import { Private, PrivateHeading } from "@/components/layout/private-page";
 import { ROUTES } from "@/config/routes";
-import { VetDocuments, VetProfileForm } from "@/features/providers";
+import { VetDocuments, VetProfileForm, vetProfileValues } from "@/features/providers";
 import { requireVet } from "@/features/providers/server";
 import { getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -11,8 +11,6 @@ export async function generateMetadata() {
   return pageMetadata(t("vet.profile"), t("vet.completenessHint"), ROUTES.vetProfile, await getLocale());
 }
 
-const taka = (poisha: number) => String(Math.round(poisha / 100));
-
 async function Profile() {
   const locale = await getLocale();
   const t = await getT();
@@ -21,29 +19,7 @@ async function Profile() {
   return (
     <div className="grid gap-8">
       <PrivateHeading title={t("vet.profile")} sub={t("vet.completenessHint")} />
-      <VetProfileForm
-        initial={{
-          displayName: p.displayName,
-          title: p.title ?? "",
-          bio: p.bio ?? "",
-          qualifications: p.qualifications ?? "",
-          registrationNo: p.registrationNo ?? "",
-          experienceYears: p.experienceYears == null ? "" : String(p.experienceYears),
-          consultFeeTaka: taka(p.consultFee),
-          visitFeeTaka: taka(p.visitFee),
-          clinicName: p.clinicName ?? "",
-          address: p.address ?? "",
-          districtId: p.districtId,
-          areaId: p.areaId,
-          lat: p.lat,
-          lon: p.lon,
-          phonePublic: p.phonePublic ?? "",
-          emergency24x7: p.emergency24x7,
-          homeVisit: p.homeVisit,
-          photoPath: p.photoPath,
-          speciesIds: p.speciesIds,
-        }}
-      />
+      <VetProfileForm initial={vetProfileValues(p)} />
       <section
         className="glow-border relative grid max-w-3xl gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
         aria-labelledby="docs-h"

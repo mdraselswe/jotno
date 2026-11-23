@@ -366,6 +366,7 @@ const productSchema = z.object({
   sku: z.string().trim().max(40).optional(),
   unit: z.string().trim().max(30).optional(),
   imagePath: z.string().nullable(),
+  images: z.array(z.string()).max(business.shop.galleryMax).default([]),
   active: z.boolean(),
 });
 
@@ -381,12 +382,23 @@ export async function saveProduct(
   if (!me) return { ok: false, error: "common.notAllowed" };
   const parsed = productSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "shop.productInvalid" };
-  if (parsed.data.imagePath && !ownsUpload(parsed.data.imagePath, "product", me.id)) {
-    const [existing] = id
-      ? await db().select({ imagePath: PR.imagePath }).from(PR).where(eq(PR.id, id)).limit(1)
-      : [];
-    if (existing?.imagePath !== parsed.data.imagePath) return { ok: false, error: "common.notAllowed" };
-  }
+  const [before] = id
+    ? await db().select({ imagePath: PR.imagePath, images: PR.images }).from(PR).where(eq(PR.id, id)).limit(1)
+    : [];
+  if (id && !before) return { ok: false, error: "common.notAllowed" };
+  // Every photo is either already on this product or one this admin just uploaded.
+  const known = new Set(
+    [before?.imagePath, ...(before?.images ?? [])].filter((x): x is string => Boolean(x)),
+  );
+  const photos = [parsed.data.imagePath, ...parsed.data.images].filter((x): x is string => Boolean(x));
+  if (photos.some((path) => !known.has(path) && !ownsUpload(path, "product", me.id)))
+    return { ok: false, error: "common.notAllowed" };
+  const [category] = await db()
+    .select({ slug: schema.productCategories.slug })
+    .from(schema.productCategories)
+    .where(eq(schema.productCategories.slug, parsed.data.category))
+    .limit(1);
+  if (!category) return { ok: false, error: "shop.productInvalid" };
   const { stock, ...rest } = parsed.data;
   const values = {
     ...rest,
@@ -395,13 +407,14 @@ export async function saveProduct(
     compareAt: rest.compareAt || null,
     sku: rest.sku || null,
     unit: rest.unit || null,
+    images: [...new Set(rest.images)].filter((path) => path !== rest.imagePath),
   };
   if (id) {
-    const [before] = await db().select({ imagePath: PR.imagePath }).from(PR).where(eq(PR.id, id)).limit(1);
     await db().update(PR).set(values).where(eq(PR.id, id));
-    // A replaced photo is no longer used anywhere (orders keep name and price only).
-    if (before?.imagePath && before.imagePath !== values.imagePath)
-      await storage.remove("media", [before.imagePath]).catch(() => undefined);
+    // Removed or replaced photos are no longer used anywhere (orders keep name and price only).
+    const kept = new Set([values.imagePath, ...values.images]);
+    const dropped = [...known].filter((path) => !kept.has(path));
+    if (dropped.length > 0) await storage.remove("media", dropped).catch(() => undefined);
     await audit(me.id, "product.update", "product", id);
   } else {
     const [row] = await db()
@@ -425,6 +438,76 @@ export async function saveProduct(
   revalidatePath("/[locale]/shop", "layout");
   revalidatePath("/[locale]/admin/shop", "layout");
   if (!id) redirect(localeHref(locale, ROUTES.adminProducts));
+  return { ok: true };
+}
+
+/** Admin: delete a product nobody ordered (orders point at it otherwise: turn it off instead). */
+export async function deleteProduct(locale: string, id: string): Promise<ShopResult> {
+  const me = await admin();
+  if (!me || !z.uuid().safeParse(id).success) return { ok: false, error: "common.notAllowed" };
+  const [ordered] = await db()
+    .select({ id: schema.orderItems.id })
+    .from(schema.orderItems)
+    .where(eq(schema.orderItems.productId, id))
+    .limit(1);
+  if (ordered) return { ok: false, error: "shopAdmin.cantDelete" };
+  const [gone] = await db()
+    .delete(PR)
+    .where(eq(PR.id, id))
+    .returning({ imagePath: PR.imagePath, images: PR.images, nameEn: PR.nameEn });
+  if (!gone) return { ok: false, error: "common.notAllowed" };
+  const files = [gone.imagePath, ...gone.images].filter((x): x is string => Boolean(x));
+  if (files.length > 0) await storage.remove("media", files).catch(() => undefined);
+  await audit(me.id, "product.delete", "product", id, { name: gone.nameEn });
+  revalidatePath("/[locale]/shop", "layout");
+  revalidatePath("/[locale]/admin/shop", "layout");
+  redirect(localeHref(locale, ROUTES.adminProducts));
+}
+
+const categorySchema = z.object({
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9-]{2,30}$/),
+  nameEn: z.string().trim().min(2).max(40),
+  nameBn: z.string().trim().min(2).max(40),
+  sort: z.number().int().min(0).max(10_000),
+  active: z.boolean(),
+});
+export type CategoryInput = z.input<typeof categorySchema>;
+
+/** Admin: add a category (`isNew`) or rename/reorder/hide one (the slug stays: products point at it). */
+export async function saveCategory(isNew: boolean, input: CategoryInput): Promise<ShopResult> {
+  const me = await admin();
+  const parsed = categorySchema.safeParse(input);
+  if (!me) return { ok: false, error: "common.notAllowed" };
+  if (!parsed.success) return { ok: false, error: "shopAdmin.categoryInvalid" };
+  const C = schema.productCategories;
+  const { slug, ...rest } = parsed.data;
+  if (isNew) {
+    const [row] = await db().insert(C).values(parsed.data).onConflictDoNothing().returning({ slug: C.slug });
+    if (!row) return { ok: false, error: "shopAdmin.categoryTaken" };
+  } else {
+    const [row] = await db().update(C).set(rest).where(eq(C.slug, slug)).returning({ slug: C.slug });
+    if (!row) return { ok: false, error: "common.notAllowed" };
+  }
+  await audit(me.id, isNew ? "category.create" : "category.update", "category", null, { slug });
+  revalidatePath("/[locale]/shop", "layout");
+  revalidatePath("/[locale]/admin/shop", "layout");
+  return { ok: true };
+}
+
+/** Admin: delete a category no product uses. */
+export async function deleteCategory(slug: string): Promise<ShopResult> {
+  const me = await admin();
+  if (!me || !/^[a-z0-9-]{2,30}$/.test(slug)) return { ok: false, error: "common.notAllowed" };
+  const [used] = await db().select({ id: PR.id }).from(PR).where(eq(PR.category, slug)).limit(1);
+  if (used) return { ok: false, error: "shopAdmin.categoryInUse" };
+  await db().delete(schema.productCategories).where(eq(schema.productCategories.slug, slug));
+  await audit(me.id, "category.delete", "category", null, { slug });
+  revalidatePath("/[locale]/shop", "layout");
+  revalidatePath("/[locale]/admin/shop", "layout");
   return { ok: true };
 }
 

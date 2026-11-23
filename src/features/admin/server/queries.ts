@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, gt, inArray, isNull, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gt, ilike, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { business } from "@/config";
 import { vetBalance } from "@/features/payments";
 import { db, schema } from "@/infrastructure/db";
@@ -224,4 +224,92 @@ export async function recentRefundable() {
     .where(eq(schema.consults.status, "active"))
     .orderBy(desc(schema.consults.openedAt))
     .limit(50);
+}
+
+export type UserRoleFilter = "owner" | "vet" | "admin" | "all";
+
+/** Admin: people, newest first, by name/email/phone and role. */
+export async function listUsers(q: string, role: UserRoleFilter) {
+  const PF = schema.profiles;
+  const term = q.trim().slice(0, 60);
+  const like = `%${term.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
+  return db()
+    .select({
+      id: PF.id,
+      fullName: PF.fullName,
+      email: PF.email,
+      phone: PF.phone,
+      role: PF.role,
+      isDemo: PF.isDemo,
+      createdAt: PF.createdAt,
+      blocked: sql<boolean>`coalesce((select u.banned_until > now() from auth.users u where u.id = "profiles"."id"), false)`,
+      providerId: P.id,
+      providerStatus: P.status,
+    })
+    .from(PF)
+    .leftJoin(P, eq(P.profileId, PF.id))
+    .where(
+      and(
+        role === "all" ? undefined : eq(PF.role, role),
+        term ? or(ilike(PF.email, like), ilike(PF.fullName, like), ilike(PF.phone, like)) : undefined,
+      ),
+    )
+    .orderBy(desc(PF.createdAt))
+    .limit(100);
+}
+
+/** Admin: every article (drafts too), newest first. */
+export async function listArticles(status: "draft" | "published" | "all") {
+  const AR = schema.articles;
+  return db()
+    .select({
+      id: AR.id,
+      slug: AR.slug,
+      title: AR.title,
+      status: AR.status,
+      publishedAt: AR.publishedAt,
+      updatedAt: AR.updatedAt,
+      isDemo: AR.isDemo,
+      vet: P.displayName,
+    })
+    .from(AR)
+    .innerJoin(P, eq(P.id, AR.providerId))
+    .where(status === "all" ? undefined : eq(AR.status, status))
+    .orderBy(desc(AR.updatedAt))
+    .limit(200);
+}
+
+export type AppointmentFilter = "upcoming" | "past" | "cancelled" | "all";
+
+/** Admin: clinic visits across all vets. */
+export async function listAppointments(filter: AppointmentFilter) {
+  const A = schema.appointments;
+  const PF = schema.profiles;
+  const where =
+    filter === "upcoming"
+      ? and(inArray(A.status, ["pending_payment", "confirmed"]), gt(A.startsAt, new Date()))
+      : filter === "past"
+        ? and(inArray(A.status, ["confirmed", "completed", "no_show"]), lte(A.startsAt, new Date()))
+        : filter === "cancelled"
+          ? eq(A.status, "cancelled")
+          : undefined;
+  return db()
+    .select({
+      id: A.id,
+      startsAt: A.startsAt,
+      status: A.status,
+      bookingFee: A.bookingFee,
+      visitFee: A.visitFee,
+      reason: A.reason,
+      vet: P.displayName,
+      owner: PF.fullName,
+      ownerEmail: PF.email,
+      ownerPhone: PF.phone,
+    })
+    .from(A)
+    .innerJoin(P, eq(P.id, A.providerId))
+    .innerJoin(PF, eq(PF.id, A.ownerId))
+    .where(where)
+    .orderBy(filter === "upcoming" ? A.startsAt : desc(A.startsAt))
+    .limit(200);
 }

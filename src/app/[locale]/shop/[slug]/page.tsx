@@ -7,10 +7,17 @@ import { JsonLd } from "@/components/ui/json-ld";
 import { Skeleton } from "@/components/ui/skeleton";
 import { localePath } from "@/config/locale";
 import { pageUrl, productPath, ROUTES } from "@/config/routes";
-import { categoryName } from "@/content/shop";
 import { getSettings } from "@/features/settings/server";
-import { AddToCartButton, CartLink, productArt, ProductArt, ProductTile } from "@/features/shop";
-import { getProduct } from "@/features/shop/server";
+import {
+  AddToCartButton,
+  CartLink,
+  categoryLabel,
+  productArt,
+  ProductArt,
+  ProductGallery,
+  ProductTile,
+} from "@/features/shop";
+import { getProduct, shopCategories } from "@/features/shop/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
@@ -33,7 +40,11 @@ async function Product({ params }: { params: Promise<{ slug: string }> }) {
   const locale = await getLocale();
   const t = await getT();
   const fmt = await getFormatter();
-  const [p, settings] = await Promise.all([getProduct(slug, locale), getSettings()]);
+  const [p, settings, categories] = await Promise.all([
+    getProduct(slug, locale),
+    getSettings(),
+    shopCategories(true),
+  ]);
   if (!p) notFound();
   return (
     <div className="grid gap-12">
@@ -53,25 +64,22 @@ async function Product({ params }: { params: Promise<{ slug: string }> }) {
             },
           }}
         />
-        <div
-          className={`glow-border relative aspect-square overflow-hidden rounded-(--radius-2xl) shadow-(--shadow-card) ${productArt(p.category).tone}`}
-        >
-          {p.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- storage URL
-            <img src={p.imageUrl} alt={p.name} className="size-full object-cover" />
-          ) : (
-            <span className="grid size-full place-items-center">
-              <ProductArt category={p.category} className="size-1/3 text-primary/60" />
-            </span>
-          )}
-        </div>
+        {p.gallery.length > 0 ? (
+          <ProductGallery urls={p.gallery} alt={p.name} />
+        ) : (
+          <div
+            className={`glow-border relative grid aspect-square place-items-center overflow-hidden rounded-(--radius-2xl) shadow-(--shadow-card) ${productArt(p.category).tone}`}
+          >
+            <ProductArt category={p.category} className="size-1/3 text-primary/60" />
+          </div>
+        )}
         <div className="grid content-start gap-4">
           <nav className="text-sm">
             <Link
               href={localeHref(locale, ROUTES.shop)}
               className="text-muted-foreground hover:text-foreground"
             >
-              ← {categoryName(p.category, locale)}
+              ← {categoryLabel(categories, p.category, locale)}
             </Link>
           </nav>
           <h1 className="font-heading text-3xl font-semibold tracking-tight">{p.name}</h1>

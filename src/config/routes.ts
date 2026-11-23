@@ -54,9 +54,13 @@ export const ROUTES = {
   adminShop: "/admin/shop",
   adminProducts: "/admin/shop/products",
   adminCoupons: "/admin/shop/coupons",
+  adminCategories: "/admin/shop/categories",
   adminShopReports: "/admin/shop/reports",
   adminPayments: "/admin/payments",
   adminSettings: "/admin/settings",
+  adminUsers: "/admin/users",
+  adminArticles: "/admin/articles",
+  adminAppointments: "/admin/appointments",
   adminAudit: "/admin/audit",
   /** Design-system preview, development only (not in the sitemap; robots.txt disallows it). */
   dev: "/dev",

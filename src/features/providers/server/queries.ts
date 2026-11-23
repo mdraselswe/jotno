@@ -15,7 +15,7 @@ const availableSql = sql<boolean>`(${p.availableNow} and (${p.availableUntil} is
 
 const speciesSlugsSql = sql<
   string[]
->`coalesce((select array_agg(s.slug order by s.sort) from ${schema.providerSpecies} ps join ${schema.species} s on s.id = ps.species_id where ps.provider_id = ${p.id}), '{}')`;
+>`coalesce((select array_agg(s.slug order by s.sort) from ${schema.providerSpecies} ps join ${schema.species} s on s.id = ps.species_id where ps.provider_id = "providers"."id"), '{}')`;
 
 export interface ProviderCard {
   id: string;
@@ -283,8 +283,8 @@ export async function getProviderBySlug(slug: string): Promise<ProviderPublic | 
       registrationBody: p.registrationBody,
       address: p.address,
       verifiedAt: p.verifiedAt,
-      hasSchedule: sql<boolean>`exists (select 1 from ${schema.availability} av where av.provider_id = ${p.id})`,
-      featured: sql<boolean>`exists (select 1 from ${schema.featuredSlots} f where f.provider_id = ${p.id} and f.starts_at <= now() and f.ends_at > now())`,
+      hasSchedule: sql<boolean>`exists (select 1 from ${schema.availability} av where av.provider_id = "providers"."id")`,
+      featured: sql<boolean>`exists (select 1 from ${schema.featuredSlots} f where f.provider_id = "providers"."id" and f.starts_at <= now() and f.ends_at > now())`,
     })
     .from(p)
     .leftJoin(a, eq(a.id, p.areaId))
