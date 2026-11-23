@@ -5,6 +5,7 @@ const LINKS: readonly SectionLink[] = [
   { href: ROUTES.admin, label: "admin.home", exact: true },
   { href: ROUTES.adminUsers, label: "manage.users" },
   { href: ROUTES.adminVets, label: "admin.vets" },
+  { href: ROUTES.adminConsults, label: "monitor.title" },
   { href: ROUTES.adminFeatured, label: "admin.featured" },
   { href: ROUTES.adminPayments, label: "payAdmin.title" },
   { href: ROUTES.adminPayouts, label: "admin.payouts" },

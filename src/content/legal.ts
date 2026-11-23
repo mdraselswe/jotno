@@ -120,7 +120,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "What we collect",
           body: [
-            "Your name, email, optional phone number and home area; your pets' details and health records you add; chat messages and photos; questions and reviews you post; payments (amount and status, not card details); and basic technical logs to keep the service safe.",
+            "Your name, email, optional phone number and home area; your pets' details and health records you add; chat messages, photos and prescriptions; when a call happened, how long it lasted and how it ended (never what was said); questions and reviews you post; payments (amount and status, not card details); and basic technical logs to keep the service safe.",
           ],
         },
         {
@@ -132,7 +132,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "Who sees it",
           body: [
-            "A vet sees your chat, your pet's details and photos only for chats you start with them. Questions and answers in the public Q&A are public (without your contact details). Our service providers (database and storage hosting, email delivery) process data only to provide their service. For payments we keep the number you paid from and the transaction ID, to match your payment and send any refund.",
+            "A vet sees your chat, your pet's details and photos only for chats you start with them. Audio and video calls go directly between you and the vet and are never recorded. Our team sees how each chat went (reply time, number of messages, calls, ratings) but not what was written; a team member reads a conversation only to resolve a complaint, a refund dispute or a safety concern, and each time the reason is logged. Questions and answers in the public Q&A are public (without your contact details). Our service providers (database and storage hosting, email delivery) process data only to provide their service. For payments we keep the number you paid from and the transaction ID, to match your payment and send any refund.",
           ],
         },
         {
@@ -156,7 +156,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "কী সংগ্রহ করি",
           body: [
-            "আপনার নাম, ইমেইল, ঐচ্ছিক ফোন নম্বর আর এলাকা; আপনার দেওয়া পোষা প্রাণীর তথ্য ও স্বাস্থ্য রেকর্ড; চ্যাটের মেসেজ ও ছবি; আপনার প্রশ্ন ও রিভিউ; পেমেন্ট (পরিমাণ ও অবস্থা, কার্ডের তথ্য নয়); আর সেবা নিরাপদ রাখতে সাধারণ টেকনিক্যাল লগ।",
+            "আপনার নাম, ইমেইল, ঐচ্ছিক ফোন নম্বর আর এলাকা; আপনার দেওয়া পোষা প্রাণীর তথ্য ও স্বাস্থ্য রেকর্ড; চ্যাটের মেসেজ, ছবি ও প্রেসক্রিপশন; কল কখন হলো, কতক্ষণ চলল আর কীভাবে শেষ হলো (কী কথা হলো তা কখনো নয়); আপনার প্রশ্ন ও রিভিউ; পেমেন্ট (পরিমাণ ও অবস্থা, কার্ডের তথ্য নয়); আর সেবা নিরাপদ রাখতে সাধারণ টেকনিক্যাল লগ।",
           ],
         },
         {
@@ -168,7 +168,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "কে দেখে",
           body: [
-            "আপনি যে ভেটের সাথে চ্যাট শুরু করেন, শুধু তিনিই সেই চ্যাট, পোষা প্রাণীর তথ্য আর ছবি দেখেন। পাবলিক প্রশ্নোত্তর সবাই দেখতে পারে (আপনার যোগাযোগের তথ্য ছাড়া)। আমাদের সেবাদাতারা (ডেটাবেস ও স্টোরেজ হোস্টিং, ইমেইল) শুধু তাদের সেবা দিতে তথ্য ব্যবহার করে। পেমেন্টের জন্য আমরা যে নম্বর থেকে টাকা পাঠিয়েছেন সেটি আর ট্রানজেকশন আইডি রাখি, যাতে পেমেন্ট মেলানো আর রিফান্ড পাঠানো যায়।",
+            "আপনি যে ভেটের সাথে চ্যাট শুরু করেন, শুধু তিনিই সেই চ্যাট, পোষা প্রাণীর তথ্য আর ছবি দেখেন। অডিও ও ভিডিও কল সরাসরি আপনার আর ভেটের মধ্যে হয়, কখনো রেকর্ড হয় না। চ্যাট কেমন হলো (উত্তরের সময়, মেসেজের সংখ্যা, কল, রেটিং) আমাদের টিম দেখে, কিন্তু কী লেখা হয়েছে তা নয়; শুধু অভিযোগ, রিফান্ড নিয়ে বিরোধ বা নিরাপত্তার কারণে টিমের কেউ কথোপকথন পড়েন, আর প্রতিবার কারণসহ তা লগে থাকে। পাবলিক প্রশ্নোত্তর সবাই দেখতে পারে (আপনার যোগাযোগের তথ্য ছাড়া)। আমাদের সেবাদাতারা (ডেটাবেস ও স্টোরেজ হোস্টিং, ইমেইল) শুধু তাদের সেবা দিতে তথ্য ব্যবহার করে। পেমেন্টের জন্য আমরা যে নম্বর থেকে টাকা পাঠিয়েছেন সেটি আর ট্রানজেকশন আইডি রাখি, যাতে পেমেন্ট মেলানো আর রিফান্ড পাঠানো যায়।",
           ],
         },
         {
@@ -256,7 +256,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "Advice, not an examination",
           body: [
-            "A chat lets a registered vet give advice from your description and photos. The vet can't examine, test or treat the animal through a chat, and may tell you to visit a clinic. Follow that advice.",
+            "A chat or call lets a registered vet give advice from your description, photos and what they can see on video. The vet can't examine, test or treat the animal remotely, and may tell you to visit a clinic. Follow that advice.",
           ],
         },
         {
@@ -268,7 +268,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "Medicines",
           body: [
-            "Vets may suggest common over-the-counter care. They won't prescribe controlled drugs or injections through a chat. Never give human medicine to an animal unless a vet tells you to.",
+            "After a chat the vet may write a prescription you can open, print and show at a pharmacy; it is based only on the online consult. Vets won't prescribe controlled drugs or injections online. Follow the dose and days written, and see a vet in person if the animal gets worse. Never give human medicine to an animal unless a vet tells you to.",
           ],
         },
         {
@@ -286,7 +286,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "পরামর্শ, পরীক্ষা নয়",
           body: [
-            "চ্যাটে রেজিস্টার্ড ভেট আপনার বর্ণনা আর ছবি দেখে পরামর্শ দেন। চ্যাটে ভেট প্রাণীকে পরীক্ষা, টেস্ট বা চিকিৎসা করতে পারেন না, আর ক্লিনিকে যেতে বলতে পারেন। সেই পরামর্শ মানুন।",
+            "চ্যাট বা কলে রেজিস্টার্ড ভেট আপনার বর্ণনা, ছবি আর ভিডিওতে যা দেখেন তা থেকে পরামর্শ দেন। দূর থেকে ভেট প্রাণীকে পরীক্ষা, টেস্ট বা চিকিৎসা করতে পারেন না, আর ক্লিনিকে যেতে বলতে পারেন। সেই পরামর্শ মানুন।",
           ],
         },
         {
@@ -298,7 +298,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "ওষুধ",
           body: [
-            "ভেট সাধারণ ওভার-দ্য-কাউন্টার যত্নের পরামর্শ দিতে পারেন। চ্যাটে নিয়ন্ত্রিত ওষুধ বা ইনজেকশন লিখবেন না। ভেট না বললে মানুষের ওষুধ কখনো প্রাণীকে দেবেন না।",
+            "চ্যাটের পর ভেট প্রেসক্রিপশন লিখতে পারেন, যা আপনি খুলে প্রিন্ট করে ফার্মেসিতে দেখাতে পারবেন; এটা শুধু অনলাইন কনসাল্টের ভিত্তিতে লেখা। অনলাইনে ভেট নিয়ন্ত্রিত ওষুধ বা ইনজেকশন লিখবেন না। লেখা ডোজ আর দিন মেনে চলুন, আর অবস্থা খারাপ হলে সরাসরি ভেটের কাছে যান। ভেট না বললে মানুষের ওষুধ কখনো প্রাণীকে দেবেন না।",
           ],
         },
         {

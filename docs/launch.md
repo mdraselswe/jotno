@@ -39,6 +39,8 @@ psql "$DATABASE_URL_DIRECT" -f supabase/seeds/02_demo.sql        # optional: dem
 - [ ] Later, if you want a gateway: SSLCommerz sandbox → live; set `PAYMENT_PROVIDER=sslcommerz`, `SSLCOMMERZ_SANDBOX=false`.
 - [ ] Google sign-in: Google Cloud → OAuth consent screen (app name Jotno, your support email, publish it) → Credentials → OAuth client ID (Web). Authorised redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`. Paste the client ID and secret in Supabase → Auth → Providers → Google. Set `NEXT_PUBLIC_GOOGLE_AUTH=true` (GitHub variable) and redeploy. Local testing: see `[auth.external.google]` in `supabase/config.toml`.
 - [ ] Domain (`jotnocare.com`): add to Cloudflare, attach to the worker, set `NEXT_PUBLIC_SITE_URL`, update Supabase Auth URLs.
+- [ ] **Calls** (docs/adr/0009): Cloudflare dashboard → Calls → TURN → create a TURN key. Add `CLOUDFLARE_TURN_KEY_ID` and `CLOUDFLARE_TURN_API_TOKEN` as Worker secrets (`npx wrangler secret put …`). Without them calls use STUN only and fail on some mobile networks.
+- [ ] Supabase → Realtime → Settings: turn **off** "Allow public access" so only the two people in a consult can join its channel (the policies come from the migrations).
 - [ ] Turn on the backup: secret `DATABASE_URL_DIRECT`, variable `BACKUP_ENABLED=true`.
 - [ ] Sentry DSN (optional).
 
@@ -58,10 +60,16 @@ psql "$DATABASE_URL_DIRECT" -f supabase/seeds/02_demo.sql        # optional: dem
 - **Coupons** (`/admin/shop/coupons`): percent or taka off, minimum order, cap, uses and last day.
 - **Sales** (`/admin/shop/reports`) and **Export CSV** (orders of the last 31 days; `?from=YYYY-MM-DD&to=YYYY-MM-DD` for a range). Each order page prints as an invoice.
 
+## Consults day to day
+
+- **`/admin/consults`** lists every paid chat: first reply time (slow ones marked), messages from each side, photos, calls (talk time, missed), rating, complaints and whether a prescription was written. Filters: open now, late reply, complaints, with calls, refunded. The admin home shows late replies, complaints and missed calls of the last 7 days.
+- A consult's page shows its timeline without message text. To read the conversation, write the reason (a complaint, a refund dispute, a safety concern); it is saved in the audit log, shown in the timeline, and gives you 30 minutes of access.
+- Each vet's page (`/admin/vets/<id>`) has their last-30-day consult stats.
+
 ## Not built yet (later phases)
 
 - Map view of vets (list only now; the home page has a dot map).
-- SMS (OTP or reminders) and video consults.
+- SMS (OTP or reminders).
 - Automatic payment checking (a bKash/Nagad merchant API or SSLCommerz); for now an admin approves each TrxID.
 - Courier API booking (Steadfast/Pathao): the courier and tracking number are typed in by hand.
-- Prescriptions, clinic/organisation accounts, multi-vet clinics.
+- Clinic/organisation accounts, multi-vet clinics.

@@ -32,7 +32,7 @@ export async function SiteFooter() {
   const locale = await getLocale();
   const word = locale === "bn" ? "যত্ন" : "Jotno";
   return (
-    <footer className="relative mt-auto overflow-hidden surface-sun pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
+    <footer className="relative mt-auto overflow-hidden surface-sun pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0 print:hidden">
       <div className="container-page grid gap-8 pt-16 pb-2 text-sm sm:grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr]">
         <div className="grid content-start gap-4 sm:col-span-2 md:col-span-1">
           <p className="flex items-center gap-2 font-heading text-2xl font-bold tracking-tight">

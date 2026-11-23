@@ -360,3 +360,19 @@ export async function adminCancelAppointment(id: string, reason: string): Promis
   revalidatePath("/", "layout");
   return { ok: true };
 }
+
+const readSchema = z.object({ consultId: z.uuid(), reason: z.string().trim().min(10).max(300) });
+
+/**
+ * Admin: read a consult's conversation. Only with a written reason (a complaint,
+ * a refund dispute, a safety concern); the reason goes to the audit log and the
+ * consult's timeline, and the access lasts 30 minutes.
+ */
+export async function openConsultTranscript(consultId: string, reason: string): Promise<AdminResult> {
+  const me = await admin();
+  const parsed = readSchema.safeParse({ consultId, reason });
+  if (!me) return { ok: false, error: "common.notAllowed" };
+  if (!parsed.success) return { ok: false, error: "monitor.reasonShort" };
+  await audit(me.id, "consult.read", "consult", parsed.data.consultId, { reason: parsed.data.reason });
+  return { ok: true };
+}

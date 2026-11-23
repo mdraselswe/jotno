@@ -87,6 +87,18 @@ export const appointmentStatus = pgEnum("appointment_status", [
 ]);
 export const articleStatus = pgEnum("article_status", ["draft", "published"]);
 /**
+ * ringing → active (answered) → ended. Never answered: missed (no answer or the
+ * caller gave up), declined (the other side said no), failed (couldn't connect).
+ */
+export const callStatus = pgEnum("call_status", [
+  "ringing",
+  "active",
+  "ended",
+  "missed",
+  "declined",
+  "failed",
+]);
+/**
  * pending_payment → (bKash/Nagad verified) paid → processing → shipped → delivered.
  * Cash on delivery: placed → (admin confirms by phone) processing → shipped → delivered.
  * cancelled before shipping (stock goes back); returned after it.
@@ -473,6 +485,75 @@ export const messages = pgTable(
       using: sql`exists (select 1 from public.consults c where c.id = consult_id and ((select auth.uid()) = c.owner_id or c.provider_id in (select public.my_provider_ids())))`,
     }),
   ],
+).enableRLS();
+
+/**
+ * Audio/video calls inside a consult. Media flows peer to peer (WebRTC), so only
+ * the facts are kept: who called, when, how long, how it ended. Nothing is
+ * recorded. Server-only (no policies).
+ */
+export const calls = pgTable(
+  "calls",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    consultId: uuid("consult_id")
+      .notNull()
+      .references(() => consults.id, { onDelete: "cascade" }),
+    callerId: uuid("caller_id").references(() => profiles.id, { onDelete: "set null" }),
+    media: text("media", { enum: ["audio", "video"] }).notNull(),
+    status: callStatus("status").notNull().default("ringing"),
+    answeredAt: tstz("answered_at"),
+    /** Last heartbeat from either side while active (ends stale calls on time). */
+    lastBeatAt: tstz("last_beat_at"),
+    endedAt: tstz("ended_at"),
+    endedBy: uuid("ended_by").references(() => profiles.id, { onDelete: "set null" }),
+    /** hangup | decline | cancel | no_answer | failed | stale | consult_closed */
+    endReason: text("end_reason"),
+    /** true when the media went through the TURN relay (null: not known). */
+    relayed: boolean("relayed"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("calls_consult_idx").on(t.consultId, t.createdAt), index("calls_status_idx").on(t.status)],
+).enableRLS();
+
+/** One medicine line on a prescription. `productId` links it to the shop when we sell it. */
+export interface RxItem {
+  name: string;
+  /** "1 tablet", "2 ml", "a pea-sized amount" */
+  dose: string;
+  /** "twice a day after food" */
+  frequency: string;
+  days: number | null;
+  note?: string;
+  productId?: string | null;
+}
+
+/**
+ * The vet's written prescription for a consult (one per consult; the vet can
+ * update it while the chat is open). Owners print or save it as PDF and show
+ * it at a pharmacy. Server-only (no policies).
+ */
+export const prescriptions = pgTable(
+  "prescriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    consultId: uuid("consult_id")
+      .notNull()
+      .unique()
+      .references(() => consults.id, { onDelete: "cascade" }),
+    providerId: uuid("provider_id")
+      .notNull()
+      .references(() => providers.id),
+    patientId: uuid("patient_id").references(() => patients.id, { onDelete: "set null" }),
+    diagnosis: text("diagnosis").notNull(),
+    items: jsonb("items").$type<RxItem[]>().notNull().default([]),
+    advice: text("advice"),
+    /** Check again in this many days (null: no follow-up). */
+    followUpDays: integer("follow_up_days"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("prescriptions_patient_idx").on(t.patientId)],
 ).enableRLS();
 
 export const reviews = pgTable(

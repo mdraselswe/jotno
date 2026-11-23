@@ -184,5 +184,8 @@ test.describe("server mode", () => {
     expect(headers["strict-transport-security"]).toContain("max-age=");
     // "Near me" needs the browser's location on our own pages.
     expect(headers["permissions-policy"]).toContain("geolocation=(self)");
+    // Calls inside a consult need the microphone and camera.
+    expect(headers["permissions-policy"]).toContain("microphone=(self)");
+    expect(headers["permissions-policy"]).toContain("camera=(self)");
   });
 });

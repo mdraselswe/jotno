@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { Private, PrivateHeading } from "@/components/layout/private-page";
 import { Badge } from "@/components/ui/badge";
-import { adminVetPath } from "@/config/routes";
+import Link from "next/link";
+import { adminVetPath, ROUTES } from "@/config/routes";
 import { DocumentButton, ReviewActions } from "@/features/admin";
-import { providerForReview } from "@/features/admin/server";
+import { providerForReview, vetConsultStats } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
 import { VetProfileForm, vetProfileValues } from "@/features/providers";
 import { getMyProvider } from "@/features/providers/server";
@@ -22,7 +23,27 @@ async function Review({ params }: { params: Promise<{ id: string }> }) {
   const r = await providerForReview(id);
   if (!r) notFound();
   const p = r.p;
-  const editable = await getMyProvider(p.profileId);
+  const [editable, stats] = await Promise.all([getMyProvider(p.profileId), vetConsultStats(p.id)]);
+  const statTiles: [string, string][] = [
+    [t("monitor.stats.consults"), fmt.number(stats.consults)],
+    [
+      t("monitor.stats.reply"),
+      stats.avgReplyMinutes === null ? "—" : t("monitor.minutes", { n: fmt.number(stats.avgReplyMinutes) }),
+    ],
+    [t("monitor.stats.late"), fmt.number(stats.lateReplies)],
+    [t("monitor.stats.noReply"), fmt.number(stats.noReplyRefunds)],
+    [t("monitor.stats.vetMessages"), stats.avgVetMessages === null ? "—" : fmt.number(stats.avgVetMessages)],
+    [t("monitor.stats.calls"), fmt.number(stats.callsTalked)],
+    [t("monitor.stats.callMinutes"), fmt.number(stats.callMinutes)],
+    [t("monitor.stats.video"), stats.videoShare === null ? "—" : `${fmt.number(stats.videoShare)}%`],
+    [
+      t("monitor.stats.rating"),
+      stats.rating === null
+        ? "—"
+        : t("monitor.stats.ratingValue", { r: fmt.number(stats.rating), n: fmt.number(stats.ratings) }),
+    ],
+    [t("monitor.stats.reports"), fmt.number(stats.reports)],
+  ];
   const facts: [string, string | null][] = [
     ["Email", r.email],
     ["Phone", r.phone],
@@ -57,6 +78,32 @@ async function Review({ params }: { params: Promise<{ id: string }> }) {
             </dl>
           </div>
           {p.bio ? <p className="max-w-prose text-sm whitespace-pre-wrap">{p.bio}</p> : null}
+          <section className="grid gap-2" aria-labelledby="vet-stats">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 id="vet-stats" className="font-heading text-lg font-semibold">
+                {t("monitor.stats")}
+              </h2>
+              <Link
+                href={
+                  `${localeHref(locale, ROUTES.adminConsults)}/?q=${encodeURIComponent(p.displayName)}` as never
+                }
+                className="text-sm text-primary hover:underline"
+              >
+                {t("monitor.stats.all")}
+              </Link>
+            </div>
+            <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+              {statTiles.map(([k, v]) => (
+                <div
+                  key={k}
+                  className="grid gap-0.5 rounded-(--control-radius) bg-card px-3 py-2 shadow-(--shadow-card)"
+                >
+                  <dt className="text-xs text-muted-foreground">{k}</dt>
+                  <dd className="font-semibold tabular-nums">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
           <section className="grid gap-2">
             <h2 className="font-heading text-lg font-semibold">{t("admin.documents")}</h2>
             {r.documents.length === 0 ? (

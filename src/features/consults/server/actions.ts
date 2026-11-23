@@ -6,18 +6,20 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { business } from "@/config";
 import { publicEnv } from "@/config/env";
-import { chatPath } from "@/config/routes";
+import { adminConsultPath, chatPath } from "@/config/routes";
 import { actionViewer } from "@/features/auth/server";
-import { notify } from "@/features/notifications/server";
+import { notify, notifyAdmins } from "@/features/notifications/server";
 import { beginPayment } from "@/features/payments/server";
 import { ownsUpload } from "@/features/uploads/server";
 import type { MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
-import { rateLimit } from "@/infrastructure/db/helpers";
+import { audit, rateLimit } from "@/infrastructure/db/helpers";
 import { storage } from "@/infrastructure/storage";
 import { localeHref } from "@/lib/locale-href";
 import { commissionFor } from "@/features/payments";
-import { canSend, roleIn } from "../rules";
+import { canSend } from "../rules";
+import { endOpenCalls } from "./call-store";
+import { adminCanRead, participant } from "./participant";
 import { toChatMessage, type ChatMessage } from "./queries";
 
 const C = schema.consults;
@@ -105,18 +107,6 @@ export async function startConsult(
     locale,
   });
   redirect(url as never);
-}
-
-async function participant(consultId: string, userId: string) {
-  const [row] = await db()
-    .select({ c: C, vetProfileId: schema.providers.profileId })
-    .from(C)
-    .innerJoin(schema.providers, eq(schema.providers.id, C.providerId))
-    .where(eq(C.id, consultId))
-    .limit(1);
-  if (!row) return null;
-  const role = roleIn({ ownerId: row.c.ownerId, providerProfileId: row.vetProfileId }, userId);
-  return role ? { ...row, role } : null;
 }
 
 const messageSchema = z.object({
@@ -208,7 +198,8 @@ export async function chatImageUrl(messageId: string): Promise<string | null> {
     .limit(1);
   if (!m?.path) return null;
   const p = await participant(m.consultId, viewer.id);
-  if (!p && viewer.role !== "admin") return null;
+  // Admins only while they hold a logged reading grant for this consult.
+  if (!p && !(viewer.role === "admin" && (await adminCanRead(viewer.id, m.consultId)))) return null;
   return storage.signedUrl(m.path, 600);
 }
 
@@ -229,6 +220,7 @@ export async function closeConsult(locale: string, consultId: string): Promise<C
     .update(schema.ledgerEntries)
     .set({ availableAt: now })
     .where(and(eq(schema.ledgerEntries.refId, consultId), eq(schema.ledgerEntries.kind, "vet_payable")));
+  await endOpenCalls(consultId, "consult_closed");
   await db().insert(M).values({ consultId, senderId: null, body: "system:closed" });
   await notify(p.c.ownerId, "consult.closed", {
     title: locale === "bn" ? "চ্যাট শেষ হয়েছে" : "Chat closed",
@@ -278,5 +270,33 @@ export async function leaveReview(
       .where(eq(schema.providers.id, p.c.providerId));
   }
   revalidatePath(localeHref(locale, chatPath(consultId)));
+  return { ok: true };
+}
+
+const reportSchema = z.object({ reason: z.string().trim().min(10).max(1000) });
+
+/**
+ * The owner or the vet reports a problem with this consult (rude, no real
+ * advice, payment issue…). The team gets a notification and may then read the
+ * conversation, with the reason logged.
+ */
+export async function reportConsult(consultId: string, reason: string): Promise<ConsultResult> {
+  const viewer = await actionViewer();
+  if (!viewer) return { ok: false, error: "common.signInFirst" };
+  const parsed = reportSchema.safeParse({ reason });
+  if (!parsed.success) return { ok: false, error: "monitor.reportShort" };
+  const p = await participant(consultId, viewer.id);
+  if (!p) return { ok: false, error: "common.notAllowed" };
+  if (!(await rateLimit(`report:${viewer.id}`, 10, 3600))) return { ok: false, error: "common.tooMany" };
+  await db()
+    .insert(schema.reports)
+    .values({ reporterId: viewer.id, entity: "consult", entityId: consultId, reason: parsed.data.reason });
+  await audit(viewer.id, "report.create", "consult", consultId, { role: p.role });
+  await notifyAdmins("admin.consultReport", {
+    title: "Consult reported",
+    body: parsed.data.reason.slice(0, 120),
+    url: adminConsultPath(consultId),
+    tag: `consult-report-${consultId}`,
+  });
   return { ok: true };
 }

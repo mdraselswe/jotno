@@ -4,7 +4,8 @@ name: Deploy
 # passes on main, or by hand. Needs these repository settings:
 #   Secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, DATABASE_URL,
 #            SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET, VAPID_PRIVATE_KEY,
-#            SSLCOMMERZ_STORE_ID, SSLCOMMERZ_STORE_PASSWORD (optional), ADMIN_EMAILS
+#            SSLCOMMERZ_STORE_ID, SSLCOMMERZ_STORE_PASSWORD (optional), ADMIN_EMAILS,
+#            CLOUDFLARE_TURN_KEY_ID, CLOUDFLARE_TURN_API_TOKEN (calls; optional)
 #   Variables: NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
 #              NEXT_PUBLIC_VAPID_PUBLIC_KEY, NEXT_PUBLIC_DEMO, NEXT_PUBLIC_GOOGLE_AUTH,
 #              PAYMENT_PROVIDER, SSLCOMMERZ_SANDBOX
@@ -49,6 +50,12 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Build (OpenNext)
+        # Pages prerender from the database at build time.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+          PAYMENT_PROVIDER: ${{ vars.PAYMENT_PROVIDER }}
         run: node scripts/generate-assets.ts && pnpm exec opennextjs-cloudflare build
       - name: Upload server secrets to the worker
         env:
@@ -59,11 +66,13 @@ jobs:
           SSLCOMMERZ_STORE_ID: ${{ secrets.SSLCOMMERZ_STORE_ID }}
           SSLCOMMERZ_STORE_PASSWORD: ${{ secrets.SSLCOMMERZ_STORE_PASSWORD }}
           ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+          CLOUDFLARE_TURN_KEY_ID: ${{ secrets.CLOUDFLARE_TURN_KEY_ID }}
+          CLOUDFLARE_TURN_API_TOKEN: ${{ secrets.CLOUDFLARE_TURN_API_TOKEN }}
           PAYMENT_PROVIDER: ${{ vars.PAYMENT_PROVIDER }}
           SSLCOMMERZ_SANDBOX: ${{ vars.SSLCOMMERZ_SANDBOX }}
         run: |
           node -e '
-            const keys = ["DATABASE_URL","SUPABASE_SERVICE_ROLE_KEY","CRON_SECRET","VAPID_PRIVATE_KEY","SSLCOMMERZ_STORE_ID","SSLCOMMERZ_STORE_PASSWORD","ADMIN_EMAILS","PAYMENT_PROVIDER","SSLCOMMERZ_SANDBOX"];
+            const keys = ["DATABASE_URL","SUPABASE_SERVICE_ROLE_KEY","CRON_SECRET","VAPID_PRIVATE_KEY","SSLCOMMERZ_STORE_ID","SSLCOMMERZ_STORE_PASSWORD","ADMIN_EMAILS","CLOUDFLARE_TURN_KEY_ID","CLOUDFLARE_TURN_API_TOKEN","PAYMENT_PROVIDER","SSLCOMMERZ_SANDBOX"];
             const out = {};
             for (const k of keys) if (process.env[k]) out[k] = process.env[k];
             require("node:fs").writeFileSync("secrets.json", JSON.stringify(out));

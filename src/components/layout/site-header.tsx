@@ -40,7 +40,7 @@ export function SiteHeader() {
     });
 
   return (
-    <header className="sticky top-0 z-40 px-2 pt-2 [view-transition-name:site-header] sm:px-4 sm:pt-3">
+    <header className="sticky top-0 z-40 px-2 pt-2 [view-transition-name:site-header] sm:px-4 sm:pt-3 print:hidden">
       <div className="mx-auto flex h-14 max-w-6xl header-settle items-center gap-2 rounded-(--radius-2xl) bg-card/70 ps-3 pe-2 ring-1 ring-foreground/6 backdrop-blur-xl supports-[backdrop-filter]:bg-card/55 sm:gap-3 sm:ps-4">
         <Link href={localeHref(locale, ROUTES.home)} className="group" aria-label={site.name}>
           <Logo locale={locale} />

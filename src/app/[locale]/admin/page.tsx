@@ -2,7 +2,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { Private, PrivateHeading } from "@/components/layout/private-page";
 import { ROUTES } from "@/config/routes";
-import { adminCounts } from "@/features/admin/server";
+import { adminCounts, consultAlerts } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
 import { platformSummary } from "@/features/payments/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
@@ -16,8 +16,26 @@ async function Overview() {
   const t = await getT();
   const fmt = await getFormatter();
   await requireRole(["admin"], locale, localeHref(locale, ROUTES.admin));
-  const [c, money] = await Promise.all([adminCounts(), platformSummary()]);
+  const [c, money, consults] = await Promise.all([adminCounts(), platformSummary(), consultAlerts()]);
+  const monitorHref = (show: string) => `${localeHref(locale, ROUTES.adminConsults)}/?show=${show}` as Route;
   const tiles: { label: string; value: string; href?: Route; alert?: boolean }[] = [
+    {
+      label: t("monitor.alert.reports"),
+      value: fmt.number(consults.reports),
+      href: monitorHref("reported"),
+      alert: consults.reports > 0,
+    },
+    {
+      label: t("monitor.alert.late"),
+      value: fmt.number(consults.late7),
+      href: monitorHref("late"),
+      alert: consults.late7 > 0,
+    },
+    {
+      label: t("monitor.alert.calls"),
+      value: fmt.number(consults.noAnswerCalls7),
+      href: monitorHref("calls"),
+    },
     {
       label: t("admin.pendingVets"),
       value: fmt.number(c.pending),

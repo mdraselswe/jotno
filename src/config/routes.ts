@@ -62,6 +62,7 @@ export const ROUTES = {
   adminArticles: "/admin/articles",
   adminAppointments: "/admin/appointments",
   adminAudit: "/admin/audit",
+  adminConsults: "/admin/consults",
   /** Design-system preview, development only (not in the sitemap; robots.txt disallows it). */
   dev: "/dev",
 } as const;
@@ -98,6 +99,8 @@ export const petPath = (id: string) => `/account/pets/${id}`;
 export const consultStartPath = (slug: string) => `/vet/${slug}/consult`;
 export const bookPath = (slug: string) => `/vet/${slug}/book`;
 export const adminVetPath = (id: string) => `/admin/vets/${id}`;
+export const adminConsultPath = (id: string) => `/admin/consults/${id}`;
+export const prescriptionPath = (consultId: string) => `/chat/${consultId}/prescription`;
 export const vetArticlePath = (id: string) => `/dashboard/articles/${id}`;
 export const adminProductPath = (id: string) => `/admin/shop/products/${id}`;
 export const adminOrderPath = (id: string) => `/admin/shop/orders/${id}`;

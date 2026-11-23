@@ -48,6 +48,13 @@ const serverSchema = z.object({
   CRON_SECRET: z.string().default(""),
   VAPID_PRIVATE_KEY: z.string().default(""),
   VAPID_SUBJECT: z.string().default("mailto:hello@jotnocare.com"),
+  /**
+   * Cloudflare Realtime TURN key (dashboard → Realtime → TURN). Relays calls that
+   * can't connect directly (common on mobile data). Empty: STUN only, so some
+   * calls won't connect. Free up to 1,000 GB a month.
+   */
+  CLOUDFLARE_TURN_KEY_ID: z.string().default(""),
+  CLOUDFLARE_TURN_API_TOKEN: z.string().default(""),
   /** Comma-separated emails that become admin when they first sign in. */
   ADMIN_EMAILS: z
     .string()
@@ -91,6 +98,7 @@ function warnMissing(env: z.infer<typeof serverSchema>) {
     !env.SUPABASE_SERVICE_ROLE_KEY && "SUPABASE_SERVICE_ROLE_KEY",
     !env.CRON_SECRET && "CRON_SECRET",
     env.ADMIN_EMAILS.length === 0 && "ADMIN_EMAILS",
+    !env.CLOUDFLARE_TURN_KEY_ID && "CLOUDFLARE_TURN_KEY_ID (calls on mobile data may not connect)",
   ].filter(Boolean);
   if (missing.length > 0)
     console.error(`[jotno] Missing production settings: ${missing.join(", ")}. See docs/launch.md.`);

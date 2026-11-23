@@ -4,7 +4,7 @@ What the starter does, and what each project adds.
 
 ## Built in
 
-- **Headers** (`src/config/security.ts`): HSTS, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` (camera, mic, location, payment off), COOP. Sent in both render modes (ADR 0006).
+- **Headers** (`src/config/security.ts`): HSTS, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` (camera, mic and location for this site only — calls and "near me"; payment off), COOP. Sent in both render modes (ADR 0006).
 - **Private pages** never enter the offline cache or the sitemap; robots.txt disallows them (ADR 0005). Call `clearOfflineCache()` on sign-out.
 - **Secrets** only through `src/config/env.ts` (`serverEnv()`, zod-validated); `NEXT_PUBLIC_*` is public by definition.
 - **Input**: validate everything that crosses a boundary (forms, Server Actions, route handlers, webhooks) with zod.

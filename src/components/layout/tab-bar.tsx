@@ -31,7 +31,7 @@ export function TabBar() {
   return (
     <nav
       aria-label={t("nav.tabs")}
-      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden print:hidden"
     >
       <ul className="grid grid-cols-5">
         {TAB_LINKS.map((tab) => {

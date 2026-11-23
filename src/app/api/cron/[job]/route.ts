@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { serverEnv } from "@/config/env";
 import { runAppointmentJobs } from "@/features/appointments/server";
 import { removeUnconfirmedAccounts } from "@/features/auth/server";
-import { runConsultJobs } from "@/features/consults/server";
+import { runCallJobs, runConsultJobs } from "@/features/consults/server";
 import { expireUnpaid } from "@/features/payments/server";
 import { runHealthReminders } from "@/features/pets/server";
 import { notifyLowStock } from "@/features/shop/server";
@@ -18,6 +18,7 @@ const JOBS = {
   frequent: async () => ({
     payments: await expireUnpaid(),
     consults: await runConsultJobs(),
+    calls: await runCallJobs(),
     appointments: await runAppointmentJobs(),
   }),
   daily: async () => ({

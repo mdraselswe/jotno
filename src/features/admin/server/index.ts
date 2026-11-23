@@ -1,6 +1,19 @@
 import "server-only";
 
 export {
+  CONSULT_FILTERS,
+  consultAlerts,
+  consultForAdmin,
+  consultTimeline,
+  listConsults,
+  vetConsultStats,
+  type ConsultFilter,
+  type ConsultRow,
+  type TimelineItem,
+  type VetConsultStats,
+} from "./consults";
+
+export {
   activeFeatured,
   adminCounts,
   auditEntries,

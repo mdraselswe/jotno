@@ -1,29 +1,33 @@
 "use client";
 
-import type { RealtimeChannel, RealtimePostgresChangesPayload } from "@supabase/supabase-js";
-import { Check, CheckCheck, ImagePlus, Loader2, SendHorizontal } from "lucide-react";
-import { useEffect, useEffectEvent, useRef, useState, useTransition, type FormEvent } from "react";
+import {
+  Check,
+  CheckCheck,
+  FileText,
+  ImagePlus,
+  Loader2,
+  Phone,
+  PhoneMissed,
+  SendHorizontal,
+  Video,
+} from "lucide-react";
+import Link from "next/link";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useUpload } from "@/features/uploads";
 import { useFormatter, useLocale, useT } from "@/i18n/client";
-import { supabaseBrowser } from "@/infrastructure/supabase/browser";
+import { prescriptionPath } from "@/config/routes";
+import { localeHref } from "@/lib/locale-href";
 import { cn } from "@/lib/utils";
+import { clock, parseCallLine } from "../calls";
 import { chatImageUrl, markRead, sendMessage } from "../server/actions";
 import type { ChatMessage } from "../server/queries";
+import { ConsultCall, type CallSignals } from "./call/consult-call";
+import { useConsultChannel, type MessageRow } from "./use-consult-channel";
 
-interface Row {
-  id: string;
-  consult_id: string;
-  sender_id: string | null;
-  body: string | null;
-  image_path: string | null;
-  read_at: string | null;
-  created_at: string;
-}
-
-const fromRow = (r: Row): ChatMessage => ({
+const fromRow = (r: MessageRow): ChatMessage => ({
   id: r.id,
   senderId: r.sender_id,
   body: r.body,
@@ -67,14 +71,23 @@ export function ChatRoom({
   consultId,
   viewerId,
   canWrite,
+  live,
+  callable,
   initial,
   otherName,
+  children,
 }: {
   consultId: string;
   viewerId: string;
   canWrite: boolean;
+  /** Joins the live channel (participants only; the admin view is a snapshot). */
+  live: boolean;
+  /** Audio/video calls are possible (an open consult, a participant). */
+  callable: boolean;
   initial: ChatMessage[];
   otherName: string;
+  /** Extra actions next to the call buttons (the vet's prescription button). */
+  children?: React.ReactNode;
 }) {
   const t = useT();
   const fmt = useFormatter();
@@ -86,8 +99,8 @@ export function ChatRoom({
   const { upload, busy, error: uploadError } = useUpload("chat");
   const list = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
-  const channel = useRef<RealtimeChannel | null>(null);
   const lastTyping = useRef(0);
+  const callSignals: CallSignals = useRef(null);
 
   const upsert = (m: ChatMessage) =>
     setMessages((prev) => {
@@ -98,38 +111,31 @@ export function ChatRoom({
       return next;
     });
 
-  const onIncoming = useEffectEvent((m: ChatMessage) => {
-    upsert(m);
-    if (m.senderId && m.senderId !== viewerId) {
-      setOtherTyping(false);
-      if (document.visibilityState === "visible") void markRead(consultId);
-    }
+  const channel = useConsultChannel({
+    consultId,
+    viewerId,
+    enabled: live,
+    onMessage: (row) => {
+      const m = fromRow(row);
+      upsert(m);
+      if (m.senderId && m.senderId !== viewerId) {
+        setOtherTyping(false);
+        if (document.visibilityState === "visible") void markRead(consultId);
+      }
+    },
+    onBroadcast: (event, payload) => {
+      if (event === "typing") {
+        setOtherTyping(true);
+        window.setTimeout(() => setOtherTyping(false), 4000);
+      } else if (event === "call") {
+        callSignals.current?.(payload);
+      }
+    },
   });
 
   useEffect(() => {
-    void markRead(consultId);
-    const supabase = supabaseBrowser();
-    const ch = supabase
-      .channel(`consult:${consultId}`, { config: { broadcast: { self: false } } })
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "messages", filter: `consult_id=eq.${consultId}` },
-        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-          const row = payload.new as unknown as Row | undefined;
-          if (row?.id) onIncoming(fromRow(row));
-        },
-      )
-      .on("broadcast", { event: "typing" }, () => {
-        setOtherTyping(true);
-        window.setTimeout(() => setOtherTyping(false), 4000);
-      })
-      .subscribe();
-    channel.current = ch;
-    return () => {
-      void supabase.removeChannel(ch);
-      channel.current = null;
-    };
-  }, [consultId]);
+    if (live) void markRead(consultId);
+  }, [consultId, live]);
 
   useEffect(() => {
     list.current?.scrollTo({ top: list.current.scrollHeight, behavior: "smooth" });
@@ -139,7 +145,7 @@ export function ChatRoom({
     const now = Date.now();
     if (now - lastTyping.current < 2500) return;
     lastTyping.current = now;
-    void channel.current?.send({ type: "broadcast", event: "typing", payload: {} });
+    void channel.send("typing");
   }
 
   function send(e?: FormEvent, imagePath?: string) {
@@ -170,6 +176,22 @@ export function ChatRoom({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {live ? (
+        <div className="grid gap-2">
+          <ConsultCall
+            consultId={consultId}
+            otherName={otherName}
+            enabled={callable}
+            otherOnline={channel.otherOnline}
+            ready={channel.ready}
+            send={channel.send}
+            signalsRef={callSignals}
+          />
+          {children}
+        </div>
+      ) : (
+        children
+      )}
       <div
         ref={list}
         role="log"
@@ -180,6 +202,51 @@ export function ChatRoom({
         {messages.map((m) => {
           const system = m.senderId === null;
           if (system) {
+            if (m.body === "system:rx" || m.body === "system:rx:updated") {
+              return (
+                <Link
+                  key={m.id}
+                  href={localeHref(locale, prescriptionPath(consultId))}
+                  className="mx-auto flex items-center gap-2 rounded-(--control-radius) bg-primary/10 px-3 py-2 text-sm text-primary hover:bg-primary/15"
+                >
+                  <FileText aria-hidden="true" className="size-4" />
+                  <span>
+                    {t(m.body === "system:rx" ? "rx.line" : "rx.lineUpdated")} ·{" "}
+                    <span className="font-semibold underline-offset-2 hover:underline">{t("rx.view")}</span>
+                  </span>
+                </Link>
+              );
+            }
+            const callInfo = parseCallLine(m.body);
+            if (callInfo) {
+              const media = t(`call.media.${callInfo.media}`);
+              const Icon =
+                callInfo.status !== "ended" ? PhoneMissed : callInfo.media === "video" ? Video : Phone;
+              return (
+                <p
+                  key={m.id}
+                  className={cn(
+                    "mx-auto flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-center text-xs",
+                    callInfo.status === "ended" ? "text-muted-foreground" : "text-destructive",
+                  )}
+                >
+                  <Icon aria-hidden="true" className="size-3.5" />
+                  {callInfo.status === "ended"
+                    ? t("call.line.ended", { media, time: clock(callInfo.seconds) })
+                    : t(
+                        callInfo.status === "declined"
+                          ? "call.line.declined"
+                          : callInfo.status === "failed"
+                            ? "call.line.failed"
+                            : "call.line.missed",
+                        { media },
+                      )}
+                  <span className="text-muted-foreground">
+                    · {fmt.date(new Date(m.createdAt), { timeStyle: "short" })}
+                  </span>
+                </p>
+              );
+            }
             const key = SYSTEM_KEYS[m.body as keyof typeof SYSTEM_KEYS];
             return (
               <p

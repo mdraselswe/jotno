@@ -13,6 +13,7 @@ const business: BusinessConfig = {
     intakePhotos: 3,
     minFee: 10_000,
     maxFee: 300_000,
+    call: { enabled: true, ringSeconds: 45, staleSeconds: 90 },
   },
   appointment: { bookingFee: 5_000, daysAhead: 14, leadMinutes: 60 },
   payout: { minimum: 50_000, weekday: 2 },

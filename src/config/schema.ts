@@ -179,6 +179,14 @@ export const businessSchema = z.object({
     intakePhotos: z.number().int().min(0).max(10),
     minFee: poisha,
     maxFee: poisha,
+    /** Audio/video calls inside an open consult (WebRTC, peer to peer). */
+    call: z.object({
+      enabled: z.boolean(),
+      /** Unanswered calls count as missed after this. */
+      ringSeconds: z.number().int().min(15).max(120),
+      /** A call with no heartbeat for this long is over (tab closed, phone off). */
+      staleSeconds: z.number().int().min(30).max(600),
+    }),
   }),
   appointment: z.object({
     /** Paid online to hold the slot; the visit fee is paid at the clinic. */

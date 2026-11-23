@@ -11,3 +11,4 @@ export {
   UserControls,
 } from "./components/admin-controls";
 export { FilterChips } from "./components/filter-chips";
+export { ReadConsultForm } from "./components/read-consult";

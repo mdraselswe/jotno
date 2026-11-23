@@ -22,6 +22,20 @@
       "when": 1795425722823,
       "tag": "20261123092202_shop_categories_gallery",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795433400427,
+      "tag": "20261123113000_consult_calls",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795434649018,
+      "tag": "20261123115049_prescriptions",
+      "breakpoints": true
     }
   ]
 }
