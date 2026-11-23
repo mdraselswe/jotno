@@ -1,7 +1,7 @@
 // Written by `pnpm mode`, then extended for Jotno (cron entry). See docs/deploy.md.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "jotno",
+  "name": "care",
   // OpenNext's worker wrapped with Cron Triggers (worker/cron-worker.js).
   "main": "worker/cron-worker.js",
   "compatibility_date": "2026-11-21",

@@ -8,7 +8,7 @@ Jotno is a vet marketplace for Bangladesh (owners, vets, admins) with paid chat 
 
 ## Decision
 
-- **Server mode, locked** (`site.renderLocked`): auth, payments and per-person pages need a server. Hosted on **Cloudflare Workers** through OpenNext (free plan allows commercial use), first on `jotno.<sub>.workers.dev`, a custom domain later.
+- **Server mode, locked** (`site.renderLocked`): auth, payments and per-person pages need a server. Hosted on **Cloudflare Workers** through OpenNext (free plan allows commercial use), first on `care.jotno.workers.dev`, a custom domain later.
 - **Supabase** for Postgres, Auth (email OTP, Google later), Storage (`media` public bucket, `private` bucket with signed URLs) and Realtime (chat). App code talks to Postgres through **Drizzle + postgres.js** (`prepare: false` for the transaction pooler); RLS stays on for every table as defence in depth, and the server checks ownership itself.
 - **Money** is integer poisha. Every money event is a `ledger_entries` row; balances are sums, never stored. Payment settlement is idempotent: a payment moves `pending → paid` once (conditional update + unique gateway transaction id), and the amount must match. The gateway sits behind an adapter (`mock` for demo/tests, `sslcommerz` live).
 - **Scheduled jobs** (chat refunds/closing, booking holds, reminders) are idempotent route handlers under `/api/cron/<job>`, protected by `CRON_SECRET`. Cloudflare **Cron Triggers** call them through a small wrapper (`worker/cron-worker.js`), because a 5-minute GitHub schedule on a private repo would spend the free Actions minutes.
