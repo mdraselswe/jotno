@@ -70,7 +70,7 @@ export async function runCallJobs(): Promise<{ missed: number; stale: number; cl
     .where(
       and(
         eq(K.status, "active"),
-        sql`coalesce(${K.lastBeatAt}, ${K.answeredAt}) <= ${new Date(now - staleSeconds * 1000)}`,
+        sql`coalesce(${K.lastBeatAt}, ${K.answeredAt}) <= ${new Date(now - staleSeconds * 1000).toISOString()}::timestamptz`,
       ),
     )
     .limit(100);
