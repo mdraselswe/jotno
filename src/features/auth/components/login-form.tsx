@@ -39,7 +39,7 @@ export function LoginForm() {
     e?.preventDefault();
     setError(null);
     start(async () => {
-      const result = await sendCode(email);
+      const result = await sendCode(email, locale, next);
       if (!result.ok) {
         setError(t(result.error));
         return;

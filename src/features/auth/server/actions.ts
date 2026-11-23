@@ -1,8 +1,11 @@
 "use server";
 
 import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { site } from "@/config";
+import { DEFAULT_LOCALE } from "@/config/locale";
 import { ROUTES } from "@/config/routes";
 import { db, schema } from "@/infrastructure/db";
 import { clientIp, rateLimit } from "@/infrastructure/db/helpers";
@@ -19,7 +22,20 @@ export type AuthResult = { ok: true } | { ok: false; error: MessageKey };
 
 const emailSchema = z.email().max(200);
 
-export async function sendCode(email: string): Promise<AuthResult> {
+/** /auth/callback on the origin the person is using (falls back to the site URL). */
+async function callbackUrl(locale: string, next?: string | null): Promise<string> {
+  const origin = (await headers()).get("origin") ?? site.url;
+  const url = new URL("/auth/callback/", /^https?:\/\//.test(origin) ? origin : site.url);
+  url.searchParams.set("locale", locale);
+  if (next) url.searchParams.set("next", next);
+  return url.toString();
+}
+
+export async function sendCode(
+  email: string,
+  locale = DEFAULT_LOCALE,
+  next?: string | null,
+): Promise<AuthResult> {
   const parsed = emailSchema.safeParse(email.trim().toLowerCase());
   if (!parsed.success) return { ok: false, error: "auth.emailInvalid" };
   const ip = await clientIp();
@@ -31,7 +47,9 @@ export async function sendCode(email: string): Promise<AuthResult> {
   const supabase = await supabaseServer();
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data,
-    options: { shouldCreateUser: true },
+    // The email shows the 6-digit code; where the template only has a link
+    // (Supabase's default), the link signs in through /auth/callback instead.
+    options: { shouldCreateUser: true, emailRedirectTo: await callbackUrl(locale, next) },
   });
   if (error) return { ok: false, error: error.status === 429 ? "common.tooMany" : "common.genericError" };
   return { ok: true };
