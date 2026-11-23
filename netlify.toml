@@ -1,0 +1,9 @@
+# Netlify (server mode): the Next.js runtime (@netlify/plugin-nextjs) is added
+# automatically. Environment variables live on the Netlify site, not here.
+# Deployed by .github/workflows/deploy-netlify.yml (run by hand).
+[build]
+  command = "pnpm build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "24"

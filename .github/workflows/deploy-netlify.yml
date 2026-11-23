@@ -1,0 +1,32 @@
+# Deploys to Netlify, run by hand (Actions → Deploy (Netlify) → Run workflow).
+# Each production deploy uses Netlify credits, so it does not run on every push.
+#
+# Repository secrets: NETLIFY_AUTH_TOKEN, NETLIFY_SITE_ID.
+# Build and runtime variables (DATABASE_URL, NEXT_PUBLIC_*, …) are set on the Netlify site.
+name: Deploy (Netlify)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-netlify
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          # Netlify Functions run on Node 24; build with the same version.
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build and deploy
+        run: pnpm dlx netlify-cli@27.20.1 deploy --build --prod
