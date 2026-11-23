@@ -30,6 +30,10 @@ function connect(): Database {
   const client = postgres(serverEnv().DATABASE_URL, {
     // Transaction-mode poolers (Supabase :6543, Hyperdrive) don't support prepared statements.
     prepare: false,
+    // One query at a time per connection: the Supabase pooler (transaction mode)
+    // never answers queries pipelined on one connection, so a page that runs
+    // several queries at once hung until the host's timeout.
+    max_pipeline: 1,
     max: onWorkers ? 1 : 5,
     idle_timeout: 20,
     connect_timeout: 10,
