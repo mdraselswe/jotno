@@ -56,7 +56,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
           PAYMENT_PROVIDER: ${{ vars.PAYMENT_PROVIDER }}
-        run: node scripts/generate-assets.ts && pnpm exec opennextjs-cloudflare build
+        run: node scripts/generate-assets.ts && pnpm exec opennextjs-cloudflare build && node scripts/patch-open-next.ts
       - name: Upload server secrets to the worker
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

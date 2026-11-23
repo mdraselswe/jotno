@@ -60,3 +60,6 @@ auto-upgrade-report.md
 # Cloudflare / OpenNext
 /.open-next/
 /.wrangler/
+
+# Wrangler local secrets
+.dev.vars*

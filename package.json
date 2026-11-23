@@ -13,7 +13,7 @@
     "build": "node scripts/generate-assets.ts && next build && node scripts/postbuild.ts",
     "build:other": "node scripts/build-other.ts",
     "start": "node scripts/start.ts",
-    "cf:build": "node scripts/generate-assets.ts && opennextjs-cloudflare build",
+    "cf:build": "node scripts/generate-assets.ts && opennextjs-cloudflare build && node scripts/patch-open-next.ts",
     "cf:preview": "pnpm cf:build && opennextjs-cloudflare preview",
     "cf:deploy": "pnpm cf:build && opennextjs-cloudflare deploy",
     "typecheck": "next typegen && tsc --noEmit",

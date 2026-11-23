@@ -30,6 +30,7 @@ psql "$DATABASE_URL_DIRECT" -f supabase/seeds/02_demo.sql        # optional: dem
 - Push to `main` → CI → Deploy. Or run the Deploy workflow by hand.
 - Check `/`, `/vets/`, `/robots.txt`, `/sitemap.xml`, `/sitemap-content.xml`.
 - Sign in with an email listed in `ADMIN_EMAILS`, then open `/admin/`.
+- Cloudflare builds run `scripts/patch-open-next.ts` after `opennextjs-cloudflare build`. It turns off Next's cross-request `"use cache"` dedupe, which hangs Workers (OpenNext issue 1464). If a Next.js upgrade makes it fail, update the script or remove it once OpenNext fixes the issue.
 
 ## 4. Before real users
 
