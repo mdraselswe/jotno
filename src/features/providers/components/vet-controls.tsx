@@ -22,7 +22,7 @@ export function AvailableNowSwitch({ on, until }: { on: boolean; until: string |
       )}
     >
       <span className="grid gap-1">
-        <span className="flex items-center gap-2 font-medium">
+        <span id="vet-available-now" className="flex items-center gap-2 font-medium">
           <span
             aria-hidden="true"
             className={cn(
@@ -37,6 +37,7 @@ export function AvailableNowSwitch({ on, until }: { on: boolean; until: string |
         </span>
       </span>
       <Switch
+        aria-labelledby="vet-available-now"
         checked={optimistic}
         onCheckedChange={(checked) =>
           start(async () => {

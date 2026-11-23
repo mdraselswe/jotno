@@ -101,10 +101,11 @@ export function VetFilters() {
         </Button>
         <label className="flex items-center gap-2 rounded-(--control-radius) bg-card px-3 py-1.5 text-sm shadow-(--shadow-control)">
           <Switch
+            aria-labelledby="vets-only-online"
             checked={params.get("now") === "1"}
             onCheckedChange={(c) => update({ now: c ? "1" : null })}
           />
-          {t("vets.onlyOnline")}
+          <span id="vets-only-online">{t("vets.onlyOnline")}</span>
         </label>
       </div>
 

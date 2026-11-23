@@ -16,7 +16,11 @@ export type Database = PostgresJsDatabase<typeof schema>;
  * Supabase pooler or Hyperdrive keeps the real connections). On Node (dev,
  * tests) one client is reused.
  */
-const onWorkers = typeof navigator !== "undefined" && navigator.userAgent === "Cloudflare-Workers";
+// `WebSocketPair` exists only on Cloudflare Workers; the user agent check alone
+// missed it inside the OpenNext bundle, which shared one socket across requests.
+const onWorkers =
+  "WebSocketPair" in globalThis ||
+  (typeof navigator !== "undefined" && navigator.userAgent === "Cloudflare-Workers");
 
 let shared: Database | undefined;
 
