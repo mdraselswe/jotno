@@ -72,7 +72,7 @@ export default function config(phase: string): NextConfig {
           // next.config rewrite drops the query from the router payload's
           // rewrite header, so client navigations between ?filter= URLs on
           // default-locale pages showed the first page's results.
-          redirects: localeRouting.redirects,
+          // `/bn/…` → `/…` is a redirect in src/proxy.ts too (a config redirect loops on Netlify).
         }),
     // Tailwind v4 through its Turbopack loader (set up by create-next-app).
     turbopack: {

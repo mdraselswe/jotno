@@ -11,6 +11,7 @@ import { ROUTES } from "@/config/routes";
  *    → `/bn/questions/?species=dog`). Done here, not as a next.config rewrite,
  *    because that one loses the query in the client router's rewrite header
  *    and filter links on default-locale pages stop changing the results.
+ *    `/bn/…` itself redirects to the unprefixed URL (unprefixedUrl below).
  * 1. Refreshes the Supabase session cookie when one exists (Server Components
  *    can't write cookies).
  * 2. Optimistic guard: private sections send signed-out people to sign-in.
@@ -32,7 +33,24 @@ function defaultLocaleUrl(request: NextRequest): URL | null {
   return url;
 }
 
+/**
+ * `/bn/about/` → `/about/`: the default locale has no prefix. Done here, not as
+ * a next.config redirect, because some hosts (Netlify) also apply config
+ * redirects to the rewrite target above, which loops `/about/` ⇄ `/bn/about/`.
+ */
+function unprefixedUrl(request: NextRequest): URL | null {
+  if (site.render !== "server") return null;
+  const { pathname } = request.nextUrl;
+  const prefix = `/${DEFAULT_LOCALE}`;
+  if (pathname !== prefix && !pathname.startsWith(`${prefix}/`)) return null;
+  const url = request.nextUrl.clone(); // keeps the query
+  url.pathname = pathname.slice(prefix.length) || "/";
+  return url;
+}
+
 export async function proxy(request: NextRequest) {
+  const unprefixed = unprefixedUrl(request);
+  if (unprefixed) return NextResponse.redirect(unprefixed, 308);
   const hasSession = request.cookies.getAll().some((c) => c.name.startsWith("sb-"));
   const { locale, path } = splitLocale(request.nextUrl.pathname);
   const guarded = GUARDED.some((p) => path === p || path.startsWith(`${p}/`));

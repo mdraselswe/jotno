@@ -174,7 +174,7 @@ test.describe("server mode", () => {
   test("the default language has one URL", async ({ request }) => {
     const res = await request.get(`/${DEFAULT_LOCALE}/about/`, { maxRedirects: 0 });
     expect(res.status()).toBe(308);
-    expect(res.headers()["location"]).toMatch(/^\/about\/?$/);
+    expect(res.headers()["location"]).toMatch(/^(https?:\/\/[^/]+)?\/about\/?$/);
   });
 
   test("security headers are sent", async ({ request }) => {
