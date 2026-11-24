@@ -1,6 +1,5 @@
 import type { NextConfig } from "next";
-import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
-import { site } from "./src/config/index.ts";
+import { isProduction, site } from "./src/config/index.ts";
 import { DEFAULT_LOCALE, PREFIXED_LOCALES } from "./src/config/locale.ts";
 import { SECURITY_HEADERS } from "./src/config/security.ts";
 
@@ -46,39 +45,43 @@ const localeRouting: Pick<NextConfig, "redirects" | "rewrites"> = {
   },
 };
 
-export default function config(phase: string): NextConfig {
-  // `next dev` of a static project runs without `output: "export"` and with the locale
-  // rewrites (export-mode dev can not rewrite to [locale]; postbuild only runs after a build).
-  // Static-only limits are still enforced by `next build`, which `pnpm check` and CI run.
-  const dev = phase === PHASE_DEVELOPMENT_SERVER;
-  return {
-    reactCompiler: true,
-    typedRoutes: true,
-    trailingSlash: true,
-    poweredByHeader: false,
-    // app/global-not-found.tsx: the 404 for URLs outside app/[locale] (out/404.html in static mode).
-    experimental: { globalNotFound: true },
-    ...(isStatic
-      ? dev
-        ? { images: { unoptimized: true }, ...localeRouting }
-        : { output: "export", images: { unoptimized: true } }
-      : {
-          cacheComponents: true,
-          partialPrefetching: true,
-          async headers() {
-            return [{ source: "/:path*", headers: SECURITY_HEADERS }];
-          },
-          // The unprefixed → default-locale rewrite lives in src/proxy.ts here: a
-          // next.config rewrite drops the query from the router payload's
-          // rewrite header, so client navigations between ?filter= URLs on
-          // default-locale pages showed the first page's results.
-          // `/bn/…` → `/…` is a redirect in src/proxy.ts too (a config redirect loops on Netlify).
-        }),
-    // Tailwind v4 through its Turbopack loader (set up by create-next-app).
-    turbopack: {
-      rules: {
-        "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" },
-      },
+// `next dev` of a static project runs without `output: "export"` and with the locale
+// rewrites (export-mode dev can not rewrite to [locale]; postbuild only runs after a build).
+// Static-only limits are still enforced by `next build`, which `pnpm check` and CI run.
+// `next dev` sets NODE_ENV=development before it loads this file.
+const dev = !isProduction;
+
+// A plain object, not a `(phase) => config` function: some hosts (Hostinger)
+// merge their own settings into the exported object and skip a function.
+const config: NextConfig = {
+  reactCompiler: true,
+  typedRoutes: true,
+  trailingSlash: true,
+  poweredByHeader: false,
+  // app/global-not-found.tsx: the 404 for URLs outside app/[locale] (out/404.html in static mode).
+  experimental: { globalNotFound: true },
+  ...(isStatic
+    ? dev
+      ? { images: { unoptimized: true }, ...localeRouting }
+      : { output: "export", images: { unoptimized: true } }
+    : {
+        cacheComponents: true,
+        partialPrefetching: true,
+        async headers() {
+          return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+        },
+        // The unprefixed → default-locale rewrite lives in src/proxy.ts here: a
+        // next.config rewrite drops the query from the router payload's
+        // rewrite header, so client navigations between ?filter= URLs on
+        // default-locale pages showed the first page's results.
+        // `/bn/…` → `/…` is a redirect in src/proxy.ts too (a config redirect loops on Netlify).
+      }),
+  // Tailwind v4 through its Turbopack loader (set up by create-next-app).
+  turbopack: {
+    rules: {
+      "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" },
     },
-  };
-}
+  },
+};
+
+export default config;
