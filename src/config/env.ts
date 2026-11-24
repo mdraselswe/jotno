@@ -68,6 +68,16 @@ const serverSchema = z.object({
    */
   CLOUDFLARE_TURN_KEY_ID: z.string().default(""),
   CLOUDFLARE_TURN_API_TOKEN: z.string().default(""),
+  /**
+   * Metered TURN (used when the Cloudflare key is empty): the account's Metered
+   * domain (e.g. jotno.metered.live, dashboard → Developers) and the API key of one
+   * TURN credential (dashboard → TURN Server → Credentials).
+   */
+  METERED_TURN_DOMAIN: z
+    .string()
+    .regex(/^$|^[a-z0-9-]+.metered.live$/)
+    .default(""),
+  METERED_TURN_API_KEY: z.string().default(""),
   /** Comma-separated emails that become admin when they first sign in. */
   ADMIN_EMAILS: z
     .string()
@@ -113,7 +123,9 @@ function warnMissing(env: z.infer<typeof serverSchema>) {
     !env.SUPABASE_SERVICE_ROLE_KEY && "SUPABASE_SERVICE_ROLE_KEY",
     !env.CRON_SECRET && "CRON_SECRET",
     env.ADMIN_EMAILS.length === 0 && "ADMIN_EMAILS",
-    !env.CLOUDFLARE_TURN_KEY_ID && "CLOUDFLARE_TURN_KEY_ID (calls on mobile data may not connect)",
+    !env.CLOUDFLARE_TURN_KEY_ID &&
+      !env.METERED_TURN_API_KEY &&
+      "CLOUDFLARE_TURN_KEY_ID or METERED_TURN_API_KEY (calls on mobile data may not connect)",
   ].filter(Boolean);
   if (missing.length > 0)
     console.error(`[jotno] Missing production settings: ${missing.join(", ")}. See docs/launch.md.`);
