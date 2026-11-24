@@ -64,7 +64,7 @@ A second copy of the app for showing clients, with its own database, so the live
 - [ ] Domain (`jotnocare.com`): add to Cloudflare, attach to the worker, set `NEXT_PUBLIC_SITE_URL`, update Supabase Auth URLs.
 - [x] **Calls** (docs/adr/0009): TURN relays calls that can't connect directly (most mobile data). Live: Metered **Free 20 GB** (card on file for identity, never charged; stops at the monthly limit, then calls fall back to STUN). Its credential (Metered → TURN Server → Credentials) goes in `TURN_URLS`, `TURN_USERNAME`, `TURN_CREDENTIAL` on both Hostinger apps. If Cloudflare Realtime TURN is set up later (`CLOUDFLARE_TURN_KEY_ID`, `CLOUDFLARE_TURN_API_TOKEN`), it wins: short-lived credentials per call. Neither: STUN only.
 - [ ] Supabase → Realtime → Settings: turn **off** "Allow public access" so only the two people in a consult can join its channel (the policies come from the migrations).
-- [ ] Turn on the backup: secrets `DATABASE_URL_DIRECT` and `BACKUP_PASSPHRASE` (20+ characters, keep a copy in your password manager), variable `BACKUP_ENABLED=true`. The dump is encrypted before upload because the repo is public and anyone signed in to GitHub can download a public repo's artifacts.
+- [x] Turn on the backup: secrets `DATABASE_URL_DIRECT` and `BACKUP_PASSPHRASE` (20+ characters, keep a copy in your password manager), variable `BACKUP_ENABLED=true`. The dump is encrypted before upload because the repo is public and anyone signed in to GitHub can download a public repo's artifacts.
 - [ ] Sentry DSN (optional).
 
 ## Payments day to day (manual bKash / Nagad)
