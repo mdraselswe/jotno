@@ -1,8 +1,8 @@
 # Weekly self-update, no AI needed: `pnpm auto-upgrade` takes every version that
 # passes the checks (majors one at a time; failing ones are held and retried next
-# week). The result goes to a branch, the full CI (with e2e) runs on it, and main
-# is fast-forwarded only when CI is green. If something needs a person, an issue
-# is opened (you get an email).
+# week). The result goes to a branch, the full CI (with e2e) runs on it, and a
+# pull request is opened when CI is green (merging it deploys production). If
+# something needs a person, an issue is opened (you get an email).
 name: Auto-upgrade
 
 on:
@@ -56,9 +56,11 @@ jobs:
             [ -n "$run" ] && break
           done
           if [ -n "$run" ] && gh run watch "$run" --exit-status > /dev/null; then
-            git push -q origin "$branch:main"   # fast-forward; allowed because "check" passed on this commit
-            git push -q origin --delete "$branch"
-            echo "Merged into main."
+            # A pull request, not a push to main: every push to main deploys to
+            # production (Hostinger), so a person merges new dependencies.
+            gh pr create --head "$branch" --base main --title "build(deps): weekly auto-upgrade" \
+              --body-file auto-upgrade-report.md
+            echo "Pull request opened (CI is green)."
           else
             echo "failed=true" >> "$GITHUB_OUTPUT"
             exit 1

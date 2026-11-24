@@ -1,8 +1,10 @@
 import "server-only";
 import { publicEnv, serverEnv } from "@/config/env";
 import { encryptPayload, vapidHeader, type PushTarget } from "./crypto";
+import { isPushEndpoint } from "./endpoint";
 
 export type { PushTarget };
+export { isPushEndpoint };
 const enc = new TextEncoder();
 
 /**
@@ -24,6 +26,8 @@ export async function sendPush(target: PushTarget, payload: PushPayload): Promis
   const publicKey = publicEnv.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const { VAPID_PRIVATE_KEY, VAPID_SUBJECT } = serverEnv();
   if (!publicKey || !VAPID_PRIVATE_KEY) return "disabled";
+  // Rows saved before endpoints were checked: never POST anywhere else.
+  if (!isPushEndpoint(target.endpoint)) return "gone";
   try {
     const body = await encryptPayload(target, enc.encode(JSON.stringify(payload)));
     const res = await fetch(target.endpoint, {

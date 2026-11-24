@@ -9,6 +9,10 @@ export async function POST(request: NextRequest) {
   form?.forEach((value, key) => {
     if (typeof value === "string") fields[key] = value;
   });
+  // Anyone can POST here. Without a val_id there is nothing to check with the
+  // gateway, so don't let an unverified notice cancel a payment; the unpaid
+  // hold still expires on its own.
+  if (!fields.val_id) return NextResponse.json({ ok: false });
   const result = await settlePayment(fields, DEFAULT_LOCALE);
   return NextResponse.json({ ok: result.status !== "unknown" });
 }

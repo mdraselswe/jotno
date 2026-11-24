@@ -54,7 +54,7 @@ Cloudflare Workers can't run Cache Components yet (requests hang), so production
 - [ ] Domain (`jotnocare.com`): add to Cloudflare, attach to the worker, set `NEXT_PUBLIC_SITE_URL`, update Supabase Auth URLs.
 - [ ] **Calls** (docs/adr/0009): Cloudflare dashboard → Calls → TURN → create a TURN key. Add `CLOUDFLARE_TURN_KEY_ID` and `CLOUDFLARE_TURN_API_TOKEN` as Worker secrets (`npx wrangler secret put …`). Without them calls use STUN only and fail on some mobile networks.
 - [ ] Supabase → Realtime → Settings: turn **off** "Allow public access" so only the two people in a consult can join its channel (the policies come from the migrations).
-- [ ] Turn on the backup: secret `DATABASE_URL_DIRECT`, variable `BACKUP_ENABLED=true`.
+- [ ] Turn on the backup: secrets `DATABASE_URL_DIRECT` and `BACKUP_PASSPHRASE` (20+ characters, keep a copy in your password manager), variable `BACKUP_ENABLED=true`. The dump is encrypted before upload because the repo is public and anyone signed in to GitHub can download a public repo's artifacts.
 - [ ] Sentry DSN (optional).
 
 ## Payments day to day (manual bKash / Nagad)

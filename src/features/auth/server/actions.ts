@@ -64,11 +64,17 @@ export async function verifyCode(
   const token = code.replace(/\D/g, "");
   if (token.length !== 6) return { ok: false, error: "auth.codeInvalid" };
   const ip = await clientIp();
-  if (!(await rateLimit(`verify:${ip}`, 30, 15 * 60))) return { ok: false, error: "common.tooMany" };
+  const address = email.trim().toLowerCase();
+  // Per email as well as per IP: guessing one person's code from many IPs stays capped.
+  if (
+    !(await rateLimit(`verify:email:${address}`, 10, 15 * 60)) ||
+    !(await rateLimit(`verify:${ip}`, 30, 15 * 60))
+  )
+    return { ok: false, error: "common.tooMany" };
 
   const supabase = await supabaseServer();
   const { error } = await supabase.auth.verifyOtp({
-    email: email.trim().toLowerCase(),
+    email: address,
     token,
     type: "email",
   });

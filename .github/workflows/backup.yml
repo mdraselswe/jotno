@@ -1,8 +1,18 @@
 name: Database backup
 
-# Nightly pg_dump of the cloud database, kept as a private workflow artifact
-# for 14 days (Supabase's free plan has no point-in-time restore).
-# Needs secret DATABASE_URL_DIRECT (the direct connection on port 5432, not the pooler).
+# Nightly pg_dump of the cloud database, kept as a workflow artifact for 14 days
+# (Supabase's free plan has no point-in-time restore).
+#
+# The repo is public, and anyone signed in to GitHub can download a public
+# repo's artifacts, so the dump is encrypted (gpg, AES-256) before upload and
+# the job refuses to upload without a passphrase.
+#
+# Needs:
+#   secret   DATABASE_URL_DIRECT  the direct connection on port 5432, not the pooler
+#   secret   BACKUP_PASSPHRASE    a long random passphrase; keep a copy in your password manager
+#   variable BACKUP_ENABLED=true
+#
+# Restore: gpg --decrypt jotno-<stamp>.dump.gpg > jotno.dump, then pg_restore.
 
 on:
   schedule:
@@ -17,22 +27,36 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ vars.BACKUP_ENABLED == 'true' }}
     steps:
+      - name: Check the passphrase
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ ${#BACKUP_PASSPHRASE} -lt 20 ]; then
+            echo "::error::Set secret BACKUP_PASSPHRASE (20+ characters). Backups are encrypted before upload."
+            exit 1
+          fi
       - name: Install pg_dump 17
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-common
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get install -y -qq postgresql-client-17
-      - name: Dump
+      - name: Dump and encrypt
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_DIRECT }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
+          set -euo pipefail
           stamp=$(date -u +%Y%m%d-%H%M)
           /usr/lib/postgresql/17/bin/pg_dump "$DATABASE_URL" --format=custom --no-owner --no-privileges \
-            --schema=public --schema=auth --file="jotno-$stamp.dump"
-          ls -lh jotno-*.dump
+            --schema=public --schema=auth \
+            | gpg --batch --yes --symmetric --cipher-algo AES256 \
+                --passphrase-fd 3 --pinentry-mode loopback \
+                --output "jotno-$stamp.dump.gpg" 3<<<"$BACKUP_PASSPHRASE"
+          ls -lh jotno-*.dump.gpg
       - uses: actions/upload-artifact@v7
         with:
           name: db-backup
-          path: jotno-*.dump
+          path: jotno-*.dump.gpg
+          if-no-files-found: error
           retention-days: 14

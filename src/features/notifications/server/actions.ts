@@ -4,9 +4,10 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { actionViewer } from "@/features/auth/server";
 import { db, schema } from "@/infrastructure/db";
+import { isPushEndpoint } from "@/infrastructure/push";
 
 const subSchema = z.object({
-  endpoint: z.url().max(1000),
+  endpoint: z.url().max(1000).refine(isPushEndpoint),
   keys: z.object({ p256dh: z.string().min(20).max(200), auth: z.string().min(10).max(100) }),
 });
 

@@ -14,7 +14,7 @@ import { ownsUpload } from "@/features/uploads/server";
 import type { MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
 import { storage } from "@/infrastructure/storage";
-import { audit, rateLimit } from "@/infrastructure/db/helpers";
+import { audit, clientIp, rateLimit } from "@/infrastructure/db/helpers";
 import { localeHref } from "@/lib/locale-href";
 import { slugify } from "@/lib/slug";
 import {
@@ -53,7 +53,11 @@ export type CouponCheck = { ok: true; code: string; discount: number } | { ok: f
 
 /** Cart preview: what a coupon takes off this subtotal. The server checks again at checkout. */
 export async function checkCoupon(code: string, sub: number): Promise<CouponCheck> {
-  if (!(await rateLimit(`coupon:${code.slice(0, 20)}`, 30, 600)))
+  // Per caller too, so codes can't be guessed by trying many of them.
+  if (
+    !(await rateLimit(`coupon:${code.slice(0, 20)}`, 30, 600)) ||
+    !(await rateLimit(`coupon:ip:${await clientIp()}`, 20, 600))
+  )
     return { ok: false, error: "common.tooMany" };
   const c = await usableCoupon(code);
   if (!c) return { ok: false, error: "shop.couponInvalid" };
@@ -219,7 +223,8 @@ async function admin() {
 const shipSchema = z.object({
   courier: z.string().trim().min(2).max(60),
   trackingCode: z.string().trim().max(80).optional(),
-  trackingUrl: z.union([z.url().max(300), z.literal("")]).optional(),
+  // Shown to the customer as a link: https only (no javascript: or data: URLs).
+  trackingUrl: z.union([z.url({ protocol: /^https$/ }).max(300), z.literal("")]).optional(),
 });
 
 const STATUS_FOR: Record<Exclude<OrderAction, "cancel" | "return">, OrderStatus> = {
