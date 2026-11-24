@@ -26,6 +26,8 @@ export const business = businessConfig;
 export const design = designConfig;
 
 export const isProduction = buildEnv.NODE_ENV === "production";
+/** CPUs for a small shared build machine (BUILD_CPUS); undefined for a normal build. */
+export const buildCpus = buildEnv.BUILD_CPUS;
 
 export type { BusinessConfig, DesignConfig, Host, RenderMode, ThemeMode, ToastPosition } from "./schema.ts";
 export {

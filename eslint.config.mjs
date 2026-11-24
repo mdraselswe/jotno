@@ -49,6 +49,7 @@ export default defineConfig([
   globalIgnores([
     ".next/**",
     "out/**",
+    ".open-next/**", // Cloudflare build output (pnpm cf:build)
     "build/**",
     "coverage/**",
     "playwright-report/**",

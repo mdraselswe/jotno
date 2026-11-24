@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { isProduction, site } from "./src/config/index.ts";
+import { buildCpus, isProduction, site } from "./src/config/index.ts";
 import { DEFAULT_LOCALE, PREFIXED_LOCALES } from "./src/config/locale.ts";
 import { SECURITY_HEADERS } from "./src/config/security.ts";
 
@@ -51,6 +51,27 @@ const localeRouting: Pick<NextConfig, "redirects" | "rewrites"> = {
 // `next dev` sets NODE_ENV=development before it loads this file.
 const dev = !isProduction;
 
+/**
+ * BUILD_CPUS (shared hosting such as Hostinger): the whole account may run only
+ * ~115 processes + threads, so starting a process fails (EAGAIN) and Turbopack
+ * hung at "Creating an optimized production build". Use threads, not processes:
+ * loaders in worker threads ("force": Node 24 warns about a teardown crash that
+ * only hits watch-mode addons like fsevents), page data and prerendering in
+ * worker threads, that many of them, and leave the type check to CI (it ran out
+ * of memory there). scripts/build.ts trims each Node's own thread pools.
+ */
+const smallBuildMachine: Pick<NextConfig, "typescript"> & { experimental: NextConfig["experimental"] } =
+  buildCpus === undefined
+    ? { experimental: {} }
+    : {
+        experimental: {
+          cpus: buildCpus,
+          workerThreads: true,
+          turbopackPluginRuntimeStrategy: "forceWorkerThreads",
+        },
+        typescript: { ignoreBuildErrors: true },
+      };
+
 // A plain object, not a `(phase) => config` function: some hosts (Hostinger)
 // merge their own settings into the exported object and skip a function.
 const config: NextConfig = {
@@ -59,7 +80,8 @@ const config: NextConfig = {
   trailingSlash: true,
   poweredByHeader: false,
   // app/global-not-found.tsx: the 404 for URLs outside app/[locale] (out/404.html in static mode).
-  experimental: { globalNotFound: true },
+  experimental: { globalNotFound: true, ...smallBuildMachine.experimental },
+  ...(smallBuildMachine.typescript && { typescript: smallBuildMachine.typescript }),
   ...(isStatic
     ? dev
       ? { images: { unoptimized: true }, ...localeRouting }

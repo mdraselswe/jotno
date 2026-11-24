@@ -10,7 +10,7 @@
   },
   "scripts": {
     "dev": "node scripts/generate-assets.ts && next dev",
-    "build": "node scripts/generate-assets.ts && next build && node scripts/postbuild.ts",
+    "build": "node scripts/build.ts",
     "build:other": "node scripts/build-other.ts",
     "start": "node scripts/start.ts",
     "cf:build": "node scripts/generate-assets.ts && opennextjs-cloudflare build && node scripts/patch-open-next.ts",

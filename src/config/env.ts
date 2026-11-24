@@ -31,6 +31,13 @@ const publicSchema = z.object({
 
 const buildSchema = z.object({
   RENDER_MODE: z.enum(RENDER_MODES).optional(),
+  /**
+   * Small shared build machines (Hostinger): build with this many CPUs. It pins
+   * `next build` to them (scripts/build.ts), runs Turbopack's loaders in worker
+   * threads and skips the type check (CI runs it). Unset: a normal build.
+   * See docs/launch.md → Production host.
+   */
+  BUILD_CPUS: z.coerce.number().int().positive().optional(),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });
 
@@ -79,6 +86,7 @@ export const publicEnv = publicSchema.parse({
 
 export const buildEnv = buildSchema.parse({
   RENDER_MODE: process.env.RENDER_MODE || undefined,
+  BUILD_CPUS: process.env.BUILD_CPUS || undefined,
   NODE_ENV: process.env.NODE_ENV,
 });
 

@@ -12,3 +12,5 @@ src/content/geo-areas.ts
 scripts/seed/data
 supabase/seeds
 supabase/migrations/meta
+supabase/.temp
+.open-next
