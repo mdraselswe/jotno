@@ -13,6 +13,9 @@ import { cn } from "@/lib/utils";
 import { closeConsult, leaveReview, startConsult } from "../server/actions";
 
 /** Owner: describe the problem, pick the pet, pay. */
+/** The server asks for at least this much (startConsult); the button waits for it. */
+const MIN_SUMMARY = 10;
+
 export function StartConsultForm({
   providerId,
   pets,
@@ -34,6 +37,7 @@ export function StartConsultForm({
   const [pending, start] = useTransition();
   const { upload, busy, error: uploadError } = useUpload("chat");
   const picker = useRef<HTMLInputElement>(null);
+  const tooShort = summary.trim().length < MIN_SUMMARY;
 
   async function addPhoto(file: File | undefined) {
     if (!file || photos.length >= maxPhotos) return;
@@ -75,12 +79,18 @@ export function StartConsultForm({
           id="sc-summary"
           rows={5}
           required
-          minLength={10}
+          minLength={MIN_SUMMARY}
           maxLength={1000}
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
           placeholder={t("consult.problemHint")}
+          aria-describedby={tooShort ? "sc-summary-min" : undefined}
         />
+        {tooShort ? (
+          <p id="sc-summary-min" className="text-sm text-muted-foreground" aria-live="polite">
+            {t("consult.problemMin", { min: MIN_SUMMARY, n: summary.trim().length })}
+          </p>
+        ) : null}
       </div>
       {maxPhotos > 0 ? (
         <fieldset className="grid gap-2">
@@ -146,7 +156,7 @@ export function StartConsultForm({
           {error}
         </p>
       ) : null}
-      <Button type="submit" size="lg" disabled={pending || busy || summary.trim().length < 10}>
+      <Button type="submit" size="lg" disabled={pending || busy || tooShort}>
         <Lock aria-hidden="true" />
         {pending ? t("pay.redirecting") : t("consult.pay", { fee: feeLabel })}
       </Button>
