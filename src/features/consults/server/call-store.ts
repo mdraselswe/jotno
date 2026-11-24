@@ -1,8 +1,9 @@
 import "server-only";
 import { and, eq, inArray, lte, ne, sql } from "drizzle-orm";
-import { business } from "@/config";
+import { business, site } from "@/config";
 import { db, schema } from "@/infrastructure/db";
 import { callLine, endStatus, talkSeconds, type EndReason } from "../calls";
+import { callSides, pushMissed, signalUser } from "./call-signal";
 
 const K = schema.calls;
 const OPEN = ["ringing", "active"] as const;
@@ -62,7 +63,18 @@ export async function runCallJobs(): Promise<{ missed: number; stale: number; cl
     .where(and(eq(K.status, "ringing"), lte(K.createdAt, new Date(now - ringSeconds * 1000))))
     .limit(100);
   let missed = 0;
-  for (const c of rings) if (await finishCall(c, "no_answer", null)) missed += 1;
+  for (const c of rings) {
+    const done = await finishCall(c, "no_answer", null);
+    if (!done) continue;
+    missed += 1;
+    // The caller's tab died while ringing: the callee still hears about the missed call.
+    const sides = await callSides(c.consultId, c.callerId);
+    if (!sides) continue;
+    const over = { state: "over", callId: c.id, consultId: c.consultId, status: done.status } as const;
+    await signalUser(sides.calleeId, over);
+    if (c.callerId) await signalUser(c.callerId, over);
+    await pushMissed(sides.calleeId, site.i18n.defaultLocale, c, sides.callerName);
+  }
 
   const stuck = await db()
     .select()

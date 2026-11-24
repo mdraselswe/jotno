@@ -1,5 +1,6 @@
 import "server-only";
 
+export { endCallAs } from "./call-end";
 export { runCallJobs } from "./call-store";
 export { adminCanRead, READ_GRANT_MINUTES } from "./participant";
 export { getPrescription, rxForVet, type PrescriptionView, type RxProduct } from "./rx-queries";

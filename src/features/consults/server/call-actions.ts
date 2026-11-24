@@ -1,33 +1,24 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, gt, ne, or } from "drizzle-orm";
 import { after } from "next/server";
 import { z } from "zod";
-import { business } from "@/config";
-import { chatPath } from "@/config/routes";
+import { business, site } from "@/config";
 import { actionViewer } from "@/features/auth/server";
-import { notify } from "@/features/notifications/server";
 import type { MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
 import { rateLimit } from "@/infrastructure/db/helpers";
 import { iceServers, type IceServer } from "@/infrastructure/turn";
-import { localeHref } from "@/lib/locale-href";
-import { END_REASONS, ringExpired, type CallMedia } from "../calls";
+import { END_REASONS, ringExpired, type CallMedia, type EndReason } from "../calls";
 import { canSend } from "../rules";
+import { callFor, endCallAs } from "./call-end";
 import { endOpenCalls, finishCall } from "./call-store";
+import { pushRing, signalUser } from "./call-signal";
 import { participant } from "./participant";
 
 const K = schema.calls;
 const uuid = z.uuid();
 type Fail = { ok: false; error: MessageKey };
-
-async function callFor(callId: string, userId: string) {
-  if (!uuid.safeParse(callId).success) return null;
-  const [call] = await db().select().from(K).where(eq(K.id, callId)).limit(1);
-  if (!call) return null;
-  const p = await participant(call.consultId, userId);
-  return p ? { call, p } : null;
-}
 
 /** Rings the other side of an open consult. Returns the call id and ICE servers. */
 export async function startCall(
@@ -61,20 +52,21 @@ export async function startCall(
     .returning({ id: K.id });
   if (!call) return { ok: false, error: "common.genericError" };
 
-  const name = (p.role === "vet" ? p.vetName : viewer.fullName) ?? "Jotno";
+  const name = (p.role === "vet" ? p.vetName : viewer.fullName) ?? site.name;
   const iceP = iceServers();
-  // The caller sees the ringing screen at once; the push goes out after the response.
-  after(() =>
-    notify(p.otherId, "consult.call", {
-      title:
-        locale === "bn"
-          ? `${name} ${media === "video" ? "ভিডিও" : "অডিও"} কল করছেন`
-          : `${name} is calling (${media})`,
-      body: locale === "bn" ? "ধরতে এখনই চ্যাট খুলুন।" : "Open the chat now to answer.",
-      url: localeHref(locale, chatPath(consultId)),
-      tag: `call-${consultId}`,
-    }),
-  );
+  const { ringSeconds } = business.consult.call;
+  // The caller sees the ringing screen at once; the ring and push go out after the response.
+  after(async () => {
+    await signalUser(p.otherId, {
+      state: "ringing",
+      callId: call.id,
+      consultId,
+      media,
+      name,
+      at: Date.now(),
+    });
+    await pushRing(p.otherId, locale, { id: call.id, consultId, media }, name, ringSeconds);
+  });
   const { servers } = await iceP;
   return { ok: true, callId: call.id, ice: servers };
 }
@@ -95,6 +87,10 @@ export async function answerCall(callId: string): Promise<{ ok: true; ice: IceSe
     .where(and(eq(K.id, callId), eq(K.status, "ringing")))
     .returning({ id: K.id });
   if (!done) return { ok: false, error: "call.over" };
+  // Other tabs and devices of this person stop ringing.
+  after(() =>
+    signalUser(viewer.id, { state: "over", callId, consultId: found.call.consultId, status: "active" }),
+  );
   const { servers } = await iceServers();
   return { ok: true, ice: servers };
 }
@@ -106,20 +102,7 @@ export async function endCall(locale: string, callId: string, reason: string): P
   const viewer = await actionViewer();
   const parsed = endSchema.safeParse(reason);
   if (!viewer || !parsed.success) return { ok: false };
-  const found = await callFor(callId, viewer.id);
-  if (!found) return { ok: false };
-  const r = parsed.data as (typeof END_REASONS)[number];
-  const done = await finishCall(found.call, r, viewer.id);
-  // Tell the person who didn't pick up that they missed a call.
-  if (done?.status === "missed" && found.call.callerId === viewer.id) {
-    await notify(found.p.otherId, "consult.missedCall", {
-      title: locale === "bn" ? "মিস কল" : "Missed call",
-      body: locale === "bn" ? "চ্যাটে ফিরে কল ব্যাক করুন।" : "Open the chat to call back.",
-      url: localeHref(locale, chatPath(found.call.consultId)),
-      tag: `call-${found.call.consultId}`,
-    });
-  }
-  return { ok: true };
+  return endCallAs(viewer, locale, callId, parsed.data as EndReason);
 }
 
 /**
@@ -162,4 +145,48 @@ export async function pendingCall(
   if (!call || call.callerId === viewer.id) return null;
   if (ringExpired(call.createdAt, new Date(), business.consult.call.ringSeconds)) return null;
   return { callId: call.id, media: call.media, callerId: call.callerId };
+}
+
+/**
+ * A call ringing for the viewer in any of their consults, for the incoming-call
+ * screen when a page opens (the realtime ring may have gone out before it joined).
+ */
+export async function ringingForMe(): Promise<{
+  callId: string;
+  consultId: string;
+  media: CallMedia;
+  name: string;
+} | null> {
+  const viewer = await actionViewer();
+  if (!viewer || !business.consult.call.enabled) return null;
+  const C = schema.consults;
+  const P = schema.providers;
+  const since = new Date(Date.now() - business.consult.call.ringSeconds * 1000);
+  const [row] = await db()
+    .select({
+      callId: K.id,
+      consultId: K.consultId,
+      media: K.media,
+      callerId: K.callerId,
+      vetId: P.profileId,
+      vetName: P.displayName,
+      ownerName: schema.profiles.fullName,
+    })
+    .from(K)
+    .innerJoin(C, eq(C.id, K.consultId))
+    .innerJoin(P, eq(P.id, C.providerId))
+    .leftJoin(schema.profiles, eq(schema.profiles.id, C.ownerId))
+    .where(
+      and(
+        eq(K.status, "ringing"),
+        gt(K.createdAt, since),
+        ne(K.callerId, viewer.id),
+        or(eq(C.ownerId, viewer.id), eq(P.profileId, viewer.id)),
+      ),
+    )
+    .orderBy(desc(K.createdAt))
+    .limit(1);
+  if (!row) return null;
+  const name = (row.callerId === row.vetId ? row.vetName : row.ownerName) ?? site.name;
+  return { callId: row.callId, consultId: row.consultId, media: row.media, name };
 }

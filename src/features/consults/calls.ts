@@ -64,6 +64,16 @@ export function parseCallLine(
   return { media: m[1] as CallMedia, status: m[2] as CallStatus, seconds: Number(m[3]) };
 }
 
+/** The chat link that answers a ringing call as soon as it opens ("/chat/<id>/?answer=<call>"). */
+export function answerUrl(chatHref: string, callId: string): string {
+  return `${chatHref.replace(/\/?$/, "/")}?answer=${encodeURIComponent(callId)}`;
+}
+
+/** Whether a page path is that consult's chat (any locale prefix, with or without "/"). */
+export function isChatPage(pathname: string, consultId: string): boolean {
+  return pathname.replace(/\/$/, "").endsWith(`/chat/${consultId}`);
+}
+
 /** "4:05" / "1:02:09" for a call length. */
 export function clock(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));

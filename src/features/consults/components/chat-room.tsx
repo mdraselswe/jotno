@@ -16,6 +16,7 @@ import { useEffect, useRef, useState, useTransition, type FormEvent } from "reac
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { PushPrompt } from "@/features/notifications";
 import { useUpload } from "@/features/uploads";
 import { useFormatter, useLocale, useT } from "@/i18n/client";
 import { prescriptionPath } from "@/config/routes";
@@ -187,6 +188,7 @@ export function ChatRoom({
             send={channel.send}
             signalsRef={callSignals}
           />
+          {callable ? <PushPrompt /> : null}
           {children}
         </div>
       ) : (

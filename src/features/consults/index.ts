@@ -1,4 +1,5 @@
 export { ChatRoom } from "./components/chat-room";
+export { IncomingCall } from "./components/call/incoming-call";
 export { ReportConsultButton } from "./components/report-consult";
 export { RxEditor } from "./components/rx/rx-editor";
 export { RxBuyButton, RxPrintButton } from "./components/rx/rx-actions-bar";

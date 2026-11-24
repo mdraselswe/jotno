@@ -319,10 +319,18 @@ export function ConsultCall({
     };
   }, [signalsRef]);
 
-  // Opened the chat from a "calling you" notification: the call may still be ringing.
+  // Opened the chat from a "calling you" notification or popup: the call may still be
+  // ringing. "?answer=<callId>" means they already tapped Answer, so pick up at once.
   const checkPending = useEffectEvent(async () => {
     const c = await pendingCall(consultId);
-    if (c) ringIn(c.callId, c.media);
+    if (!c) return;
+    ringIn(c.callId, c.media);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("answer") !== c.callId) return;
+    params.delete("answer");
+    const q = params.toString();
+    window.history.replaceState(window.history.state, "", `${window.location.pathname}${q ? `?${q}` : ""}`);
+    await accept(false);
   });
   useEffect(() => {
     if (enabled && ready) void checkPending();

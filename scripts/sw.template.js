@@ -138,8 +138,9 @@ self.addEventListener("fetch", (event) => {
   else event.respondWith(fetch(request).catch(async () => (await fromCache(request)) ?? Response.error()));
 });
 
-// Web push (Jotno): a vet replied, a vaccine is due, a booking is close.
-// Payload: { title, body, url, tag }.
+// Web push (Jotno): a vet replied, a vaccine is due, a booking is close, someone is calling.
+// Payload: { title, body, url, tag, kind?, callId?, locale?, actions? }. kind "call"
+// rings like a phone call: stays until tapped, vibrates, Answer / Decline buttons.
 self.addEventListener("push", (event) => {
   let data = {};
   try {
@@ -147,24 +148,58 @@ self.addEventListener("push", (event) => {
   } catch {
     data = { title: "Jotno", body: event.data ? event.data.text() : "" };
   }
-  event.waitUntil(
-    self.registration.showNotification(data.title || "Jotno", {
-      body: data.body || "",
-      tag: data.tag,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      data: { url: data.url || "/" },
-    }),
-  );
+  const call = data.kind === "call";
+  const options = {
+    body: data.body || "",
+    tag: data.tag,
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    data: { url: data.url || "/", callId: call ? data.callId : undefined, locale: data.locale },
+  };
+  if (call) {
+    options.requireInteraction = true;
+    options.renotify = Boolean(data.tag);
+    options.vibrate = [600, 300, 600, 300, 600, 300, 600];
+    if (data.actions) {
+      options.actions = [
+        { action: "answer", title: data.actions.answer },
+        { action: "decline", title: data.actions.decline },
+      ];
+    }
+  }
+  event.waitUntil(self.registration.showNotification(data.title || "Jotno", options));
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  const { url: path, callId, locale } = event.notification.data || {};
+  if (event.action === "decline" && callId) {
+    event.waitUntil(
+      fetch("/api/calls/decline/", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ callId, locale }),
+      }).catch(() => undefined),
+    );
+    return;
+  }
+  const url = new URL(path || "/", self.location.origin).href;
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (list) => {
       const open = list.find((c) => c.url === url);
-      return open ? open.focus() : self.clients.openWindow(url);
+      if (open) return open.focus();
+      // A call: reuse a Jotno tab that's already open instead of opening another one.
+      const tab = callId ? list.find((c) => "navigate" in c) : undefined;
+      if (tab) {
+        try {
+          await tab.focus();
+          return await tab.navigate(url);
+        } catch {
+          // Not controlled by this worker: open a new window below.
+        }
+      }
+      return self.clients.openWindow(url);
     }),
   );
 });

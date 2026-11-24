@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  answerUrl,
+  isChatPage,
   callLine,
   clock,
   endStatus,
@@ -93,5 +95,19 @@ describe("isInAppBrowser", () => {
         "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Version/17.0 Mobile/15E148 Safari/604.1",
       ),
     ).toBe(false);
+  });
+});
+
+describe("answerUrl / isChatPage", () => {
+  const id = "0b6c1f3e-1d2a-4c3b-9e8f-123456789abc";
+  it("adds the trailing slash before the query", () => {
+    expect(answerUrl(`/chat/${id}`, "c1")).toBe(`/chat/${id}/?answer=c1`);
+    expect(answerUrl(`/en/chat/${id}/`, "c1")).toBe(`/en/chat/${id}/?answer=c1`);
+  });
+  it("matches the chat page in any locale", () => {
+    expect(isChatPage(`/chat/${id}`, id)).toBe(true);
+    expect(isChatPage(`/en/chat/${id}/`, id)).toBe(true);
+    expect(isChatPage(`/chat/${id}/rx`, id)).toBe(false);
+    expect(isChatPage("/dashboard", id)).toBe(false);
   });
 });

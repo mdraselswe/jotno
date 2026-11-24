@@ -3,6 +3,7 @@ import { Private, PrivateHeading } from "@/components/layout/private-page";
 import { ButtonLink } from "@/components/ui/button-link";
 import { ROUTES, vetPath } from "@/config/routes";
 import { WaitingConsults } from "@/features/consults/server";
+import { PushPrompt } from "@/features/notifications";
 import { AvailableNowSwitch, SubmitForReviewButton } from "@/features/providers";
 import { requireVet, vetStats } from "@/features/providers/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
@@ -56,6 +57,8 @@ async function Overview() {
           ) : undefined
         }
       />
+
+      {status === "verified" ? <PushPrompt /> : null}
 
       <div
         className={cn(

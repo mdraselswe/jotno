@@ -17,6 +17,14 @@ export interface PushPayload {
   body: string;
   url: string;
   tag?: string;
+  /** "call": the service worker shows it call-style (keeps ringing, Answer / Decline buttons). */
+  kind?: "call";
+  callId?: string;
+  locale?: string;
+  /** Seconds the push service may hold it for an offline device (a ring is useless later). */
+  ttl?: number;
+  /** Button labels for a call notification. */
+  actions?: { answer: string; decline: string };
 }
 
 export type PushOutcome = "sent" | "gone" | "failed" | "disabled";
@@ -36,7 +44,7 @@ export async function sendPush(target: PushTarget, payload: PushPayload): Promis
         Authorization: await vapidHeader(target.endpoint, publicKey, VAPID_PRIVATE_KEY, VAPID_SUBJECT),
         "Content-Encoding": "aes128gcm",
         "Content-Type": "application/octet-stream",
-        TTL: "86400",
+        TTL: String(payload.ttl ?? 86400),
         Urgency: "high",
         ...(payload.tag ? { Topic: payload.tag.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 32) } : {}),
       },
