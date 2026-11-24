@@ -56,7 +56,7 @@ A second copy of the app for showing clients, with its own database, so the live
 
 ## 4. Before real users
 
-- [ ] `pnpm db:clear-demo --dry-run`, then `pnpm db:clear-demo` against the cloud DB; set `NEXT_PUBLIC_DEMO=false`; redeploy.
+- [x] `pnpm db:clear-demo --dry-run`, then `pnpm db:clear-demo` against the cloud DB; set `NEXT_PUBLIC_DEMO=false`; redeploy. (Done 2026-11-24; demo data now lives on demo.jotnocare.com.)
 - [ ] Legal pages (`src/content/legal.ts`) reviewed by a lawyer; first-aid text (`src/content/emergency.ts`) reviewed by a vet.
 - [ ] **Payments (manual, the default)**: open `/admin/settings`, enter the bKash and Nagad numbers (personal, agent or merchant), the charge people add on top (default bKash 1.85%, Nagad 1.49%), cash on delivery and delivery fees, and the support phone. Then test a chat, a booking, a featured pack and a shop order end to end (see "Payments day to day" below).
 - [ ] Later, if you want a gateway: SSLCommerz sandbox → live; set `PAYMENT_PROVIDER=sslcommerz`, `SSLCOMMERZ_SANDBOX=false`.
