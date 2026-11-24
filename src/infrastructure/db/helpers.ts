@@ -1,6 +1,7 @@
 import "server-only";
 import { sql } from "drizzle-orm";
 import { headers } from "next/headers";
+import { ipFromHeaders } from "@/lib/client-ip";
 import { db, schema } from "./index";
 
 /**
@@ -14,10 +15,9 @@ export async function rateLimit(key: string, limit: number, windowSeconds: numbe
   return rows[0]?.ok ?? false;
 }
 
-/** The caller's IP (Cloudflare sets cf-connecting-ip). */
+/** The caller's IP, read from headers set by the host's proxy (see ipFromHeaders). */
 export async function clientIp(): Promise<string> {
-  const h = await headers();
-  return h.get("cf-connecting-ip") ?? h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
+  return ipFromHeaders(await headers());
 }
 
 /** Append-only record of sensitive actions (verification, money, health data access). */

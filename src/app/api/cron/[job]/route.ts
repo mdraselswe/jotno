@@ -42,18 +42,6 @@ function authorized(request: NextRequest): boolean {
 export async function POST(request: NextRequest, ctx: RouteContext<"/api/cron/[job]">) {
   const { job } = await ctx.params;
   if (!authorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  // TEMPORARY (remove after checking): which proxy headers carry the client IP on this host.
-  if (job === "whoami") {
-    const pick = [
-      "x-forwarded-for",
-      "x-real-ip",
-      "cf-connecting-ip",
-      "true-client-ip",
-      "x-client-ip",
-      "forwarded",
-    ];
-    return NextResponse.json(Object.fromEntries(pick.map((h) => [h, request.headers.get(h)])));
-  }
   if (!(job in JOBS)) return NextResponse.json({ error: "unknown job" }, { status: 404 });
   const started = Date.now();
   try {
