@@ -69,15 +69,22 @@ const serverSchema = z.object({
   CLOUDFLARE_TURN_KEY_ID: z.string().default(""),
   CLOUDFLARE_TURN_API_TOKEN: z.string().default(""),
   /**
-   * Metered TURN (used when the Cloudflare key is empty): the account's Metered
-   * domain (e.g. jotno.metered.live, dashboard → Developers) and the API key of one
-   * TURN credential (dashboard → TURN Server → Credentials).
+   * Any other TURN server with a fixed login (e.g. Metered's Free 20 GB plan:
+   * dashboard → TURN Server → Credentials). Used when the Cloudflare key is empty.
+   * TURN_URLS is comma-separated, e.g.
+   * "turn:standard.relay.metered.ca:80,turns:standard.relay.metered.ca:443?transport=tcp".
    */
-  METERED_TURN_DOMAIN: z
+  TURN_URLS: z
     .string()
-    .regex(/^$|^[a-z0-9-]+.metered.live$/)
-    .default(""),
-  METERED_TURN_API_KEY: z.string().default(""),
+    .default("")
+    .transform((v) =>
+      v
+        .split(",")
+        .map((u) => u.trim())
+        .filter((u) => /^turns?:/.test(u)),
+    ),
+  TURN_USERNAME: z.string().default(""),
+  TURN_CREDENTIAL: z.string().default(""),
   /** Comma-separated emails that become admin when they first sign in. */
   ADMIN_EMAILS: z
     .string()
@@ -124,8 +131,8 @@ function warnMissing(env: z.infer<typeof serverSchema>) {
     !env.CRON_SECRET && "CRON_SECRET",
     env.ADMIN_EMAILS.length === 0 && "ADMIN_EMAILS",
     !env.CLOUDFLARE_TURN_KEY_ID &&
-      !env.METERED_TURN_API_KEY &&
-      "CLOUDFLARE_TURN_KEY_ID or METERED_TURN_API_KEY (calls on mobile data may not connect)",
+      env.TURN_URLS.length === 0 &&
+      "CLOUDFLARE_TURN_KEY_ID or TURN_URLS (calls on mobile data may not connect)",
   ].filter(Boolean);
   if (missing.length > 0)
     console.error(`[jotno] Missing production settings: ${missing.join(", ")}. See docs/launch.md.`);
