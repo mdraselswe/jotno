@@ -26,6 +26,12 @@ const publicSchema = z.object({
   NEXT_PUBLIC_DEMO: flag,
   /** Google sign-in button (true once the Google OAuth client is set up in Supabase). */
   NEXT_PUBLIC_GOOGLE_AUTH: flag,
+  /**
+   * Demo site only (demo.jotnocare.com, its own Supabase project): one-click sign-in
+   * as the seeded owner, vet or admin. Works only together with NEXT_PUBLIC_DEMO.
+   * Never on the live site (its demo accounts have no password anyway).
+   */
+  NEXT_PUBLIC_DEMO_LOGIN: flag,
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
 });
 
@@ -81,6 +87,7 @@ export const publicEnv = publicSchema.parse({
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || undefined,
   NEXT_PUBLIC_DEMO: process.env.NEXT_PUBLIC_DEMO || undefined,
   NEXT_PUBLIC_GOOGLE_AUTH: process.env.NEXT_PUBLIC_GOOGLE_AUTH || undefined,
+  NEXT_PUBLIC_DEMO_LOGIN: process.env.NEXT_PUBLIC_DEMO_LOGIN || undefined,
   NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN || undefined,
 });
 

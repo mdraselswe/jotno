@@ -44,6 +44,16 @@ Cloudflare Workers can't run Cache Components yet (requests hang), so production
 - Limits: 120 s per request, no WebSocket server (Realtime runs on Supabase, so it's fine), an idle app sleeps and the next request cold-starts (the 5-minute cron keeps it warm).
 - Logs: hPanel → the app → Runtime logs / Deployments.
 
+## Demo site (demo.jotnocare.com)
+
+A second copy of the app for showing clients, with its own database, so the live site never holds demo data.
+
+- **Supabase**: project `jotno-demo` in a separate Free account (the Free plan allows 2 active projects per account). Migrations + `01_reference.sql` + `02_demo.sql` + `03_demo_extra.sql`. New sign-ups are off (Auth → `disable_signup`), so only the seeded accounts can sign in; Realtime is private-only.
+- **Hostinger**: a second Node.js web app on the subdomain, same repo and branch (`main`), its own env vars: `NEXT_PUBLIC_DEMO=true`, `NEXT_PUBLIC_DEMO_LOGIN=true`, the demo project's URL/keys/`DATABASE_URL`, its own `CRON_SECRET`, `ADMIN_EMAILS=admin@demo.jotno.test`, `BUILD_CPUS=2`.
+- **Sign in**: the login page shows "Try a demo account" buttons (pet owner, vet, admin). They sign in to the seeded accounts with the shared password from `02_demo.sql`, so the buttons work only when both `NEXT_PUBLIC_DEMO` and `NEXT_PUBLIC_DEMO_LOGIN` are on. Never set them on the live site (its demo accounts have no password anyway).
+- **Keep-alive**: the demo database's `pg_cron` calls `/api/cron/frequent/` every 30 minutes and `/api/cron/daily/` at 02:00 UTC, so the Free project isn't paused for inactivity.
+- **Reset** (visitors can change demo data): re-run `02_demo.sql` and `03_demo_extra.sql` against the demo database, or `pnpm db:clear-demo` first for a clean start.
+
 ## 4. Before real users
 
 - [ ] `pnpm db:clear-demo --dry-run`, then `pnpm db:clear-demo` against the cloud DB; set `NEXT_PUBLIC_DEMO=false`; redeploy.

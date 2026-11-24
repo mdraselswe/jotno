@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Mail } from "lucide-react";
+import { ArrowLeft, Mail, PawPrint, ShieldCheck, Stethoscope } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { Spot } from "@/components/illustrations/spots";
@@ -13,7 +13,7 @@ import { ROUTES } from "@/config/routes";
 import { useLocale, useT } from "@/i18n/client";
 import { supabaseBrowser } from "@/infrastructure/supabase/browser";
 import { localeHref } from "@/lib/locale-href";
-import { sendCode, verifyCode } from "../server/actions";
+import { demoSignIn, sendCode, verifyCode, type DemoRole } from "../server/actions";
 
 const RESEND_SECONDS = 30;
 
@@ -64,6 +64,18 @@ export function LoginForm() {
     });
   }
 
+  function demo(role: DemoRole) {
+    setError(null);
+    start(async () => {
+      const result = await demoSignIn(locale, role);
+      if (!result.ok) {
+        setError(t(result.error));
+        return;
+      }
+      window.location.assign(result.url);
+    });
+  }
+
   async function google() {
     const origin = window.location.origin;
     const target = new URL("/auth/callback/", origin);
@@ -85,6 +97,37 @@ export function LoginForm() {
 
       {step === "email" ? (
         <div className="grid gap-4">
+          {publicEnv.NEXT_PUBLIC_DEMO && publicEnv.NEXT_PUBLIC_DEMO_LOGIN ? (
+            <section
+              aria-labelledby="demo-title"
+              className="grid gap-3 rounded-(--radius-xl) border border-dashed p-4"
+            >
+              <p id="demo-title" className="text-center text-sm font-medium">
+                {t("auth.demoTitle")}
+              </p>
+              <div className="grid gap-2">
+                {(
+                  [
+                    ["owner", PawPrint, "auth.demoOwner"],
+                    ["vet", Stethoscope, "auth.demoVet"],
+                    ["admin", ShieldCheck, "auth.demoAdmin"],
+                  ] as const
+                ).map(([role, Icon, label]) => (
+                  <Button
+                    key={role}
+                    type="button"
+                    variant="secondary"
+                    disabled={pending}
+                    onClick={() => demo(role)}
+                  >
+                    <Icon aria-hidden="true" />
+                    {t(label)}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-center text-xs text-muted-foreground">{t("auth.demoNote")}</p>
+            </section>
+          ) : null}
           {publicEnv.NEXT_PUBLIC_GOOGLE_AUTH ? (
             <>
               <Button type="button" variant="outline" size="lg" onClick={google}>

@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { site } from "@/config";
+import { publicEnv } from "@/config/env";
 import { DEFAULT_LOCALE } from "@/config/locale";
 import { ROUTES } from "@/config/routes";
 import { db, schema } from "@/infrastructure/db";
@@ -82,6 +83,35 @@ export async function verifyCode(
   // The browser loads the page itself: a soft redirect would keep the header's
   // Supabase client (which read the cookies at page load) signed out.
   return { ok: true, url: safeNext(next, localeHref(locale, ROUTES.account), locale) };
+}
+
+/** Seeded demo accounts (supabase/seeds/02_demo.sql); their shared password is public there. */
+const DEMO_ACCOUNTS = {
+  owner: "owner@demo.jotno.test",
+  vet: "nusrat@demo.jotno.test",
+  admin: "admin@demo.jotno.test",
+} as const;
+const DEMO_PASSWORD = "jotno-demo-password";
+
+export type DemoRole = keyof typeof DEMO_ACCOUNTS;
+
+/** Demo site only: sign in as a seeded account with one click. */
+export async function demoSignIn(
+  locale: string,
+  role: DemoRole,
+): Promise<{ ok: true; url: string } | { ok: false; error: MessageKey }> {
+  if (!publicEnv.NEXT_PUBLIC_DEMO || !publicEnv.NEXT_PUBLIC_DEMO_LOGIN || !Object.hasOwn(DEMO_ACCOUNTS, role))
+    return { ok: false, error: "common.notAllowed" };
+  if (!(await rateLimit(`demo:${await clientIp()}`, 30, 15 * 60)))
+    return { ok: false, error: "common.tooMany" };
+  const supabase = await supabaseServer();
+  const { error } = await supabase.auth.signInWithPassword({
+    email: DEMO_ACCOUNTS[role],
+    password: DEMO_PASSWORD,
+  });
+  if (error) return { ok: false, error: "common.genericError" };
+  const home = role === "admin" ? ROUTES.admin : role === "vet" ? ROUTES.dashboard : ROUTES.account;
+  return { ok: true, url: localeHref(locale, home) };
 }
 
 export async function signOut(locale: string): Promise<void> {
