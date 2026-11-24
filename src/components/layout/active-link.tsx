@@ -4,14 +4,20 @@ import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
+import { localePath, splitLocale } from "@/config/locale";
 
 type Match = "exact" | "prefix";
 
 const trim = (p: string) => (p.length > 1 ? p.replace(/\/$/, "") : p);
 
-/** Whether `pathname` is the page (or, with "prefix", a page under) `href`. */
+/**
+ * Whether `pathname` is the page (or, with "prefix", a page under) `href`.
+ * `pathname` may be the proxy's internal `/<default locale>/…` form; it is
+ * compared as the public, unprefixed URL that `href` uses.
+ */
 export function isActivePath(pathname: string, href: string, match: Match) {
-  const path = trim(pathname);
+  const { locale, path: rest } = splitLocale(pathname);
+  const path = trim(localePath(locale, rest));
   const target = trim(href);
   return match === "exact" ? path === target : path === target || path.startsWith(`${target}/`);
 }

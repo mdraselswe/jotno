@@ -42,6 +42,11 @@ describe("locale paths", () => {
     expect(splitLocale("/about/")).toEqual({ locale: DEFAULT_LOCALE, path: "/about/" });
   });
 
+  it("reads the internal default-locale prefix (a rewritten usePathname)", () => {
+    expect(splitLocale(`/${DEFAULT_LOCALE}/login/`)).toEqual({ locale: DEFAULT_LOCALE, path: "/login/" });
+    expect(splitLocale(`/${DEFAULT_LOCALE}`)).toEqual({ locale: DEFAULT_LOCALE, path: "/" });
+  });
+
   it.runIf(other)("prefixes the other locales", () => {
     const l = other ?? "";
     expect(localePath(l, "/about")).toBe(`/${l}/about`);

@@ -39,10 +39,14 @@ export function localePath(locale: string, path: string): string {
   return clean === "/" ? `/${locale}` : `/${locale}${clean}`;
 }
 
-/** Splits a URL path into its locale and the path without the prefix. */
+/**
+ * Splits a URL path into its locale and the path without the prefix. Also
+ * takes the internal `/<default>/…` form: on a default-locale page served
+ * through the proxy rewrite, `usePathname()` can return the rewritten path.
+ */
 export function splitLocale(pathname: string): { locale: string; path: string } {
   const [, first = "", ...rest] = pathname.split("/");
-  if (PREFIXED_LOCALES.includes(first)) {
+  if (first === DEFAULT_LOCALE || PREFIXED_LOCALES.includes(first)) {
     return { locale: first, path: `/${rest.join("/")}` };
   }
   return { locale: DEFAULT_LOCALE, path: pathname || "/" };
