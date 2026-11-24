@@ -32,6 +32,17 @@ psql "$DATABASE_URL_DIRECT" -f supabase/seeds/02_demo.sql        # optional: dem
 - Sign in with an email listed in `ADMIN_EMAILS`, then open `/admin/`.
 - Cloudflare builds run `scripts/patch-open-next.ts` after `opennextjs-cloudflare build`. It turns off Next's cross-request `"use cache"` dedupe, which hangs Workers (OpenNext issue 1464). If a Next.js upgrade makes it fail, update the script or remove it once OpenNext fixes the issue.
 
+## Production host: Hostinger (jotnocare.com)
+
+Cloudflare Workers can't run Cache Components yet (requests hang), so production runs as a **Hostinger Node.js web app** (Business plan, data center Malaysia). The Cloudflare deploy (`deploy.yml`) and Netlify deploy (`deploy-netlify.yml`) only run by hand.
+
+- hPanel → Websites → jotnocare.com → Node.js: GitHub repo `jotno`, branch `main`, framework Next.js, Node 24, pnpm (from the lockfile). **Every push to `main` deploys.**
+- Environment variables: hPanel → the app → Environment variables (or "Import .env"). `NEXT_PUBLIC_*` are read at build time, so changing one redeploys.
+- `next.config.ts` must export a plain object: Hostinger merges `output: "standalone"` into it and skips a `(phase) => config` function.
+- Scheduled jobs: Supabase `pg_cron` + `pg_net` POST to `https://jotnocare.com/api/cron/frequent/` (every 5 min) and `/api/cron/daily/` (02:00 UTC) with the `CRON_SECRET` stored in Supabase Vault as `jotno_cron_secret`. Check runs: `select * from cron.job_run_details order by start_time desc limit 10;` and `select status_code, content from net._http_response order by created desc limit 10;`. If you change `CRON_SECRET`, update the Vault secret too (`vault.update_secret`).
+- Limits: 120 s per request, no WebSocket server (Realtime runs on Supabase, so it's fine), an idle app sleeps and the next request cold-starts (the 5-minute cron keeps it warm).
+- Logs: hPanel → the app → Runtime logs / Deployments.
+
 ## 4. Before real users
 
 - [ ] `pnpm db:clear-demo --dry-run`, then `pnpm db:clear-demo` against the cloud DB; set `NEXT_PUBLIC_DEMO=false`; redeploy.

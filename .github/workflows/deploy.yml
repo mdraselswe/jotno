@@ -11,11 +11,9 @@ name: Deploy
 #              PAYMENT_PROVIDER, SSLCOMMERZ_SANDBOX
 # `pnpm github-setup` or the GitHub UI sets them (docs/deploy.md).
 
+# Production now runs on Hostinger (Node.js web app, deploys itself on every
+# push to main; docs/launch.md). This Cloudflare deploy only runs by hand.
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -27,7 +25,6 @@ permissions:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     environment: production
     env:
