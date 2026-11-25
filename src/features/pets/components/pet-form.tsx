@@ -82,6 +82,8 @@ export function PetForm({
   const [errors, setErrors] = useState<Partial<Record<Field, MessageKey>>>({});
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // A photo still uploading would be left out of the saved pet.
+  const [uploading, setUploading] = useState(false);
   const set = <K extends keyof PetFormValues>(key: K, value: PetFormValues[K]) =>
     setV((s) => ({ ...s, [key]: value }));
   const label = (x: { en: string; bn: string }) => (locale === "bn" ? x.bn : x.en);
@@ -92,7 +94,7 @@ export function PetForm({
 
   function submit(e: FormEvent) {
     e.preventDefault();
-    if (pending) return;
+    if (pending || uploading) return;
     const found = validate(v, today);
     setErrors(found);
     if (Object.keys(found).length > 0) {
@@ -123,7 +125,13 @@ export function PetForm({
   return (
     <form onSubmit={submit} className="grid max-w-2xl gap-5" noValidate>
       <SectionCard title={t("ownerui.form.photo")} description={t("ownerui.form.photoHint")} icon={Camera}>
-        <ImageUpload kind="pet" value={v.photoPath} onChange={(p) => set("photoPath", p)} shape="circle" />
+        <ImageUpload
+          kind="pet"
+          value={v.photoPath}
+          onChange={(p) => set("photoPath", p)}
+          onBusyChange={setUploading}
+          shape="circle"
+        />
       </SectionCard>
 
       <SectionCard
@@ -279,8 +287,14 @@ export function PetForm({
               {t("common.cancel")}
             </ButtonLink>
           ) : null}
-          <Button type="submit" variant="brand" size="lg" disabled={pending} className="max-sm:flex-1">
-            {pending ? t("common.saving") : t("common.save")}
+          <Button
+            type="submit"
+            variant="brand"
+            size="lg"
+            disabled={pending || uploading}
+            className="max-sm:flex-1"
+          >
+            {pending ? t("common.saving") : uploading ? t("common.uploading") : t("common.save")}
           </Button>
         </div>
       </div>

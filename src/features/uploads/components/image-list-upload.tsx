@@ -18,6 +18,7 @@ export function ImageListUpload({
   max,
   label,
   hint,
+  onBusyChange,
 }: {
   kind: Exclude<UploadKind, "vetDoc" | "chat">;
   value: string[];
@@ -25,6 +26,8 @@ export function ImageListUpload({
   max: number;
   label: string;
   hint?: string;
+  /** True while photos are uploading, so the form can hold its Save button. */
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const t = useT();
   const id = useId();
@@ -34,14 +37,20 @@ export function ImageListUpload({
   async function pick(files: FileList | null) {
     const room = max - value.length;
     const picked = Array.from(files ?? []).slice(0, Math.max(0, room));
+    if (picked.length === 0) return;
     const added: string[] = [];
-    // Show each photo as soon as it is up, not after the whole batch.
-    for (const file of picked) {
-      const path = await upload(file);
-      if (path) {
-        added.push(path);
-        onChange([...value, ...added]);
+    onBusyChange?.(true);
+    try {
+      // Show each photo as soon as it is up, not after the whole batch.
+      for (const file of picked) {
+        const path = await upload(file);
+        if (path) {
+          added.push(path);
+          onChange([...value, ...added]);
+        }
       }
+    } finally {
+      onBusyChange?.(false);
     }
   }
 

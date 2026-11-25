@@ -31,6 +31,7 @@ async function Cart() {
           : null
       }
       methods={availableMethods(settings, "order", 0)}
+      cod={settings.cod}
       signInHref={`${localeHref(locale, ROUTES.login)}/?next=${encodeURIComponent(here)}`}
     />
   );

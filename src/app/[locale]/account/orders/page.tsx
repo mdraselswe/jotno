@@ -6,7 +6,7 @@ import { ButtonLink } from "@/components/ui/button-link";
 import { orderPath, ROUTES } from "@/config/routes";
 import { requireViewer } from "@/features/auth/server";
 import { OrderStatusBadge, ProductThumb } from "@/features/shop";
-import { myOrders, productsByIds } from "@/features/shop/server";
+import { myOrders, productThumbs } from "@/features/shop/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
@@ -22,12 +22,11 @@ async function Orders() {
   const fmt = await getFormatter();
   const viewer = await requireViewer(locale, localeHref(locale, ROUTES.orders));
   const orders = await myOrders(viewer.id);
-  // Photos for the first items of each order (products still in the shop).
-  const firstIds = [
-    ...new Set(orders.flatMap((o) => o.items.slice(0, 3).flatMap((i) => (i.productId ? [i.productId] : [])))),
-  ];
-  const products = await productsByIds(firstIds, locale);
-  const photo = (id: string | null) => (id ? products.find((p) => p.id === id) : undefined);
+  // Photos for the first items of each order (every one looked up, hidden products too).
+  const products = await productThumbs(
+    orders.flatMap((o) => o.items.slice(0, 3).flatMap((i) => (i.productId ? [i.productId] : []))),
+  );
+  const photo = (id: string | null) => (id ? products.get(id) : undefined);
 
   return (
     <div className="grid gap-6">

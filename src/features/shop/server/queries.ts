@@ -119,6 +119,28 @@ export async function productsByIds(ids: string[], locale: string): Promise<Prod
   return rows.map((p) => toProductCard(p, locale));
 }
 
+export type ProductThumbInfo = {
+  id: string;
+  slug: string;
+  active: boolean;
+  imageUrl: string | null;
+  category: string;
+};
+
+/**
+ * Photo and category for order lines, by product id. Every id asked for is looked up
+ * (no cap), hidden products included, so past orders keep their pictures.
+ */
+export async function productThumbs(ids: readonly string[]): Promise<Map<string, ProductThumbInfo>> {
+  const clean = [...new Set(ids)].filter((id) => /^[0-9a-f-]{36}$/.test(id));
+  if (clean.length === 0) return new Map();
+  const rows = await db()
+    .select({ id: PR.id, slug: PR.slug, active: PR.active, imagePath: PR.imagePath, category: PR.category })
+    .from(PR)
+    .where(inArray(PR.id, clean));
+  return new Map(rows.map(({ imagePath, ...r }) => [r.id, { ...r, imageUrl: mediaUrl(imagePath) }]));
+}
+
 async function withItems<T extends { id: string }>(orders: T[]) {
   if (orders.length === 0) return [];
   const items = await db()

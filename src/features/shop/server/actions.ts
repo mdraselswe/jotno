@@ -123,9 +123,11 @@ export async function checkout(
 
   const settings = await getSettings();
   const sub = subtotal(priced);
-  const coupon = parsed.data.coupon ? await usableCoupon(parsed.data.coupon) : null;
-  if (parsed.data.coupon && !coupon) return { ok: false, error: "shop.couponInvalid" };
-  const discount = coupon ? couponDiscount(sub, coupon) : 0;
+  const found = parsed.data.coupon ? await usableCoupon(parsed.data.coupon) : null;
+  if (parsed.data.coupon && !found) return { ok: false, error: "shop.couponInvalid" };
+  const discount = found ? couponDiscount(sub, found) : 0;
+  // A coupon that takes nothing off (e.g. under its minimum) is neither applied nor counted.
+  const coupon = discount > 0 ? found : null;
   const delivery = deliveryFee(sub - discount, parsed.data.districtId, {
     ...settings.delivery,
     homeDistrictId: business.shop.homeDistrictId,

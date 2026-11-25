@@ -6,3 +6,4 @@ export { profileChanged, useAuthUser, type AuthUser } from "./components/use-aut
 export { safeNext } from "./next-path";
 export { isBdMobile, normalizePhone, phoneSchema } from "./phone";
 export { ProfileForm, SignOutButton, type ProfileValues } from "./components/profile-form";
+export { saveLocale } from "./server/locale";

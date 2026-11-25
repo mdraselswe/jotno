@@ -32,10 +32,12 @@ export function ProfileForm({ initial }: { initial: ProfileValues }) {
   const [saved, setSaved] = useState(initial);
   const [errors, setErrors] = useState<Partial<Record<Field, MessageKey>>>({});
   const [pending, start] = useTransition();
+  // A photo still uploading would be left out of the saved profile.
+  const [uploading, setUploading] = useState(false);
 
   function submit(e: FormEvent) {
     e.preventDefault();
-    if (pending) return;
+    if (pending || uploading) return;
     // Same rules as the server (name 2+ letters, an 11-digit BD mobile or nothing).
     const found: Partial<Record<Field, MessageKey>> = {};
     if (v.fullName.trim().length < 2) found.name = "onboarding.nameInvalid";
@@ -69,7 +71,8 @@ export function ProfileForm({ initial }: { initial: ProfileValues }) {
         kind="avatar"
         shape="circle"
         value={v.avatarPath}
-        onChange={(avatarPath) => setV({ ...v, avatarPath })}
+        onChange={(avatarPath) => setV((s) => ({ ...s, avatarPath }))}
+        onBusyChange={setUploading}
         label={t("settings.photo")}
       />
       <div className="grid gap-4 sm:grid-cols-2">
@@ -120,8 +123,14 @@ export function ProfileForm({ initial }: { initial: ProfileValues }) {
         onChange={(p) => setV({ ...v, ...p })}
       />
       <div>
-        <Button type="submit" variant="brand" size="lg" disabled={pending} className="max-sm:w-full">
-          {pending ? t("common.saving") : t("common.save")}
+        <Button
+          type="submit"
+          variant="brand"
+          size="lg"
+          disabled={pending || uploading}
+          className="max-sm:w-full"
+        >
+          {pending ? t("common.saving") : uploading ? t("common.uploading") : t("common.save")}
         </Button>
       </div>
     </form>

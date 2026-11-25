@@ -32,6 +32,19 @@ export function currentCare<T extends CareRow>(rows: readonly T[]): T[] {
   return rows.filter((r) => keep.has(r));
 }
 
+/**
+ * The candidates that are still the newest record of their line, judged against
+ * the pet's whole history `all` (e.g. records due soon vs every record of
+ * those pets), so a record a newer one replaced never triggers a reminder.
+ */
+export function stillCurrent<T extends CareRow & { id: string }>(
+  candidates: readonly T[],
+  all: readonly (CareRow & { id: string })[],
+): T[] {
+  const current = new Set(currentCare([...candidates, ...all]).map((r) => r.id));
+  return candidates.filter((c) => current.has(c.id));
+}
+
 const RANK: Record<DueState, number> = { none: 0, ok: 1, soon: 2, due: 3 };
 
 /** The most urgent state among a pet's current records ("none" when there are none). */

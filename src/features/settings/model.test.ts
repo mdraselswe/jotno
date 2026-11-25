@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { availableMethods, DEFAULT_SETTINGS, readSettings, trxIdSchema, walletFee } from "./model";
+import {
+  availableMethods,
+  codAllowed,
+  DEFAULT_SETTINGS,
+  readSettings,
+  trxIdSchema,
+  walletFee,
+} from "./model";
 
 const ready = {
   ...DEFAULT_SETTINGS,
@@ -28,6 +35,15 @@ describe("availableMethods", () => {
     expect(availableMethods(ready, "consult", 50_000)).toEqual(["bkash", "nagad"]);
     expect(availableMethods(ready, "order", 50_000)).toEqual(["bkash", "nagad", "cod"]);
     expect(availableMethods(ready, "order", 2_000_000)).toEqual(["bkash", "nagad"]);
+  });
+});
+
+describe("codAllowed", () => {
+  it("allows totals up to the limit, any total when the limit is 0, nothing when off", () => {
+    expect(codAllowed({ enabled: true, maxOrder: 100_000 }, 100_000)).toBe(true);
+    expect(codAllowed({ enabled: true, maxOrder: 100_000 }, 100_001)).toBe(false);
+    expect(codAllowed({ enabled: true, maxOrder: 0 }, 99_000_000)).toBe(true);
+    expect(codAllowed({ enabled: false, maxOrder: 0 }, 100)).toBe(false);
   });
 });
 

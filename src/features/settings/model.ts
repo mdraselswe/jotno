@@ -80,6 +80,11 @@ export function walletFee(amount: number, w: Pick<WalletSettings, "feeBps" | "fe
   return Math.ceil(raw / 100) * 100;
 }
 
+/** Cash on delivery is on and this order total is within its limit (0 = no limit). */
+export function codAllowed(cod: Settings["cod"], amount: number): boolean {
+  return cod.enabled && (cod.maxOrder === 0 || amount <= cod.maxOrder);
+}
+
 /** Which methods this payment can use. Cash on delivery is for shop orders only. */
 export function availableMethods(
   settings: Settings,
@@ -87,11 +92,7 @@ export function availableMethods(
   amount: number,
 ): PayMethod[] {
   const out: PayMethod[] = WALLETS.filter((w) => walletReady(settings[w]));
-  const codOk =
-    purpose === "order" &&
-    settings.cod.enabled &&
-    (settings.cod.maxOrder === 0 || amount <= settings.cod.maxOrder);
-  if (codOk) out.push("cod");
+  if (purpose === "order" && codAllowed(settings.cod, amount)) out.push("cod");
   return out;
 }
 

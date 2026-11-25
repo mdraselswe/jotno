@@ -24,6 +24,7 @@ export function ImageUpload({
   label,
   shape = "square",
   className,
+  onBusyChange,
 }: {
   kind: Exclude<UploadKind, "vetDoc" | "chat">;
   name?: string;
@@ -32,6 +33,8 @@ export function ImageUpload({
   label?: string;
   shape?: "square" | "circle";
   className?: string;
+  /** True while a photo is uploading, so the form can hold its Save button. */
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const t = useT();
   const id = useId();
@@ -43,9 +46,14 @@ export function ImageUpload({
   async function pick(file: File | undefined) {
     if (!file) return;
     setPreview(URL.createObjectURL(file));
-    const path = await upload(file);
-    if (path) onChange(path);
-    else setPreview(null);
+    onBusyChange?.(true);
+    try {
+      const path = await upload(file);
+      if (path) onChange(path);
+      else setPreview(null);
+    } finally {
+      onBusyChange?.(false);
+    }
   }
 
   return (

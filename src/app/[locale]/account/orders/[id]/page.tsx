@@ -17,7 +17,7 @@ import {
   PrintButton,
   ProductThumb,
 } from "@/features/shop";
-import { myOrder, productsByIds } from "@/features/shop/server";
+import { myOrder, productThumbs } from "@/features/shop/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
@@ -34,10 +34,7 @@ async function Order({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await requireViewer(locale, localeHref(locale, orderPath(id)));
   const [o, settings] = await Promise.all([myOrder(id, viewer.id), getSettings()]);
   if (!o) notFound();
-  const products = await productsByIds(
-    o.items.flatMap((i) => (i.productId ? [i.productId] : [])),
-    locale,
-  );
+  const products = await productThumbs(o.items.flatMap((i) => (i.productId ? [i.productId] : [])));
   const pay = o.payment;
   const needsPay = o.status === "pending_payment" && pay?.status === "pending" && pay.gateway !== "cod";
   const checking = pay?.status === "review";
@@ -146,7 +143,9 @@ async function Order({ params }: { params: Promise<{ id: string }> }) {
         >
           <ul className="divide-y">
             {o.items.map((i) => {
-              const p = i.productId ? products.find((x) => x.id === i.productId) : undefined;
+              const p = i.productId ? products.get(i.productId) : undefined;
+              // Hidden products keep their photo but have no page to link to.
+              const live = p?.active ? p : undefined;
               const thumb = (
                 <ProductThumb
                   imageUrl={p?.imageUrl ?? null}
@@ -156,17 +155,17 @@ async function Order({ params }: { params: Promise<{ id: string }> }) {
               );
               return (
                 <li key={i.id} className="flex items-center gap-3 px-4 py-3 sm:px-5">
-                  {p ? (
-                    <Link href={localeHref(locale, productPath(p.slug))} tabIndex={-1}>
+                  {live ? (
+                    <Link href={localeHref(locale, productPath(live.slug))} tabIndex={-1}>
                       {thumb}
                     </Link>
                   ) : (
                     thumb
                   )}
                   <div className="grid min-w-0 flex-1 gap-0.5 text-sm">
-                    {p ? (
+                    {live ? (
                       <Link
-                        href={localeHref(locale, productPath(p.slug))}
+                        href={localeHref(locale, productPath(live.slug))}
                         className="truncate font-medium hover:underline"
                       >
                         {i.name}

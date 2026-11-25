@@ -3,6 +3,11 @@
  * (src/config/business.ts); a Bangladeshi lawyer must review them before
  * launch. Each page: title, last update, sections of plain paragraphs.
  */
+import { business } from "@/config";
+
+/** A number in Bangla digits, for the Bangla text below. */
+const bn = (n: number) => new Intl.NumberFormat("bn").format(n);
+
 export type LegalDoc = "terms" | "privacy" | "refund" | "telemedicine";
 
 export interface LegalPage {
@@ -194,7 +199,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "Chat consults",
           body: [
-            "If the vet doesn't reply within 30 minutes of your payment, the chat is refunded in full automatically. If something else went wrong, write to us within 3 days and we'll review it.",
+            `If the vet doesn't reply within ${business.consult.replyWindowMinutes} minutes of your payment, the chat is refunded in full automatically. If something else went wrong, write to us within 3 days and we'll review it.`,
           ],
         },
         {
@@ -206,7 +211,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "Shop orders",
           body: [
-            "If an item arrives damaged or wrong, tell us within 3 days with a photo and we'll replace it or refund it. Opened food and grooming products can't be returned for other reasons. A cancelled order is refunded in full.",
+            `If an item arrives damaged or wrong, tell us within ${business.shop.returnDays} days with a photo and we'll replace it or refund it. Opened food and grooming products can't be returned for other reasons. A cancelled order is refunded in full.`,
           ],
         },
         {
@@ -224,7 +229,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "চ্যাট কনসাল্ট",
           body: [
-            "পেমেন্টের ৩০ মিনিটের মধ্যে ভেট উত্তর না দিলে চ্যাটের পুরো টাকা আপনাআপনি ফেরত যায়। অন্য কোনো সমস্যা হলে ৩ দিনের মধ্যে আমাদের লিখুন, আমরা দেখব।",
+            `পেমেন্টের ${bn(business.consult.replyWindowMinutes)} মিনিটের মধ্যে ভেট উত্তর না দিলে চ্যাটের পুরো টাকা আপনাআপনি ফেরত যায়। অন্য কোনো সমস্যা হলে ৩ দিনের মধ্যে আমাদের লিখুন, আমরা দেখব।`,
           ],
         },
         {
@@ -236,7 +241,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "শপের অর্ডার",
           body: [
-            "পণ্য ভাঙা বা ভুল এলে ছবিসহ ৩ দিনের মধ্যে জানান, আমরা বদলে দেব বা টাকা ফেরত দেব। খোলা খাবার ও গ্রুমিং পণ্য অন্য কারণে ফেরত নেওয়া হয় না। বাতিল অর্ডারের পুরো টাকা ফেরত দেওয়া হয়।",
+            `পণ্য ভাঙা বা ভুল এলে ছবিসহ ${bn(business.shop.returnDays)} দিনের মধ্যে জানান, আমরা বদলে দেব বা টাকা ফেরত দেব। খোলা খাবার ও গ্রুমিং পণ্য অন্য কারণে ফেরত নেওয়া হয় না। বাতিল অর্ডারের পুরো টাকা ফেরত দেওয়া হয়।`,
           ],
         },
         {

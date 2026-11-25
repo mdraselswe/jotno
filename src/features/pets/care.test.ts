@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentCare, worstState } from "./care";
+import { currentCare, stillCurrent, worstState } from "./care";
 
 const row = (title: string, givenOn: string, dueOn: string | null, petId = "p1", kind = "vaccine") => ({
   petId,
@@ -40,5 +40,27 @@ describe("worstState", () => {
   it("returns the most urgent current state", () => {
     const rows = [row("Rabies", "2026-01-12", "2027-01-12"), row("DHPP", "2025-11-01", "2026-11-30")];
     expect(worstState(rows, "2026-11-25")).toBe("soon");
+  });
+});
+
+describe("stillCurrent", () => {
+  const withId = <T extends object>(id: string, r: T) => ({ id, ...r });
+
+  it("drops a due-soon record that a newer one of the same line replaced", () => {
+    const old = withId("a", row("Rabies", "2025-11-28", "2026-11-28"));
+    const fresh = withId("b", row("Rabies", "2026-11-20", "2027-11-20"));
+    expect(stillCurrent([old], [old, fresh])).toEqual([]);
+  });
+
+  it("keeps the newest record of each line and other pets' records", () => {
+    const rabies = withId("a", row("Rabies", "2025-11-28", "2026-11-28"));
+    const deworm = withId("c", row("Deworm", "2026-08-28", "2026-11-28", "p1", "deworm"));
+    const otherPet = withId("d", row("Rabies", "2025-11-28", "2026-11-28", "p2"));
+    const olderRabies = withId("e", row("Rabies", "2024-11-28", "2025-11-28"));
+    expect(stillCurrent([rabies, deworm, otherPet], [olderRabies, rabies, deworm, otherPet])).toEqual([
+      rabies,
+      deworm,
+      otherPet,
+    ]);
   });
 });

@@ -38,14 +38,15 @@ export const shopui = pack(
     "shopui.outOfStockHint": "Sold out for now. Check back soon, we restock often.",
     "shopui.info.delivery": "Delivery",
     "shopui.info.deliveryBody":
-      "{inside} inside Dhaka, {outside} elsewhere. Usually 1–3 days in Dhaka, 2–5 days outside.",
+      "{inside} inside Dhaka, {outside} elsewhere. Usually {insideDays} days in Dhaka, {outsideDays} days outside.",
     "shopui.info.freeFrom": "Free delivery on orders from {amount}",
     "shopui.info.cod": "Cash on delivery",
     "shopui.info.codBody": "Pay the rider in cash, or pay first by bKash or Nagad.",
     "shopui.info.pay": "Safe payment",
     "shopui.info.payBody": "Pay by bKash or Nagad. We check every payment by hand.",
     "shopui.info.returns": "Wrong or damaged item?",
-    "shopui.info.returnsBody": "Tell us when it arrives and we'll sort it out.",
+    "shopui.info.returnsBody":
+      "Tell us within {days} days of delivery, with a photo, and we'll replace or refund it.",
     "shopui.about": "About this product",
     "shopui.sku": "Product code",
     "shopui.seeAll": "See all",
@@ -74,6 +75,8 @@ export const shopui = pack(
     "shopui.noteHint": "e.g. Call before coming",
     "shopui.payment": "Payment",
     "shopui.paymentSub": "You choose how to pay on the next step.",
+    "shopui.codOverLimit":
+      "Cash on delivery isn't available for this total ({total}). It's only for orders up to {max}.",
     "shopui.signInTitle": "Sign in to place your order",
     "shopui.signInSub": "Your cart stays saved on this phone. Sign in, add your address and pay.",
     "shopui.signInToOrder": "Sign in to order",
@@ -242,14 +245,15 @@ export const shopui = pack(
     "shopui.outOfStockHint": "এখন শেষ। কিছুদিন পর আবার দেখুন, আমরা নিয়মিত স্টক আনি।",
     "shopui.info.delivery": "ডেলিভারি",
     "shopui.info.deliveryBody":
-      "ঢাকায় {inside}, ঢাকার বাইরে {outside}। ঢাকায় সাধারণত ১–৩ দিন, বাইরে ২–৫ দিন।",
+      "ঢাকায় {inside}, ঢাকার বাইরে {outside}। ঢাকায় সাধারণত {insideDays} দিন, বাইরে {outsideDays} দিন।",
     "shopui.info.freeFrom": "{amount} বা বেশি অর্ডারে ডেলিভারি ফ্রি",
     "shopui.info.cod": "ক্যাশ অন ডেলিভারি",
     "shopui.info.codBody": "রাইডারকে নগদে দিন, অথবা আগেই বিকাশ বা নগদে পেমেন্ট করুন।",
     "shopui.info.pay": "নিরাপদ পেমেন্ট",
     "shopui.info.payBody": "বিকাশ বা নগদে পেমেন্ট করুন। প্রতিটি পেমেন্ট আমরা নিজে মিলিয়ে দেখি।",
     "shopui.info.returns": "ভুল বা নষ্ট পণ্য পেয়েছেন?",
-    "shopui.info.returnsBody": "পণ্য হাতে পেয়েই আমাদের জানান, আমরা ঠিক করে দেব।",
+    "shopui.info.returnsBody":
+      "পণ্য হাতে পাওয়ার {days} দিনের মধ্যে ছবিসহ আমাদের জানান, আমরা বদলে দেব বা টাকা ফেরত দেব।",
     "shopui.about": "পণ্যটি সম্পর্কে",
     "shopui.sku": "পণ্যের কোড",
     "shopui.seeAll": "সব দেখুন",
@@ -278,6 +282,8 @@ export const shopui = pack(
     "shopui.noteHint": "যেমন: আসার আগে ফোন দেবেন",
     "shopui.payment": "পেমেন্ট",
     "shopui.paymentSub": "কীভাবে পেমেন্ট করবেন, পরের ধাপে বেছে নেবেন।",
+    "shopui.codOverLimit":
+      "এই মোটের ({total}) জন্য ক্যাশ অন ডেলিভারি নেই। শুধু {max} পর্যন্ত অর্ডারে ক্যাশ অন ডেলিভারি দেওয়া যায়।",
     "shopui.signInTitle": "অর্ডার করতে সাইন ইন করুন",
     "shopui.signInSub": "আপনার কার্ট এই ফোনেই রাখা থাকবে। সাইন ইন করে ঠিকানা দিন আর পেমেন্ট করুন।",
     "shopui.signInToOrder": "সাইন ইন করে অর্ডার করুন",

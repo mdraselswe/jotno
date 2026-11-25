@@ -16,12 +16,14 @@ export {
   orderCounts,
   ordersForExport,
   productsByIds,
+  productThumbs,
   shopCatalog,
   shopCategories,
   shopReport,
   usableCoupon,
   type OrderDetail,
   type ProductCard,
+  type ProductThumbInfo,
 } from "./queries";
 export { notifyLowStock } from "./jobs";
 export {

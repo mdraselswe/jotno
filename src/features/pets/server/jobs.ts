@@ -1,11 +1,12 @@
 import "server-only";
-import { and, eq, gte, isNotNull, lte } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, lte } from "drizzle-orm";
 import { petPath } from "@/config/routes";
 import { addDays, shouldRemind } from "@/features/health";
 import { notify } from "@/features/notifications/server";
 import { db, schema } from "@/infrastructure/db";
 import { dhakaDay } from "@/lib/dhaka";
 import { localeHref } from "@/lib/locale-href";
+import { stillCurrent } from "../care";
 
 const H = schema.healthRecords;
 
@@ -17,6 +18,7 @@ export async function runHealthReminders(now = new Date()): Promise<{ reminded: 
       id: H.id,
       title: H.title,
       kind: H.kind,
+      givenOn: H.givenOn,
       dueOn: H.dueOn,
       remindedAt: H.remindedAt,
       petId: schema.patients.id,
@@ -29,8 +31,25 @@ export async function runHealthReminders(now = new Date()): Promise<{ reminded: 
     .innerJoin(schema.profiles, eq(schema.profiles.id, schema.patients.ownerId))
     .where(and(isNotNull(H.dueOn), gte(H.dueOn, today), lte(H.dueOn, addDays(today, 7))))
     .limit(2000);
+  // Only the newest record of each vaccine/deworming line counts: last year's
+  // shot that this year's replaced must not remind again.
+  const petIds = [...new Set(rows.map((r) => r.petId))];
+  const history =
+    petIds.length === 0
+      ? []
+      : await db()
+          .select({
+            id: H.id,
+            petId: H.patientId,
+            kind: H.kind,
+            title: H.title,
+            givenOn: H.givenOn,
+            dueOn: H.dueOn,
+          })
+          .from(H)
+          .where(inArray(H.patientId, petIds));
   let reminded = 0;
-  for (const r of rows) {
+  for (const r of stillCurrent(rows, history)) {
     if (!r.dueOn) continue;
     if (!shouldRemind(r.dueOn, today, r.remindedAt ? dhakaDay(r.remindedAt) : null)) continue;
     const bn = r.locale === "bn";

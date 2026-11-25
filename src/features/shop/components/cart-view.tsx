@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   ArrowRight,
+  Banknote,
   Loader2,
   Lock,
   LogIn,
@@ -29,7 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { productPath, ROUTES } from "@/config/routes";
 import { DISTRICTS } from "@/content/geo";
 import { WalletMark } from "@/features/payments";
-import type { PayMethod } from "@/features/settings";
+import { codAllowed, type PayMethod, type Settings } from "@/features/settings";
 import { useMounted } from "@/hooks/use-mounted";
 import { useFormatter, useLocale, useT } from "@/i18n/client";
 import { localeHref } from "@/lib/locale-href";
@@ -68,12 +69,15 @@ export function CartView({
   buyer,
   signInHref,
   methods,
+  cod,
 }: {
   rule: DeliveryRule;
   buyer: Buyer | null;
   signInHref: string;
   /** Ways to pay on the next step (for the preview card). */
   methods: PayMethod[];
+  /** Cash on delivery switch and limit; the pay page drops COD above it. */
+  cod: Settings["cod"];
 }) {
   const t = useT();
   const locale = useLocale();
@@ -173,6 +177,9 @@ export function CartView({
   const delivery = deliveryFee(sub - discount, districtId ? Number(districtId) : null, rule);
   const total = sub - discount + (districtId ? delivery : 0);
   const blocked = priced.some((l) => l.stock <= 0 || l.qty > l.stock);
+  // Same rule as the pay page; before a district is picked the total leaves out delivery.
+  const codOver = methods.includes("cod") && !codAllowed(cod, total);
+  const payMethods = codOver ? methods.filter((m) => m !== "cod") : methods;
   const toFree = rule.freeFrom > 0 ? rule.freeFrom - (sub - discount) : 0;
 
   const problems: Record<Field, string | null> = {
@@ -457,17 +464,26 @@ export function CartView({
             </SectionCard>
 
             <SectionCard title={t("shopui.payment")} description={t("shopui.paymentSub")} icon={Wallet}>
-              {methods.length > 0 ? (
+              {payMethods.length > 0 ? (
                 <ul className="flex flex-wrap gap-2">
-                  {methods.map((m) => (
+                  {payMethods.map((m) => (
                     <li key={m}>
                       <WalletMark method={m} label={t(`pay.method.${m}`)} className="h-8 px-3 text-sm" />
                     </li>
                   ))}
                 </ul>
-              ) : (
+              ) : codOver ? null : (
                 <p className="text-sm text-muted-foreground">{t("pay.noMethods")}</p>
               )}
+              {codOver ? (
+                <p role="status" className="mt-3 flex gap-2 text-sm text-pretty text-muted-foreground">
+                  <Banknote
+                    aria-hidden="true"
+                    className="mt-0.5 size-4 shrink-0 text-warning-foreground dark:text-warning"
+                  />
+                  {t("shopui.codOverLimit", { total: taka(fmt, total), max: taka(fmt, cod.maxOrder) })}
+                </p>
+              ) : null}
             </SectionCard>
           </form>
         ) : (

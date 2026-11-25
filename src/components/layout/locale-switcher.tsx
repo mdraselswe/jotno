@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { LOCALES, localeName, localePath, splitLocale } from "@/config/locale";
+import { saveLocale } from "@/features/auth";
 import { useLocale, useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +35,14 @@ function CurrentSwitcher() {
   return <Switcher path={splitLocale(usePathname()).path} />;
 }
 
+/**
+ * Remembers the new language on a signed-in person's profile (push messages
+ * use it). Fire and forget: the link navigates at once; signed out it's a no-op.
+ */
+function remember(next: string, current: string) {
+  if (next !== current) saveLocale(next).catch(() => undefined);
+}
+
 function Switcher({ path }: { path: string }) {
   const locale = useLocale();
   const t = useT();
@@ -50,6 +59,7 @@ function Switcher({ path }: { path: string }) {
         href={hrefFor(only)}
         hrefLang={only}
         lang={only}
+        onClick={() => remember(only, locale)}
         aria-label={`${t("locale.switch")}: ${localeName(only)}`}
         className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "gap-1.5")}
       >
@@ -73,6 +83,7 @@ function Switcher({ path }: { path: string }) {
           <DropdownMenuItem
             key={l}
             render={<Link href={hrefFor(l)} hrefLang={l} lang={l} />}
+            onClick={() => remember(l, locale)}
             aria-current={l === locale ? "true" : undefined}
           >
             {localeName(l)}
@@ -113,7 +124,10 @@ function Segment({ path, onPick }: { path: string; onPick?: () => void }) {
             href={localePath(l, path) as Route}
             hrefLang={l}
             lang={l}
-            onClick={onPick}
+            onClick={() => {
+              remember(l, locale);
+              onPick?.();
+            }}
             aria-current={current ? "true" : undefined}
             className={cn(
               "grid h-10 place-items-center rounded-(--radius-lg) text-sm font-semibold transition-[background-color,color,box-shadow] duration-(--motion-fast)",

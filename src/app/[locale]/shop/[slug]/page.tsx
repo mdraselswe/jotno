@@ -6,6 +6,7 @@ import { Suspense, type ReactNode } from "react";
 import { StatusBadge } from "@/components/layout/app-ui";
 import { JsonLd } from "@/components/ui/json-ld";
 import { Skeleton } from "@/components/ui/skeleton";
+import { business } from "@/config";
 import { localePath } from "@/config/locale";
 import { pageUrl, productPath, ROUTES } from "@/config/routes";
 import { SPECIES } from "@/content/geo";
@@ -70,6 +71,8 @@ async function Product({ params }: { params: Promise<{ slug: string }> }) {
   const inCategory = `${shop}/?category=${p.category}` as Route;
   const pet = SPECIES.find((s) => s.id === p.speciesId);
   const { delivery } = settings;
+  const dayRange = (r: { min: number; max: number }) =>
+    r.min === r.max ? fmt.number(r.min) : `${fmt.number(r.min)}–${fmt.number(r.max)}`;
   const badge =
     off > 0 ? (
       <span className="rounded-full bg-highlight px-2.5 py-1 text-sm font-bold text-highlight-foreground tabular-nums shadow-(--shadow-control)">
@@ -188,6 +191,8 @@ async function Product({ params }: { params: Promise<{ slug: string }> }) {
               {t("shopui.info.deliveryBody", {
                 inside: taka(fmt, delivery.inside),
                 outside: taka(fmt, delivery.outside),
+                insideDays: dayRange(business.shop.deliveryDays.inside),
+                outsideDays: dayRange(business.shop.deliveryDays.outside),
               })}
               {delivery.freeFrom > 0 ? (
                 <span className="block font-medium text-success">
@@ -202,7 +207,7 @@ async function Product({ params }: { params: Promise<{ slug: string }> }) {
               {settings.cod.enabled ? t("shopui.info.codBody") : t("shopui.info.payBody")}
             </InfoRow>
             <InfoRow icon={RotateCcw} title={t("shopui.info.returns")}>
-              {t("shopui.info.returnsBody")}
+              {t("shopui.info.returnsBody", { days: fmt.number(business.shop.returnDays) })}
               {settings.supportPhone ? (
                 <a
                   href={`tel:${settings.supportPhone}`}

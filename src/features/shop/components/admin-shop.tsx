@@ -545,6 +545,10 @@ export function ProductForm({
       : { ...initial, category: categories[0]?.slug ?? initial.category },
   );
   const [tried, setTried] = useState(false);
+  // Photos still uploading would be left out of the saved product.
+  const [mainUploading, setMainUploading] = useState(false);
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const uploading = mainUploading || galleryUploading;
   const set = (patch: Partial<ProductFormValues>) => setV((x) => ({ ...x, ...patch }));
   const price = toPoisha(v.price);
   const compareAt = v.compareAt ? toPoisha(v.compareAt) : null;
@@ -581,6 +585,7 @@ export function ProductForm({
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
+        if (uploading) return;
         setTried(true);
         if (errors.nameEn || errors.nameBn || errors.price) {
           toast.error(t("shop.productInvalid"));
@@ -617,12 +622,14 @@ export function ProductForm({
             kind="product"
             value={v.imagePath}
             onChange={(path) => set({ imagePath: path })}
+            onBusyChange={setMainUploading}
             label={t("shop.image")}
           />
           <ImageListUpload
             kind="product"
             value={v.images}
             onChange={(images) => set({ images })}
+            onBusyChange={setGalleryUploading}
             max={galleryMax}
             label={t("shopAdmin.morePhotos", { max: galleryMax })}
             hint={t("shopAdmin.morePhotosHint")}
@@ -719,9 +726,21 @@ export function ProductForm({
 
       {/* Save: sticky at the bottom on phones (above the tab bar), at the end from md. */}
       <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 -mx-4 border-t bg-background/95 px-4 py-3 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
-        <Button type="submit" variant="brand" size="lg" disabled={pending} className="w-full md:w-auto">
-          {pending ? <Spin /> : <Save aria-hidden="true" />}
-          {pending ? t("common.saving") : id ? t("common.save") : t("shopui.admin.createProduct")}
+        <Button
+          type="submit"
+          variant="brand"
+          size="lg"
+          disabled={pending || uploading}
+          className="w-full md:w-auto"
+        >
+          {pending || uploading ? <Spin /> : <Save aria-hidden="true" />}
+          {pending
+            ? t("common.saving")
+            : uploading
+              ? t("common.uploading")
+              : id
+                ? t("common.save")
+                : t("shopui.admin.createProduct")}
         </Button>
       </div>
     </form>
