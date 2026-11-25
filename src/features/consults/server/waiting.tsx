@@ -1,7 +1,8 @@
 import "server-only";
-import { MessageCircle } from "lucide-react";
+import { ArrowRight, MessageCircle } from "lucide-react";
 import Link from "next/link";
-import { chatPath } from "@/config/routes";
+import { ConsultList } from "@/components/layout/consult-list";
+import { ROUTES } from "@/config/routes";
 import { getFormatter, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { db, schema } from "@/infrastructure/db";
@@ -20,37 +21,30 @@ export async function WaitingConsults({ providerId, locale }: { providerId: stri
   const items = vet ? await listVetConsults(providerId, vet.profileId, true) : [];
   return (
     <section className="grid gap-3" aria-labelledby="waiting-h">
-      <h2 id="waiting-h" className="font-heading text-xl font-semibold">
-        {t("vet.waiting")}
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="waiting-h" className="flex items-center gap-2 font-heading text-xl font-bold tracking-tight">
+          <MessageCircle aria-hidden="true" className="size-5 text-primary" />
+          {t("vet.waiting")}
+          {items.length > 0 ? (
+            <span className="grid h-6 min-w-6 place-items-center rounded-full bg-destructive px-1.5 text-xs font-semibold text-white tabular-nums">
+              {fmt.number(items.length)}
+            </span>
+          ) : null}
+        </h2>
+        <Link
+          href={localeHref(locale, ROUTES.vetConsults)}
+          className="inline-flex items-center gap-1 rounded-sm text-sm font-semibold text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          {t("chatui.list.allChats")}
+          <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
+        </Link>
+      </div>
       {items.length === 0 ? (
-        <p className="text-muted-foreground">{t("vet.noWaiting")}</p>
+        <p className="rounded-(--radius-2xl) border border-dashed border-foreground/15 bg-card/50 px-4 py-6 text-center text-sm text-muted-foreground">
+          {t("vet.noWaiting")}
+        </p>
       ) : (
-        <ul className="grid gap-2">
-          {items.map((c) => (
-            <li key={c.id}>
-              <Link
-                href={localeHref(locale, chatPath(c.id))}
-                className="flex items-center gap-3 rounded-(--control-radius) bg-card px-4 py-3 shadow-(--shadow-card) hover:bg-muted/50"
-              >
-                <MessageCircle aria-hidden="true" className="size-5 text-primary" />
-                <span className="grid min-w-0 flex-1">
-                  <span className="font-medium">{c.otherName ?? "—"}</span>
-                  <span className="truncate text-sm text-muted-foreground">{c.summary}</span>
-                </span>
-                {!c.firstReplyAt ? (
-                  <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive">
-                    {t("consult.new")}
-                  </span>
-                ) : c.unread > 0 ? (
-                  <span className="grid size-6 place-items-center rounded-full bg-primary text-xs text-primary-foreground">
-                    {fmt.number(c.unread)}
-                  </span>
-                ) : null}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <ConsultList items={items} locale={locale} t={t} fmt={fmt} side="vet" />
       )}
     </section>
   );

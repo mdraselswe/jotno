@@ -45,7 +45,7 @@ async function Prescription({ params }: { params: Promise<{ id: string }> }) {
       <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
         <Link
           href={localeHref(locale, chatPath(id))}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-card ps-2.5 pe-3.5 text-sm font-medium text-foreground/80 shadow-(--shadow-control) ring-1 ring-foreground/8 transition-colors duration-(--motion-fast) hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           <ArrowLeft aria-hidden="true" className="size-4 rtl:rotate-180" />
           {t("rx.back")}
@@ -60,7 +60,7 @@ async function Prescription({ params }: { params: Promise<{ id: string }> }) {
       <article
         data-no-reveal
         aria-labelledby="rx-heading"
-        className="grid gap-6 rounded-(--radius-2xl) bg-card p-6 text-card-foreground shadow-(--shadow-card) sm:p-8 print:rounded-none print:p-0 print:shadow-none"
+        className="grid gap-6 rounded-(--radius-2xl) bg-card p-5 text-card-foreground shadow-(--shadow-card) ring-1 ring-foreground/6 sm:p-8 print:rounded-none print:p-0 print:shadow-none print:ring-0"
       >
         <header className="flex flex-wrap items-start justify-between gap-4 border-b pb-4">
           <div className="grid gap-0.5">
@@ -91,7 +91,7 @@ async function Prescription({ params }: { params: Promise<{ id: string }> }) {
           </div>
         </header>
 
-        <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
+        <dl className="grid gap-x-6 gap-y-1 rounded-(--radius-xl) bg-muted/50 p-4 text-sm sm:grid-cols-[auto_1fr] print:bg-transparent print:p-0">
           <dt className="text-muted-foreground">{t("rx.date")}</dt>
           <dd>{fmt.date(rx.updatedAt, { dateStyle: "long" })}</dd>
           {rx.ownerName ? (
@@ -132,9 +132,15 @@ async function Prescription({ params }: { params: Promise<{ id: string }> }) {
             <ol className="grid gap-3">
               {rx.items.map((it, i) => (
                 <li key={`${it.name}-${i}`} className="grid gap-1 border-b pb-3 last:border-0 last:pb-0">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="font-semibold">
-                      {fmt.number(i + 1)}. {it.name}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="flex min-w-0 items-center gap-2 font-semibold">
+                      <span
+                        aria-hidden="true"
+                        className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-xs text-primary tabular-nums print:bg-transparent"
+                      >
+                        {fmt.number(i + 1)}
+                      </span>
+                      <span className="break-words">{it.name}</span>
                     </span>
                     {rx.role === "owner" && it.product ? (
                       it.product.inStock ? (
@@ -154,11 +160,11 @@ async function Prescription({ params }: { params: Promise<{ id: string }> }) {
                       )
                     ) : null}
                   </div>
-                  <p className="text-sm">
+                  <p className="ps-8 text-sm">
                     {it.dose} · {it.frequency}
                     {it.days ? ` · ${t("rx.forDays", { n: fmt.number(it.days) })}` : ""}
                   </p>
-                  {it.note ? <p className="text-sm text-muted-foreground">{it.note}</p> : null}
+                  {it.note ? <p className="ps-8 text-sm text-muted-foreground">{it.note}</p> : null}
                 </li>
               ))}
             </ol>

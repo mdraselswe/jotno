@@ -1,8 +1,10 @@
 "use client";
 
-import { Copy, Mic, MicOff, Phone, PhoneOff, Video, VideoOff } from "lucide-react";
-import { useEffect, useEffectEvent, useRef, useState, type RefObject } from "react";
+import { Lock, Mic, MicOff, Phone, PhoneOff, Video, VideoOff } from "lucide-react";
+import { useEffect, useEffectEvent, useRef, useState, type ReactNode, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { business } from "@/config";
 import { useMounted } from "@/hooks/use-mounted";
@@ -16,6 +18,8 @@ import { startTone } from "./ringtone";
 
 /** The chat hands call signals (broadcast event "call") to the call through this. */
 export type CallSignals = RefObject<((payload: Record<string, unknown>) => void) | null>;
+/** The chat's "Call back" buttons place a call through this (same path as the header buttons). */
+export type CallPlacer = RefObject<((media: CallMedia) => void) | null>;
 
 type Phase =
   | { name: "idle" }
@@ -73,9 +77,14 @@ export function ConsultCall({
   ready,
   send,
   signalsRef,
+  otherPhoto = null,
+  placeRef,
 }: {
   consultId: string;
   otherName: string;
+  /** Shown big on the call screen (initial when null). */
+  otherPhoto?: string | null;
+  placeRef?: CallPlacer;
   /** The consult is open (calls only happen in an active consult). */
   enabled: boolean;
   otherOnline: boolean;
@@ -319,6 +328,22 @@ export function ConsultCall({
     };
   }, [signalsRef]);
 
+  // "Call back" in the conversation: the same checks as the header buttons.
+  const place = useEffectEvent((media: CallMedia) => {
+    if (!enabled || !ready || starting) return;
+    const can = support();
+    if (can === "inApp") toast(t("call.inApp"));
+    else if (can === "unsupported") toast.error(t("call.unsupported"));
+    else void begin(media);
+  });
+  useEffect(() => {
+    if (!placeRef) return;
+    placeRef.current = (media) => place(media);
+    return () => {
+      placeRef.current = null;
+    };
+  }, [placeRef]);
+
   // Opened the chat from a "calling you" notification or popup: the call may still be
   // ringing. "?answer=<callId>" means they already tapped Answer, so pick up at once.
   const checkPending = useEffectEvent(async () => {
@@ -412,65 +437,51 @@ export function ConsultCall({
   const can = support();
 
   if (phase.name === "idle") {
-    return (
-      <div className="flex flex-wrap items-center gap-2 border-b pb-3">
-        <span className="flex min-w-0 flex-1 basis-full items-center gap-2 text-xs text-muted-foreground sm:basis-0">
-          <span
-            aria-hidden="true"
-            className={cn(
-              "size-2 shrink-0 rounded-full",
-              otherOnline ? "bg-success" : "bg-muted-foreground/40",
-            )}
-          />
-          {can === "inApp"
-            ? t("call.inApp")
-            : can === "unsupported"
-              ? t("call.unsupported")
-              : t(otherOnline ? "call.online" : "call.offline", { name: otherName })}
-        </span>
-        {can === "inApp" ? (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
+    // Closed consult: no call buttons (the composer says why the chat is read-only).
+    if (!enabled) return null;
+    const blocked = can !== "ok";
+    const explain = () => {
+      if (can === "inApp") {
+        toast(t("call.inApp"), {
+          action: {
+            label: t("call.copyLink"),
+            onClick: () => {
               void navigator.clipboard
                 ?.writeText(window.location.href)
                 .then(() => toast(t("call.linkCopied")));
-            }}
-          >
-            <Copy aria-hidden="true" />
-            {t("call.copyLink")}
-          </Button>
-        ) : (
-          <>
+            },
+          },
+        });
+      } else toast.error(t("call.unsupported"));
+    };
+    const hint = otherOnline ? undefined : t("call.offline", { name: otherName });
+    return (
+      <div className="flex shrink-0 items-center gap-0.5">
+        {(["audio", "video"] as const).map((media) => {
+          const Icon = media === "audio" ? Phone : Video;
+          return (
             <Button
-              size="sm"
-              variant="outline"
-              disabled={!enabled || !ready || starting || can !== "ok"}
+              key={media}
+              size="icon"
+              variant="ghost"
+              className="size-10 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
+              disabled={!blocked && (!ready || starting)}
               aria-busy={starting}
-              onClick={() => void begin("audio")}
+              aria-label={t(media === "audio" ? "call.audio" : "call.video")}
+              title={hint}
+              onClick={() => (blocked ? explain() : void begin(media))}
             >
-              <Phone aria-hidden="true" />
-              {t("call.audio")}
+              <Icon aria-hidden="true" className="size-5" />
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={!enabled || !ready || starting || can !== "ok"}
-              aria-busy={starting}
-              onClick={() => void begin("video")}
-            >
-              <Video aria-hidden="true" />
-              {t("call.video")}
-            </Button>
-          </>
-        )}
+          );
+        })}
       </div>
     );
   }
 
   const isVideo = phase.media === "video";
   const showRemoteVideo = phase.name === "live" && isVideo && remoteCam;
+  const ringing = phase.name !== "live" || phase.peer !== "connected";
   const status =
     phase.name === "outgoing"
       ? t("call.calling", { name: otherName })
@@ -480,15 +491,17 @@ export function ConsultCall({
           ? clock((now - phase.since) / 1000)
           : t(phase.peer === "reconnecting" ? "call.reconnecting" : "call.connecting");
 
-  return (
+  // A dark stage in both themes ("dark" scopes the dark tokens to it), portalled
+  // to <body> so no transformed or blurred ancestor can clip the fixed layer.
+  const stage = (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="call-title"
       aria-describedby="call-status"
-      className="fixed inset-0 z-50 flex flex-col bg-foreground text-background"
+      className="dark fixed inset-0 z-50 flex flex-col bg-background text-foreground"
     >
-      {/* Remote media fills the screen; audio-only calls show the name instead. */}
+      {/* Remote media fills the screen; audio-only calls show the person instead. */}
       <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
         <video
           ref={remoteVideo}
@@ -498,30 +511,53 @@ export function ConsultCall({
         />
         <audio ref={remoteAudio} autoPlay className="hidden" />
         {!showRemoteVideo ? (
-          <div className="grid justify-items-center gap-4 px-6 text-center">
-            <span className="relative grid size-28 place-items-center rounded-full bg-background/10 text-4xl font-semibold">
-              {phase.name !== "live" ? (
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-0 rounded-full bg-background/15 motion-safe:animate-ping"
-                />
+          <>
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 bg-radial from-primary/30 via-primary/8 to-transparent to-70%"
+            />
+            <div className="relative grid justify-items-center gap-5 px-6 text-center">
+              <span className="relative grid size-32 place-items-center sm:size-36">
+                {ringing ? (
+                  <>
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-0 rounded-full bg-primary/25 motion-safe:animate-ping"
+                    />
+                    <span
+                      aria-hidden="true"
+                      className="absolute -inset-3 rounded-full ring-1 ring-foreground/10"
+                    />
+                  </>
+                ) : null}
+                <Avatar className="relative size-full ring-4 ring-foreground/10">
+                  {otherPhoto ? <AvatarImage src={otherPhoto} alt="" className="object-cover" /> : null}
+                  <AvatarFallback className="bg-primary text-5xl font-semibold text-primary-foreground">
+                    {otherName.trim().charAt(0).toUpperCase() || "?"}
+                  </AvatarFallback>
+                </Avatar>
+              </span>
+              {phase.name === "live" && isVideo && !remoteCam ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-foreground/10 px-3 py-1 text-sm text-foreground/80">
+                  <VideoOff aria-hidden="true" className="size-4" />
+                  {t("call.cameraIsOff")}
+                </span>
               ) : null}
-              {otherName.trim().charAt(0).toUpperCase() || "?"}
-            </span>
-            {phase.name === "live" && isVideo && !remoteCam ? (
-              <span className="text-sm opacity-75">{t("call.cameraIsOff")}</span>
-            ) : null}
-          </div>
+            </div>
+          </>
         ) : null}
 
-        <div className="absolute inset-x-0 top-0 grid gap-1 bg-linear-to-b from-foreground/80 to-transparent px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-8 text-center">
-          <h2 id="call-title" className="text-lg font-semibold">
+        <div className="absolute inset-x-0 top-0 grid justify-items-center gap-1 bg-linear-to-b from-background/90 to-transparent px-4 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-10 text-center">
+          <h2 id="call-title" className="max-w-full truncate font-heading text-2xl font-bold tracking-tight">
             {otherName}
           </h2>
-          <p id="call-status" aria-live="polite" className="text-sm tabular-nums opacity-85">
+          <p id="call-status" aria-live="polite" className="text-sm text-foreground/80 tabular-nums">
             {status}
           </p>
-          <p className="text-xs opacity-60">{t("call.private")}</p>
+          <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-foreground/55">
+            <Lock aria-hidden="true" className="size-3" />
+            {t("call.private")}
+          </p>
         </div>
 
         {myMedia === "video" && camOn && phase.name !== "incoming" ? (
@@ -531,19 +567,38 @@ export function ConsultCall({
             playsInline
             muted
             aria-label={t("call.yourCamera")}
-            className="absolute right-4 bottom-4 aspect-3/4 w-28 rounded-(--radius-xl) object-cover shadow-(--shadow-card) ring-2 ring-background/30 sm:w-36"
+            className="absolute end-4 bottom-4 aspect-3/4 w-28 -scale-x-100 rounded-(--radius-2xl) object-cover shadow-(--shadow-card) ring-2 ring-foreground/20 sm:w-36"
           />
         ) : null}
       </div>
 
-      <div className="flex items-center justify-center gap-4 px-4 pt-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+      <div className="flex items-start justify-center gap-6 px-4 pt-6 pb-[calc(1.75rem+env(safe-area-inset-bottom))] sm:gap-8">
         {phase.name === "incoming" ? (
           <>
-            <Button
-              ref={firstButton}
-              size="icon-lg"
-              className="size-16 rounded-full bg-success text-success-foreground hover:bg-success/90"
-              aria-label={t("call.accept")}
+            <Control
+              label={t("call.decline")}
+              ariaLabel={t("call.decline")}
+              tone="danger"
+              big
+              onClick={() => finish("decline")}
+            >
+              <PhoneOff aria-hidden="true" className="size-7" />
+            </Control>
+            {isVideo ? (
+              <Control
+                label={t("chatui.call.audioOnly")}
+                ariaLabel={t("call.acceptAudio")}
+                onClick={() => void accept(true)}
+              >
+                <Phone aria-hidden="true" className="size-6" />
+              </Control>
+            ) : null}
+            <Control
+              buttonRef={firstButton}
+              label={t("call.accept")}
+              ariaLabel={t("call.accept")}
+              tone="success"
+              big
               onClick={() => void accept(false)}
             >
               {isVideo ? (
@@ -551,37 +606,15 @@ export function ConsultCall({
               ) : (
                 <Phone aria-hidden="true" className="size-7" />
               )}
-            </Button>
-            {isVideo ? (
-              <Button
-                size="icon-lg"
-                variant="secondary"
-                className="size-14 rounded-full"
-                aria-label={t("call.acceptAudio")}
-                onClick={() => void accept(true)}
-              >
-                <Phone aria-hidden="true" className="size-6" />
-              </Button>
-            ) : null}
-            <Button
-              size="icon-lg"
-              variant="destructive"
-              className="size-16 rounded-full"
-              aria-label={t("call.decline")}
-              onClick={() => finish("decline")}
-            >
-              <PhoneOff aria-hidden="true" className="size-7" />
-            </Button>
+            </Control>
           </>
         ) : (
           <>
             {phase.name === "live" ? (
-              <Button
-                size="icon-lg"
-                variant="secondary"
-                className="size-14 rounded-full"
-                aria-pressed={muted}
-                aria-label={t(muted ? "call.unmute" : "call.mute")}
+              <Control
+                label={t(muted ? "chatui.call.unmute" : "chatui.call.mute")}
+                ariaLabel={t(muted ? "call.unmute" : "call.mute")}
+                pressed={muted}
                 onClick={toggleMute}
               >
                 {muted ? (
@@ -589,15 +622,13 @@ export function ConsultCall({
                 ) : (
                   <Mic aria-hidden="true" className="size-6" />
                 )}
-              </Button>
+              </Control>
             ) : null}
             {phase.name === "live" && myMedia === "video" ? (
-              <Button
-                size="icon-lg"
-                variant="secondary"
-                className="size-14 rounded-full"
-                aria-pressed={!camOn}
-                aria-label={t(camOn ? "call.cameraOff" : "call.cameraOn")}
+              <Control
+                label={t("chatui.call.camera")}
+                ariaLabel={t(camOn ? "call.cameraOff" : "call.cameraOn")}
+                pressed={!camOn}
                 onClick={() => void toggleCamera()}
               >
                 {camOn ? (
@@ -605,21 +636,74 @@ export function ConsultCall({
                 ) : (
                   <VideoOff aria-hidden="true" className="size-6" />
                 )}
-              </Button>
+              </Control>
             ) : null}
-            <Button
-              ref={firstButton}
-              size="icon-lg"
-              variant="destructive"
-              className="size-16 rounded-full"
-              aria-label={t(phase.name === "outgoing" ? "call.cancel" : "call.hangup")}
+            <Control
+              buttonRef={firstButton}
+              label={t(phase.name === "outgoing" ? "chatui.call.cancel" : "chatui.call.end")}
+              ariaLabel={t(phase.name === "outgoing" ? "call.cancel" : "call.hangup")}
+              tone="danger"
+              big
               onClick={() => finish(phase.name === "outgoing" ? "cancel" : "hangup")}
             >
               <PhoneOff aria-hidden="true" className="size-7" />
-            </Button>
+            </Control>
           </>
         )}
       </div>
+    </div>
+  );
+  return createPortal(stage, document.body);
+}
+
+const CONTROL_TONES = {
+  neutral: "bg-foreground/12 text-foreground hover:bg-foreground/20 hover:text-foreground",
+  pressed: "bg-foreground text-background hover:bg-foreground/90 hover:text-background",
+  danger: "bg-destructive text-white hover:bg-destructive/90 hover:text-white",
+  success: "bg-success text-success-foreground hover:bg-success/90 hover:text-success-foreground",
+} as const;
+
+/** A round call control with a short visible label under it. */
+function Control({
+  label,
+  ariaLabel,
+  tone = "neutral",
+  pressed,
+  big = false,
+  buttonRef,
+  onClick,
+  children,
+}: {
+  label: string;
+  ariaLabel: string;
+  tone?: "neutral" | "danger" | "success";
+  /** A toggle (mute, camera off): shown inverted while on. */
+  pressed?: boolean;
+  big?: boolean;
+  buttonRef?: RefObject<HTMLButtonElement | null>;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="grid w-18 justify-items-center gap-2">
+      <Button
+        ref={buttonRef}
+        size="icon-lg"
+        variant="ghost"
+        className={cn(
+          "rounded-full shadow-(--shadow-control)",
+          big ? "size-16" : "size-14",
+          CONTROL_TONES[pressed ? "pressed" : tone],
+        )}
+        aria-pressed={pressed}
+        aria-label={ariaLabel}
+        onClick={onClick}
+      >
+        {children}
+      </Button>
+      <span aria-hidden="true" className="text-center text-xs leading-tight font-medium text-foreground/80">
+        {label}
+      </span>
     </div>
   );
 }

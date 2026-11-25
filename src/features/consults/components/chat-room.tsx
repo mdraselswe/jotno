@@ -1,31 +1,27 @@
 "use client";
 
-import {
-  Check,
-  CheckCheck,
-  FileText,
-  ImagePlus,
-  Loader2,
-  Phone,
-  PhoneMissed,
-  SendHorizontal,
-  Video,
-} from "lucide-react";
-import Link from "next/link";
-import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
+import { ArrowDown, ChevronDown, FilePenLine, MessagesSquare, PawPrint, ShieldAlert } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { site } from "@/config";
+import { prescriptionPath } from "@/config/routes";
 import { PushPrompt } from "@/features/notifications";
 import { useUpload } from "@/features/uploads";
-import { useFormatter, useLocale, useT } from "@/i18n/client";
-import { prescriptionPath } from "@/config/routes";
+import { useLocale, useT } from "@/i18n/client";
 import { localeHref } from "@/lib/locale-href";
 import { cn } from "@/lib/utils";
-import { clock, parseCallLine } from "../calls";
-import { chatImageUrl, markRead, sendMessage } from "../server/actions";
+import type { RxInput } from "../prescription";
+import { markRead, sendMessage } from "../server/actions";
 import type { ChatMessage } from "../server/queries";
-import { ConsultCall, type CallSignals } from "./call/consult-call";
+import { ConsultCall, type CallPlacer, type CallSignals } from "./call/consult-call";
+import { ChatComposer, ChatReadOnlyBar } from "./chat-composer";
+import { ChatHeader, ChatMenu, type ChatPerson } from "./chat-header";
+import { buildThread, countFromOthers, mergeMessages } from "./chat-thread";
+import { MessageBubble, OutgoingFooter, SystemRow, TypingBubble, DayPill } from "./chat-thread-view";
+import { ReplyCountdown } from "./consult-forms";
+import { RxEditor } from "./rx/rx-editor";
 import { useConsultChannel, type MessageRow } from "./use-consult-channel";
 
 const fromRow = (r: MessageRow): ChatMessage => ({
@@ -37,80 +33,119 @@ const fromRow = (r: MessageRow): ChatMessage => ({
   createdAt: new Date(r.created_at).toISOString(),
 });
 
-const SYSTEM_KEYS = {
-  "system:opened": "consult.sysOpened",
-  "system:closed": "consult.sysClosed",
-  "system:refunded": "consult.sysRefunded",
-} as const;
-
-function ChatImage({ messageId }: { messageId: string }) {
-  const [url, setUrl] = useState<string | null>(null);
-  const t = useT();
-  useEffect(() => {
-    let alive = true;
-    void chatImageUrl(messageId).then((u) => {
-      if (alive) setUrl(u);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [messageId]);
-  if (!url) return <div className="h-40 w-48 animate-pulse rounded-(--control-radius) bg-muted" />;
-  return (
-    <a href={url} target="_blank" rel="noopener noreferrer" className="block">
-      {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL */}
-      <img
-        src={url}
-        alt={t("consult.photo")}
-        className="max-h-72 max-w-full rounded-(--control-radius) object-cover"
-      />
-    </a>
-  );
+/** A message I sent that the server hasn't confirmed yet (or that failed). */
+interface Outgoing {
+  key: string;
+  body: string;
+  file: File | null;
+  preview: string | null;
+  /** Set once the photo is uploaded, so a retry doesn't upload it again. */
+  imagePath: string | null;
+  state: "sending" | "failed";
+  createdAt: string;
 }
+
+/** Closer than this to the bottom counts as "reading the latest". */
+const NEAR_BOTTOM_PX = 120;
+const scrollBehavior = (): ScrollBehavior =>
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+
+const isEndLine = (m: ChatMessage) =>
+  m.senderId === null && (m.body === "system:closed" || m.body === "system:refunded");
 
 export function ChatRoom({
   consultId,
   viewerId,
+  role,
+  status,
   canWrite,
   live,
   callable,
   initial,
-  otherName,
+  today,
+  other,
+  backHref,
+  stateLine,
+  details,
+  replyDeadline,
+  canClose,
+  rx,
+  readOnlyReason,
+  selfLabel,
   children,
 }: {
   consultId: string;
   viewerId: string;
+  role: "owner" | "vet" | "admin";
+  status: "pending_payment" | "active" | "closed" | "refunded" | "cancelled";
   canWrite: boolean;
   /** Joins the live channel (participants only; the admin view is a snapshot). */
   live: boolean;
   /** Audio/video calls are possible (an open consult, a participant). */
   callable: boolean;
   initial: ChatMessage[];
-  otherName: string;
-  /** Extra actions next to the call buttons (the vet's prescription button). */
-  children?: React.ReactNode;
+  /** Today's day key in the site's time zone, from the server (same text on both sides). */
+  today: string;
+  other: ChatPerson;
+  backHref: string;
+  /** "Open until 3:40 PM" / "Ended": the header line when nobody is typing or online. */
+  stateLine: string;
+  /** The pet and the owner's description, pinned under the header. */
+  details: { pet: string | null; summary: string; notes: string | null };
+  /** Owner: the vet must answer before this (ISO), or the consult is refunded. */
+  replyDeadline: string | null;
+  /** Vet: may end the chat now. */
+  canClose: boolean;
+  /** Vet: may write or change the prescription now. */
+  rx: { initial: RxInput | null; linkedNames: Record<string, string> } | null;
+  /** Why nobody can write here (shown instead of the message box). */
+  readOnlyReason: string | null;
+  /** Admin view: the owner's name (their bubbles are on the right). */
+  selfLabel?: string;
+  /** Under the conversation (the owner's review form). */
+  children?: ReactNode;
 }) {
   const t = useT();
-  const fmt = useFormatter();
   const locale = useLocale();
+  const router = useRouter();
   const [messages, setMessages] = useState(initial);
+  // A refetch (router.refresh after a reconnect) brings a new `initial`: merge it in.
+  const [lastInitial, setLastInitial] = useState(initial);
+  if (lastInitial !== initial) {
+    setLastInitial(initial);
+    setMessages((prev) => mergeMessages(prev, initial));
+  }
+  const [loadedIds] = useState(() => new Set(initial.map((m) => m.id)));
+  const [outgoing, setOutgoing] = useState<Outgoing[]>([]);
+  const [previews, setPreviews] = useState<Record<string, string>>({});
   const [text, setText] = useState("");
+  const [draft, setDraft] = useState<{ file: File; preview: string } | null>(null);
   const [otherTyping, setOtherTyping] = useState(false);
-  const [pending, start] = useTransition();
-  const { upload, busy, error: uploadError } = useUpload("chat");
-  const list = useRef<HTMLDivElement>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
-  const lastTyping = useRef(0);
-  const callSignals: CallSignals = useRef(null);
+  const [atBottom, setAtBottom] = useState(true);
+  const [anchor, setAnchor] = useState<number | null>(null);
+  const [rxOpen, setRxOpen] = useState(false);
+  const { upload, error: uploadError } = useUpload("chat");
 
-  const upsert = (m: ChatMessage) =>
-    setMessages((prev) => {
-      const i = prev.findIndex((x) => x.id === m.id);
-      if (i === -1) return [...prev, m].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-      const next = prev.slice();
-      next[i] = m;
-      return next;
-    });
+  const scroller = useRef<HTMLDivElement>(null);
+  const stick = useRef(true);
+  const firstScroll = useRef(true);
+  const everReady = useRef(false);
+  const lastTyping = useRef(0);
+  const typingTimer = useRef<number | null>(null);
+  const seq = useRef(0);
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const callSignals: CallSignals = useRef(null);
+  const placeCall: CallPlacer = useRef(null);
+
+  // The consult can end while the page is open (the vet ends it, time runs out).
+  const endedHere = messages.some(isEndLine);
+  const open = status === "active" && !endedHere;
+  const writable = canWrite && open;
+  const canCall = callable && open;
+  const otherReplied = messages.some((m) => m.senderId !== null && m.senderId !== viewerId);
+  const mineSent = messages.some((m) => m.senderId === viewerId);
+  const hasRx =
+    Boolean(rx?.initial) || messages.some((m) => m.body === "system:rx" || m.body === "system:rx:updated");
 
   const channel = useConsultChannel({
     consultId,
@@ -118,7 +153,16 @@ export function ChatRoom({
     enabled: live,
     onMessage: (row) => {
       const m = fromRow(row);
-      upsert(m);
+      if (m.senderId === viewerId) {
+        // The live copy of a message I'm still sending: drop its "sending" twin.
+        setOutgoing((list) => {
+          const i = list.findIndex(
+            (o) => o.state === "sending" && o.body === (m.body ?? "") && Boolean(o.file) === m.hasImage,
+          );
+          return i === -1 ? list : list.filter((_, j) => j !== i);
+        });
+      }
+      setMessages((prev) => mergeMessages(prev, [m]));
       if (m.senderId && m.senderId !== viewerId) {
         setOtherTyping(false);
         if (document.visibilityState === "visible") void markRead(consultId);
@@ -127,20 +171,83 @@ export function ChatRoom({
     onBroadcast: (event, payload) => {
       if (event === "typing") {
         setOtherTyping(true);
-        window.setTimeout(() => setOtherTyping(false), 4000);
+        if (typingTimer.current) window.clearTimeout(typingTimer.current);
+        typingTimer.current = window.setTimeout(() => setOtherTyping(false), 4000);
       } else if (event === "call") {
         callSignals.current?.(payload);
       }
     },
   });
 
+  // Mark read on open and whenever the tab comes back to the front.
   useEffect(() => {
-    if (live) void markRead(consultId);
+    if (!live) return;
+    void markRead(consultId);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void markRead(consultId);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, [consultId, live]);
 
+  // Realtime doesn't replay what was missed while offline: refetch after a reconnect.
   useEffect(() => {
-    list.current?.scrollTo({ top: list.current.scrollHeight, behavior: "smooth" });
-  }, [messages.length, otherTyping]);
+    if (!channel.ready) return;
+    if (everReady.current) router.refresh();
+    everReady.current = true;
+  }, [channel.ready, router]);
+
+  // It just ended here: refresh the server parts (status, review form).
+  useEffect(() => {
+    if (endedHere && status === "active") router.refresh();
+  }, [endedHere, status, router]);
+
+  useEffect(
+    () => () => {
+      if (typingTimer.current) window.clearTimeout(typingTimer.current);
+    },
+    [],
+  );
+
+  // Stay at the latest message only if the reader is already there; open at the bottom.
+  const contentSize = messages.length + outgoing.length + (otherTyping ? 1 : 0);
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    if (firstScroll.current) {
+      firstScroll.current = false;
+      el.scrollTop = el.scrollHeight;
+      return;
+    }
+    if (stick.current) el.scrollTo({ top: el.scrollHeight, behavior: scrollBehavior() });
+  }, [contentSize]);
+
+  // The keyboard opening (or the box growing) shrinks the list: keep the latest in view.
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      if (stick.current) el.scrollTop = el.scrollHeight;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  function onScroll() {
+    const el = scroller.current;
+    if (!el) return;
+    const near = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
+    stick.current = near;
+    if (near !== atBottom) {
+      setAtBottom(near);
+      setAnchor(near ? null : messages.length);
+    }
+  }
+
+  function toLatest() {
+    stick.current = true;
+    scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: scrollBehavior() });
+  }
 
   function typing() {
     const now = Date.now();
@@ -149,213 +256,320 @@ export function ChatRoom({
     void channel.send("typing");
   }
 
-  function send(e?: FormEvent, imagePath?: string) {
-    e?.preventDefault();
-    const body = imagePath ? "" : text.trim();
-    if (!body && !imagePath) return;
-    start(async () => {
-      const r = await sendMessage(locale, consultId, {
-        body: body || undefined,
-        imagePath: imagePath ?? null,
-      });
+  const patch = (key: string, p: Partial<Outgoing>) =>
+    setOutgoing((list) => list.map((o) => (o.key === key ? { ...o, ...p } : o)));
+
+  async function deliver(item: Outgoing) {
+    try {
+      let imagePath = item.imagePath;
+      if (item.file && !imagePath) {
+        imagePath = await upload(item.file);
+        if (!imagePath) {
+          patch(item.key, { state: "failed" });
+          return;
+        }
+        patch(item.key, { imagePath });
+      }
+      const r = await sendMessage(locale, consultId, { body: item.body || undefined, imagePath });
       if (!r.ok) {
+        patch(item.key, { state: "failed" });
         toast.error(t(r.error));
         return;
       }
-      upsert(r.message);
-      if (!imagePath) setText("");
-    });
+      const preview = item.preview;
+      if (preview) setPreviews((p) => ({ ...p, [r.message.id]: preview }));
+      setMessages((prev) => mergeMessages(prev, [r.message]));
+      setOutgoing((list) => list.filter((o) => o.key !== item.key));
+    } catch {
+      patch(item.key, { state: "failed" });
+    }
   }
 
-  async function attach(file: File | undefined) {
-    if (!file) return;
-    const path = await upload(file);
-    if (path) send(undefined, path);
+  // One at a time, in the order they were written.
+  const enqueue = (item: Outgoing) => {
+    queue.current = queue.current.then(() => deliver(item));
+  };
+
+  function send() {
+    const body = text.trim();
+    if (!writable || (!body && !draft)) return;
+    seq.current += 1;
+    const item: Outgoing = {
+      key: `out-${seq.current}`,
+      body,
+      file: draft?.file ?? null,
+      preview: draft?.preview ?? null,
+      imagePath: null,
+      state: "sending",
+      createdAt: new Date().toISOString(),
+    };
+    stick.current = true;
+    setOutgoing((list) => [...list, item]);
+    setText("");
+    setDraft(null);
+    enqueue(item);
   }
 
-  const lastMine = [...messages].reverse().find((m) => m.senderId === viewerId);
+  function retry(key: string) {
+    const item = outgoing.find((o) => o.key === key);
+    if (!item) return;
+    patch(key, { state: "sending" });
+    enqueue({ ...item, state: "sending" });
+  }
+
+  function discard(key: string) {
+    const item = outgoing.find((o) => o.key === key);
+    if (item?.preview) URL.revokeObjectURL(item.preview);
+    setOutgoing((list) => list.filter((o) => o.key !== key));
+  }
+
+  function pick(file: File) {
+    if (draft) URL.revokeObjectURL(draft.preview);
+    setDraft({ file, preview: URL.createObjectURL(file) });
+  }
+
+  function clearDraft() {
+    if (draft) URL.revokeObjectURL(draft.preview);
+    setDraft(null);
+  }
+
+  const rows = buildThread(messages, viewerId, site.i18n.timeZone);
+  const lastMineId = messages.findLast((m) => m.senderId === viewerId)?.id;
+  const lastMine = messages.find((m) => m.id === lastMineId);
+  const newCount = anchor === null ? 0 : countFromOthers(messages, viewerId, anchor);
+  const otherForBubble = { name: other.name, photoUrl: other.photoUrl };
+  const onCallBack = canCall && live ? (media: "audio" | "video") => placeCall.current?.(media) : undefined;
+
+  const headerStatus = otherTyping
+    ? { text: t("chatui.typing"), tone: "primary" as const }
+    : live && channel.otherOnline
+      ? { text: t("chatui.activeNow"), tone: "success" as const }
+      : { text: stateLine, tone: "muted" as const };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      {live ? (
-        <div className="grid gap-2">
-          <ConsultCall
+    <section
+      aria-label={other.name}
+      className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background sm:rounded-(--radius-2xl) sm:bg-card sm:shadow-(--shadow-card) sm:ring-1 sm:ring-foreground/6"
+    >
+      <ChatHeader
+        backHref={backHref}
+        other={other}
+        status={headerStatus.text}
+        statusTone={headerStatus.tone}
+        online={live && channel.otherOnline}
+        calls={
+          live ? (
+            // Room for the two call buttons before hydration (no jump in the header).
+            <span className={cn("flex shrink-0 justify-end", canCall && "min-w-21")}>
+              <ConsultCall
+                consultId={consultId}
+                otherName={other.name}
+                otherPhoto={other.photoUrl}
+                enabled={canCall}
+                otherOnline={channel.otherOnline}
+                ready={channel.ready}
+                send={channel.send}
+                signalsRef={callSignals}
+                placeRef={placeCall}
+              />
+            </span>
+          ) : null
+        }
+        menu={
+          <ChatMenu
             consultId={consultId}
-            otherName={otherName}
-            enabled={callable}
-            otherOnline={channel.otherOnline}
-            ready={channel.ready}
-            send={channel.send}
-            signalsRef={callSignals}
+            profileHref={other.href}
+            rxHref={hasRx ? localeHref(locale, prescriptionPath(consultId)) : null}
+            rx={rx ? { editing: Boolean(rx.initial), onOpen: () => setRxOpen(true) } : null}
+            canClose={role === "vet" && open && (canClose || mineSent)}
+            canReport={role !== "admin"}
           />
-          {callable ? <PushPrompt /> : null}
-          {children}
-        </div>
-      ) : (
-        children
-      )}
-      <div
-        ref={list}
-        role="log"
-        aria-live="polite"
-        aria-label={t("consult.messages")}
-        className="flex min-h-[50svh] flex-1 flex-col gap-2 overflow-y-auto px-1 py-4"
-      >
-        {messages.map((m) => {
-          const system = m.senderId === null;
-          if (system) {
-            if (m.body === "system:rx" || m.body === "system:rx:updated") {
-              return (
-                <Link
-                  key={m.id}
-                  href={localeHref(locale, prescriptionPath(consultId))}
-                  className="mx-auto flex items-center gap-2 rounded-(--control-radius) bg-primary/10 px-3 py-2 text-sm text-primary hover:bg-primary/15"
-                >
-                  <FileText aria-hidden="true" className="size-4" />
-                  <span>
-                    {t(m.body === "system:rx" ? "rx.line" : "rx.lineUpdated")} ·{" "}
-                    <span className="font-semibold underline-offset-2 hover:underline">{t("rx.view")}</span>
-                  </span>
-                </Link>
-              );
-            }
-            const callInfo = parseCallLine(m.body);
-            if (callInfo) {
-              const media = t(`call.media.${callInfo.media}`);
-              const Icon =
-                callInfo.status !== "ended" ? PhoneMissed : callInfo.media === "video" ? Video : Phone;
-              return (
-                <p
-                  key={m.id}
-                  className={cn(
-                    "mx-auto flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-center text-xs",
-                    callInfo.status === "ended" ? "text-muted-foreground" : "text-destructive",
-                  )}
-                >
-                  <Icon aria-hidden="true" className="size-3.5" />
-                  {callInfo.status === "ended"
-                    ? t("call.line.ended", { media, time: clock(callInfo.seconds) })
-                    : t(
-                        callInfo.status === "declined"
-                          ? "call.line.declined"
-                          : callInfo.status === "failed"
-                            ? "call.line.failed"
-                            : "call.line.missed",
-                        { media },
-                      )}
-                  <span className="text-muted-foreground">
-                    · {fmt.date(new Date(m.createdAt), { timeStyle: "short" })}
-                  </span>
-                </p>
-              );
-            }
-            const key = SYSTEM_KEYS[m.body as keyof typeof SYSTEM_KEYS];
-            return (
-              <p
-                key={m.id}
-                className="mx-auto rounded-full bg-muted px-3 py-1 text-center text-xs text-muted-foreground"
-              >
-                {key ? t(key) : m.body}
-              </p>
-            );
-          }
-          const mine = m.senderId === viewerId;
-          return (
-            <div
-              key={m.id}
-              className={cn("flex max-w-[85%] flex-col gap-1", mine ? "items-end self-end" : "items-start")}
-            >
-              <div
-                className={cn(
-                  "rounded-2xl px-3.5 py-2 text-[0.9375rem] leading-relaxed break-words whitespace-pre-wrap",
-                  mine ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md bg-muted",
-                )}
-              >
-                {m.hasImage ? <ChatImage messageId={m.id} /> : null}
-                {m.body}
-              </div>
-              <span className="flex items-center gap-1 px-1 text-[0.6875rem] text-muted-foreground">
-                {fmt.date(new Date(m.createdAt), { timeStyle: "short" })}
-                {mine && m.id === lastMine?.id ? (
-                  m.readAt ? (
-                    <CheckCheck aria-label={t("consult.seen")} className="size-3.5 text-primary" />
-                  ) : (
-                    <Check aria-label={t("consult.sent")} className="size-3.5" />
-                  )
-                ) : null}
-              </span>
-            </div>
-          );
-        })}
-        {otherTyping ? (
-          <p className="text-xs text-muted-foreground" aria-live="polite">
-            {t("consult.typing", { name: otherName })}
+        }
+      />
+
+      {/* Pinned under the header: the case, the reply clock, notices. */}
+      <div className="grid shrink-0 border-b bg-card">
+        {role === "admin" ? (
+          <p className="flex items-center gap-2 bg-warning/15 px-3 py-1.5 text-xs font-medium text-warning-foreground dark:text-warning">
+            <ShieldAlert aria-hidden="true" className="size-4 shrink-0" />
+            {t("consult.adminView")}
           </p>
+        ) : null}
+        <div className="flex items-start gap-2 px-3 py-2">
+          <details className="group min-w-0 flex-1">
+            <summary className="flex cursor-pointer list-none items-center gap-2 rounded-(--radius-md) text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+                <PawPrint aria-hidden="true" className="size-3.5" />
+              </span>
+              <span className="min-w-0 flex-1 truncate">
+                <span className="font-semibold">{details.pet ?? t("chatui.details")}</span>
+                <span className="text-muted-foreground"> · {details.summary}</span>
+              </span>
+              <ChevronDown
+                aria-hidden="true"
+                className="size-4 shrink-0 text-muted-foreground transition-transform duration-(--motion-fast) group-open:rotate-180"
+              />
+            </summary>
+            <div className="grid gap-1.5 ps-9 pt-2 pb-1 text-sm">
+              <p className="whitespace-pre-wrap text-foreground/85">{details.summary}</p>
+              {details.notes ? (
+                <p className="whitespace-pre-wrap text-muted-foreground">{details.notes}</p>
+              ) : null}
+            </div>
+          </details>
+          {rx ? (
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 rounded-full"
+              onClick={() => setRxOpen(true)}
+            >
+              <FilePenLine aria-hidden="true" />
+              <span className="max-sm:sr-only">{t(rx.initial ? "rx.edit" : "rx.write")}</span>
+            </Button>
+          ) : null}
+        </div>
+        {role === "owner" && replyDeadline && open && !otherReplied ? (
+          <ReplyCountdown deadline={replyDeadline} className="border-t" />
+        ) : null}
+        {live && canCall ? <PushPrompt className="m-2 mt-0" /> : null}
+      </div>
+
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <div
+          ref={scroller}
+          onScroll={onScroll}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-muted/35 px-2.5 pt-1 pb-4 sm:px-5"
+        >
+          <ol
+            role="log"
+            aria-live="polite"
+            aria-relevant="additions"
+            aria-label={t("consult.messages")}
+            className="mx-auto flex max-w-2xl flex-col"
+          >
+            {rows.map((row) => {
+              if (row.kind === "day") return <DayPill key={row.key} day={row.day} today={today} />;
+              if (row.kind === "system")
+                return (
+                  <SystemRow
+                    key={row.key}
+                    message={row.message}
+                    consultId={consultId}
+                    onCallBack={onCallBack}
+                  />
+                );
+              const m = row.message;
+              return (
+                <MessageBubble
+                  key={row.key}
+                  message={m}
+                  mine={row.mine}
+                  position={row.position}
+                  other={otherForBubble}
+                  selfLabel={selfLabel}
+                  fresh={!loadedIds.has(m.id)}
+                  preview={previews[m.id] ?? null}
+                  receipt={
+                    row.mine && m.id === lastMineId && outgoing.length === 0
+                      ? lastMine?.readAt
+                        ? "seen"
+                        : "sent"
+                      : null
+                  }
+                />
+              );
+            })}
+            {outgoing.map((o) => (
+              <MessageBubble
+                key={o.key}
+                message={{ id: o.key, body: o.body, hasImage: false, createdAt: o.createdAt }}
+                mine
+                position="single"
+                other={otherForBubble}
+                selfLabel={selfLabel}
+                fresh
+                preview={o.preview}
+                footer={
+                  <OutgoingFooter
+                    state={o.state}
+                    onRetry={() => retry(o.key)}
+                    onDiscard={() => discard(o.key)}
+                  />
+                }
+              />
+            ))}
+          </ol>
+          {!otherReplied && !mineSent && outgoing.length === 0 ? (
+            <div className="mx-auto mt-8 grid max-w-xs justify-items-center gap-3 text-center">
+              <span className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
+                <MessagesSquare aria-hidden="true" className="size-6" />
+              </span>
+              <p className="text-sm text-pretty text-muted-foreground">
+                {t(role === "vet" ? "chatui.emptyThreadVet" : "chatui.emptyThread")}
+              </p>
+            </div>
+          ) : null}
+          {otherTyping ? (
+            <div className="mx-auto max-w-2xl">
+              <TypingBubble other={otherForBubble} />
+            </div>
+          ) : null}
+          {children ? <div className="mx-auto mt-6 max-w-2xl">{children}</div> : null}
+        </div>
+
+        {!atBottom ? (
+          <button
+            type="button"
+            onClick={toLatest}
+            aria-label={
+              newCount > 0
+                ? `${t("chatui.toLatest")} (${t("chatui.newCount", { n: newCount })})`
+                : t("chatui.toLatest")
+            }
+            className={cn(
+              "absolute end-3 bottom-3 flex h-10 items-center gap-1.5 rounded-full bg-card px-3 text-sm font-semibold text-foreground shadow-(--shadow-card) ring-1 ring-foreground/10 transition-transform duration-(--motion-fast) ease-(--ease-press) hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none active:scale-95 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-90",
+              newCount === 0 && "w-10 justify-center px-0",
+            )}
+          >
+            {newCount > 0 ? (
+              <span className="rounded-full bg-primary px-1.5 text-xs leading-5 text-primary-foreground tabular-nums">
+                {t("chatui.newCount", { n: newCount })}
+              </span>
+            ) : null}
+            <ArrowDown aria-hidden="true" className="size-4.5" />
+          </button>
         ) : null}
       </div>
 
-      {canWrite ? (
-        <form
-          onSubmit={send}
-          className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] flex items-end gap-2 border-t bg-background py-3 md:bottom-0"
-        >
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={t("consult.attach")}
-            disabled={busy || pending}
-            onClick={() => fileInput.current?.click()}
-          >
-            {busy ? (
-              <Loader2 aria-hidden="true" className="animate-spin" />
-            ) : (
-              <ImagePlus aria-hidden="true" />
-            )}
-          </Button>
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="sr-only"
-            tabIndex={-1}
-            aria-hidden="true"
-            onChange={(e) => {
-              void attach(e.target.files?.[0]);
-              e.target.value = "";
-            }}
-          />
-          <label htmlFor="chat-text" className="sr-only">
-            {t("consult.write")}
-          </label>
-          <Textarea
-            id="chat-text"
-            rows={1}
-            value={text}
-            maxLength={4000}
-            placeholder={t("consult.write")}
-            className="max-h-40 min-h-(--control-h) flex-1 resize-none"
-            onChange={(e) => {
-              setText(e.target.value);
-              typing();
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                e.preventDefault();
-                send();
-              }
-            }}
-          />
-          <Button type="submit" size="icon" aria-label={t("consult.send")} disabled={pending || !text.trim()}>
-            <SendHorizontal aria-hidden="true" className="rtl:rotate-180" />
-          </Button>
-        </form>
+      {writable ? (
+        <ChatComposer
+          value={text}
+          onChange={(v) => {
+            setText(v);
+            typing();
+          }}
+          onSend={send}
+          draft={draft}
+          onPick={pick}
+          onClearDraft={clearDraft}
+          error={uploadError ? t(uploadError, { mb: 10 }) : null}
+        />
+      ) : (
+        <ChatReadOnlyBar
+          reason={readOnlyReason ?? t(endedHere ? "chatui.closedBar" : "consult.closedNote")}
+        />
+      )}
+
+      {rx ? (
+        <RxEditor
+          consultId={consultId}
+          initial={rx.initial}
+          linkedNames={rx.linkedNames}
+          open={rxOpen}
+          onOpenChange={setRxOpen}
+        />
       ) : null}
-      {uploadError ? (
-        <p role="alert" className="text-sm text-destructive">
-          {t(uploadError, { mb: 10 })}
-        </p>
-      ) : null}
-    </div>
+    </section>
   );
 }

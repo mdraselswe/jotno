@@ -1,3 +1,5 @@
+import { MessagesSquare, Stethoscope } from "lucide-react";
+import { EmptyState } from "@/components/layout/app-ui";
 import { ConsultList } from "@/components/layout/consult-list";
 import { Private, PrivateHeading } from "@/components/layout/private-page";
 import { ButtonLink } from "@/components/ui/button-link";
@@ -19,16 +21,29 @@ async function Consults() {
   const fmt = await getFormatter();
   const viewer = await requireViewer(locale, localeHref(locale, ROUTES.consults));
   const items = await listOwnerConsults(viewer.id);
+  const findVet = (
+    <ButtonLink href={localeHref(locale, ROUTES.vets)} variant="brand">
+      <Stethoscope aria-hidden="true" />
+      {t("nav.vets")}
+    </ButtonLink>
+  );
   return (
     <div className="grid gap-6">
-      <PrivateHeading title={t("consult.listTitle")} sub={t("consult.listSub")} />
+      <PrivateHeading
+        title={t("consult.listTitle")}
+        sub={t("consult.listSub")}
+        icon={MessagesSquare}
+        action={items.length > 0 ? findVet : undefined}
+      />
       {items.length === 0 ? (
-        <div className="grid justify-items-start gap-3">
-          <p className="text-muted-foreground">{t("consult.empty")}</p>
-          <ButtonLink href={localeHref(locale, ROUTES.vets)}>{t("nav.vets")}</ButtonLink>
-        </div>
+        <EmptyState
+          icon={MessagesSquare}
+          title={t("chatui.list.empty")}
+          body={t("chatui.list.emptyBody")}
+          action={findVet}
+        />
       ) : (
-        <ConsultList items={items} locale={locale} t={t} fmt={fmt} />
+        <ConsultList items={items} locale={locale} t={t} fmt={fmt} side="owner" />
       )}
     </div>
   );

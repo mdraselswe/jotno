@@ -1,21 +1,11 @@
-import { ArrowLeft, Stethoscope } from "lucide-react";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Private } from "@/components/layout/private-page";
-import { Badge } from "@/components/ui/badge";
+import { Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { breedName, speciesName } from "@/content/places";
-import { business } from "@/config";
+import { business, site } from "@/config";
 import { adminConsultPath, chatPath, ROUTES, vetPath } from "@/config/routes";
 import { requireViewer } from "@/features/auth/server";
-import {
-  canWriteRx,
-  ChatRoom,
-  CloseConsultButton,
-  ReplyCountdown,
-  ReportConsultButton,
-  ReviewForm,
-  RxEditor,
-} from "@/features/consults";
+import { canWriteRx, ChatRoom, chatDayKey, ReviewForm } from "@/features/consults";
 import { adminCanRead, getConsult, rxForVet } from "@/features/consults/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -37,10 +27,12 @@ async function Chat({ params }: { params: Promise<{ id: string }> }) {
   if (c.role === "admin" && !(await adminCanRead(viewer.id, c.id)))
     redirect(localeHref(locale, adminConsultPath(c.id)) as never);
 
+  const now = new Date();
   const isVet = c.role === "vet";
+  const participant = c.role !== "admin";
   // The vet writes the prescription from here while they still may.
-  const rx = isVet && canWriteRx(c, new Date()) ? { current: await rxForVet(c.id, viewer.id) } : null;
-  const otherName = isVet ? (c.ownerName ?? "—") : c.vet.displayName;
+  const mayRx = isVet && canWriteRx(c, now);
+  const rx = mayRx ? await rxForVet(c.id, viewer.id) : null;
   const back = localeHref(
     locale,
     c.role === "vet" ? ROUTES.vetConsults : c.role === "admin" ? adminConsultPath(c.id) : ROUTES.consults,
@@ -50,119 +42,135 @@ async function Chat({ params }: { params: Promise<{ id: string }> }) {
       ? new Date(c.openedAt.getTime() + business.consult.replyWindowMinutes * 60_000).toISOString()
       : null;
 
+  const today = chatDayKey(now, site.i18n.timeZone);
+  const stateLine =
+    c.status === "active" && c.closesAt
+      ? t("consult.closesAt", {
+          time:
+            chatDayKey(c.closesAt, site.i18n.timeZone) === today
+              ? fmt.date(c.closesAt, { timeStyle: "short" })
+              : fmt.date(c.closesAt, { weekday: "short", hour: "numeric", minute: "2-digit" }),
+        })
+      : t(`consult.status.${c.status}`);
+  const readOnlyReason = !participant
+    ? t("chatui.adminBar")
+    : c.status === "active"
+      ? null
+      : c.status === "refunded"
+        ? t("chatui.refundedBar")
+        : c.status === "pending_payment"
+          ? t("chatui.unpaidBar")
+          : t("chatui.closedBar");
+  const pet = c.pet
+    ? [
+        c.pet.name,
+        speciesName(c.pet.speciesId, locale),
+        breedName(c.pet.breedId, locale),
+        c.pet.weightGrams ? `${fmt.number(c.pet.weightGrams / 1000)} kg` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : null;
+
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-      <header className="flex items-center gap-3 border-b pb-3">
-        <Link
-          href={back}
-          aria-label={t("common.back")}
-          className="grid size-9 place-items-center rounded-full hover:bg-muted"
-        >
-          <ArrowLeft aria-hidden="true" className="size-5 rtl:rotate-180" />
-        </Link>
-        <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-primary">
-          {!isVet && c.vet.photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- storage URL at a small fixed size
-            <img src={c.vet.photoUrl} alt="" className="size-full object-cover" />
-          ) : (
-            <Stethoscope aria-hidden="true" className="size-5" />
-          )}
-        </span>
-        <div className="grid min-w-0 flex-1">
-          {isVet ? (
-            <span className="truncate font-medium">{otherName}</span>
-          ) : (
-            <Link
-              href={localeHref(locale, vetPath(c.vet.slug))}
-              className="truncate font-medium hover:underline"
-            >
-              {otherName}
-            </Link>
-          )}
-          <span className="text-xs text-muted-foreground">
-            {c.status === "active" && c.closesAt
-              ? t("consult.closesAt", { time: fmt.dateTime(c.closesAt) })
-              : t(`consult.status.${c.status}`)}
-          </span>
-        </div>
-        <Badge variant={c.status === "active" ? "default" : "secondary"}>
-          {t(`consult.status.${c.status}`)}
-        </Badge>
-        {isVet && c.status === "active" && c.firstReplyAt ? <CloseConsultButton consultId={c.id} /> : null}
-        {c.role !== "admin" ? <ReportConsultButton consultId={c.id} /> : null}
-      </header>
-
-      {c.role === "admin" ? <p className="text-sm text-muted-foreground">{t("consult.adminView")}</p> : null}
-
-      <section
-        className="grid gap-1 rounded-(--radius-xl) bg-muted/60 p-4 text-sm"
-        aria-label={t("consult.petInfo")}
-      >
-        {c.pet ? (
-          <p className="font-medium">
-            {c.pet.name} ·{" "}
-            {[
-              speciesName(c.pet.speciesId, locale),
-              breedName(c.pet.breedId, locale),
-              c.pet.weightGrams ? `${fmt.number(c.pet.weightGrams / 1000)} kg` : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-        ) : null}
-        <p className="whitespace-pre-wrap text-muted-foreground">{c.summary}</p>
-        {isVet && c.pet?.notes ? <p className="text-muted-foreground">{c.pet.notes}</p> : null}
-      </section>
-
-      {!isVet && deadline ? <ReplyCountdown deadline={deadline} /> : null}
-
-      <ChatRoom
-        consultId={c.id}
-        viewerId={viewer.id}
-        canWrite={c.status === "active" && c.role !== "admin"}
-        live={c.role !== "admin"}
-        callable={c.status === "active" && c.role !== "admin"}
-        initial={c.messages}
-        otherName={otherName}
-      >
-        {rx ? (
-          <div className="flex justify-end">
-            <RxEditor
-              consultId={c.id}
-              initial={
-                rx.current
-                  ? {
-                      diagnosis: rx.current.diagnosis,
-                      items: rx.current.items.map((i) => ({ ...i, note: i.note ?? "" })),
-                      advice: rx.current.advice ?? "",
-                      followUpDays: rx.current.followUpDays,
-                    }
-                  : null
-              }
-              linkedNames={Object.fromEntries(
-                (rx.current?.items ?? []).flatMap((i) => (i.productId ? [[i.productId, i.name]] : [])),
-              )}
-            />
-          </div>
-        ) : null}
-      </ChatRoom>
-
+    <ChatRoom
+      consultId={c.id}
+      // The admin reads it from the owner's side: owner on the right, vet on the left.
+      viewerId={participant ? viewer.id : c.ownerId}
+      selfLabel={participant ? undefined : (c.ownerName ?? undefined)}
+      role={c.role}
+      status={c.status}
+      canWrite={c.status === "active" && participant}
+      live={participant}
+      callable={c.status === "active" && participant}
+      initial={c.messages}
+      today={today}
+      other={
+        isVet
+          ? { name: c.ownerName ?? "—", photoUrl: null, href: null }
+          : {
+              name: c.vet.displayName,
+              photoUrl: c.vet.photoUrl,
+              href: localeHref(locale, vetPath(c.vet.slug)),
+            }
+      }
+      backHref={back}
+      stateLine={stateLine}
+      details={{ pet, summary: c.summary, notes: isVet ? (c.pet?.notes ?? null) : null }}
+      replyDeadline={isVet ? null : deadline}
+      canClose={isVet && c.status === "active" && Boolean(c.firstReplyAt)}
+      rx={
+        mayRx
+          ? {
+              initial: rx
+                ? {
+                    diagnosis: rx.diagnosis,
+                    items: rx.items.map((i) => ({ ...i, note: i.note ?? "" })),
+                    advice: rx.advice ?? "",
+                    followUpDays: rx.followUpDays,
+                  }
+                : null,
+              linkedNames: Object.fromEntries(
+                (rx?.items ?? []).flatMap((i) => (i.productId ? [[i.productId, i.name]] : [])),
+              ),
+            }
+          : null
+      }
+      readOnlyReason={readOnlyReason}
+    >
       {c.role === "owner" && c.firstReplyAt && c.status !== "refunded" && !c.reviewed ? (
         <ReviewForm consultId={c.id} />
       ) : null}
-      {c.status !== "active" ? (
-        <p className="text-center text-sm text-muted-foreground">{t("consult.closedNote")}</p>
-      ) : null}
+    </ChatRoom>
+  );
+}
+
+/** Shaped like the chat: top bar, pinned case, a few bubbles, the message box. */
+function ChatSkeleton() {
+  return (
+    <div
+      role="status"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background sm:rounded-(--radius-2xl) sm:bg-card sm:ring-1 sm:ring-foreground/6"
+    >
+      <div className="flex items-center gap-2 border-b px-2 py-2">
+        <Skeleton className="size-10 rounded-full" />
+        <Skeleton className="size-10 rounded-full" />
+        <div className="grid flex-1 gap-1.5">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+        <Skeleton className="size-10 rounded-full" />
+        <Skeleton className="size-10 rounded-full" />
+      </div>
+      <Skeleton className="m-3 h-7 w-2/3 rounded-full" />
+      <div className="grid flex-1 content-end gap-2 bg-muted/35 p-3">
+        <Skeleton className="h-10 w-3/5 rounded-(--radius-2xl)" />
+        <Skeleton className="h-14 w-2/3 justify-self-end rounded-(--radius-2xl)" />
+        <Skeleton className="h-10 w-1/2 rounded-(--radius-2xl)" />
+        <Skeleton className="h-10 w-2/5 justify-self-end rounded-(--radius-2xl)" />
+      </div>
+      <div className="flex items-center gap-2 border-t p-2">
+        <Skeleton className="size-10 rounded-full" />
+        <Skeleton className="h-10 flex-1 rounded-full" />
+        <Skeleton className="size-10 rounded-full" />
+      </div>
     </div>
   );
 }
 
 export default function ChatPage({ params }: PageProps<"/[locale]/chat/[id]">) {
+  // Fills the screen under the site header like a messaging app; data-app-fullscreen
+  // hides the bottom tab bar and the footer (globals.css).
   return (
-    <div className="container-page py-4 md:py-8">
-      <Private rows={4}>
-        <Chat params={params} />
-      </Private>
+    <div
+      data-app-fullscreen
+      className="container-page flex h-[calc(100dvh-4rem)] flex-col max-sm:px-0 sm:h-[calc(100dvh-4.25rem)] sm:py-3 md:py-4"
+    >
+      <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
+        <Suspense fallback={<ChatSkeleton />}>
+          <Chat params={params} />
+        </Suspense>
+      </div>
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { MessagesSquare } from "lucide-react";
+import { EmptyState } from "@/components/layout/app-ui";
 import { ConsultList } from "@/components/layout/consult-list";
 import { Private, PrivateHeading } from "@/components/layout/private-page";
 import { ROUTES } from "@/config/routes";
@@ -20,11 +22,15 @@ async function Consults() {
   const items = await listVetConsults(provider.id, viewer.id);
   return (
     <div className="grid gap-6">
-      <PrivateHeading title={t("consult.vetListTitle")} />
+      <PrivateHeading title={t("consult.vetListTitle")} icon={MessagesSquare} />
       {items.length === 0 ? (
-        <p className="text-muted-foreground">{t("consult.vetEmpty")}</p>
+        <EmptyState
+          icon={MessagesSquare}
+          title={t("chatui.list.empty")}
+          body={t("chatui.list.vetEmptyBody")}
+        />
       ) : (
-        <ConsultList items={items} locale={locale} t={t} fmt={fmt} />
+        <ConsultList items={items} locale={locale} t={t} fmt={fmt} side="vet" />
       )}
     </div>
   );

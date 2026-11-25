@@ -1,9 +1,18 @@
 "use client";
 
-import { Camera, Loader2, Lock, Star, X } from "lucide-react";
+import { Camera, Clock, Loader2, Lock, MessageSquareText, Star, X } from "lucide-react";
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useUpload } from "@/features/uploads";
@@ -12,10 +21,13 @@ import { useLocale, useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 import { closeConsult, leaveReview, startConsult } from "../server/actions";
 
-/** Owner: describe the problem, pick the pet, pay. */
 /** The server asks for at least this much (startConsult); the button waits for it. */
 const MIN_SUMMARY = 10;
 
+const CARD =
+  "grid gap-4 rounded-(--radius-2xl) bg-card p-4 shadow-(--shadow-card) ring-1 ring-foreground/6 sm:p-5";
+
+/** Owner: describe the problem, pick the pet, pay. */
 export function StartConsultForm({
   providerId,
   pets,
@@ -41,8 +53,12 @@ export function StartConsultForm({
 
   async function addPhoto(file: File | undefined) {
     if (!file || photos.length >= maxPhotos) return;
-    const path = await upload(file);
-    if (path) setPhotos((list) => [...list, { path, preview: URL.createObjectURL(file) }]);
+    try {
+      const path = await upload(file);
+      if (path) setPhotos((list) => [...list, { path, preview: URL.createObjectURL(file) }]);
+    } catch {
+      toast.error(t("common.genericError"));
+    }
   }
 
   function submit(e: FormEvent) {
@@ -59,48 +75,68 @@ export function StartConsultForm({
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-5" noValidate>
-      {pets.length > 0 ? (
-        <div className="grid gap-2">
-          <Label htmlFor="sc-pet">{t("consult.whichPet")}</Label>
-          <NativeSelect id="sc-pet" value={petId} onChange={(e) => setPetId(e.target.value)}>
-            {pets.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-            <option value="">{t("consult.otherAnimal")}</option>
-          </NativeSelect>
+    <form onSubmit={submit} className="grid gap-4" noValidate>
+      <section className={CARD} aria-labelledby="sc-tell">
+        <div className="flex items-start gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-(--radius-lg) bg-primary/10 text-primary">
+            <MessageSquareText aria-hidden="true" className="size-5" />
+          </span>
+          <div className="grid gap-0.5">
+            <h2 id="sc-tell" className="font-heading text-lg font-bold tracking-tight">
+              {t("chatui.start.tell")}
+            </h2>
+            <p className="text-sm text-muted-foreground">{t("chatui.start.tellSub")}</p>
+          </div>
         </div>
-      ) : null}
-      <div className="grid gap-2">
-        <Label htmlFor="sc-summary">{t("consult.problem")}</Label>
-        <Textarea
-          id="sc-summary"
-          rows={5}
-          required
-          minLength={MIN_SUMMARY}
-          maxLength={1000}
-          value={summary}
-          onChange={(e) => setSummary(e.target.value)}
-          placeholder={t("consult.problemHint")}
-          aria-describedby={tooShort ? "sc-summary-min" : undefined}
-        />
-        {tooShort ? (
-          <p id="sc-summary-min" className="text-sm text-muted-foreground" aria-live="polite">
-            {t("consult.problemMin", { min: MIN_SUMMARY, n: summary.trim().length })}
-          </p>
+        {pets.length > 0 ? (
+          <div className="grid gap-2">
+            <Label htmlFor="sc-pet">{t("consult.whichPet")}</Label>
+            <NativeSelect id="sc-pet" value={petId} onChange={(e) => setPetId(e.target.value)}>
+              {pets.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+              <option value="">{t("consult.otherAnimal")}</option>
+            </NativeSelect>
+          </div>
         ) : null}
-      </div>
+        <div className="grid gap-2">
+          <Label htmlFor="sc-summary">{t("consult.problem")}</Label>
+          <Textarea
+            id="sc-summary"
+            rows={5}
+            required
+            minLength={MIN_SUMMARY}
+            maxLength={1000}
+            value={summary}
+            onChange={(e) => setSummary(e.target.value)}
+            placeholder={t("consult.problemHint")}
+            aria-describedby={tooShort ? "sc-summary-min" : undefined}
+            className="min-h-32"
+          />
+          {tooShort ? (
+            <p id="sc-summary-min" className="text-sm text-muted-foreground" aria-live="polite">
+              {t("consult.problemMin", { min: MIN_SUMMARY, n: summary.trim().length })}
+            </p>
+          ) : null}
+        </div>
+      </section>
+
       {maxPhotos > 0 ? (
-        <fieldset className="grid gap-2">
-          <legend className="mb-2 text-sm font-medium">{t("consult.photos", { max: maxPhotos })}</legend>
-          <p className="text-sm text-muted-foreground">{t("consult.photosHint")}</p>
+        <fieldset className={CARD}>
+          <legend className="sr-only">{t("consult.photos", { max: maxPhotos })}</legend>
+          <div className="grid gap-0.5">
+            <p aria-hidden="true" className="font-semibold">
+              {t("consult.photos", { max: maxPhotos })}
+            </p>
+            <p className="text-sm text-muted-foreground">{t("consult.photosHint")}</p>
+          </div>
           <ul className="flex flex-wrap gap-3">
             {photos.map((p, n) => (
               <li
                 key={p.path}
-                className="relative size-20 overflow-hidden rounded-(--control-radius) bg-muted"
+                className="relative size-20 overflow-hidden rounded-(--radius-xl) bg-muted ring-1 ring-foreground/8"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- local preview of the picked file */}
                 <img src={p.preview} alt="" className="size-full object-cover" />
@@ -108,7 +144,7 @@ export function StartConsultForm({
                   type="button"
                   onClick={() => setPhotos((list) => list.filter((x) => x.path !== p.path))}
                   aria-label={t("consult.removePhoto", { n: n + 1 })}
-                  className="absolute top-1 right-1 grid size-6 place-items-center rounded-full bg-background/90 text-foreground shadow-(--shadow-control)"
+                  className="absolute end-1 top-1 grid size-6 place-items-center rounded-full bg-background/90 text-foreground shadow-(--shadow-control) focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                   <X aria-hidden="true" className="size-3.5" />
                 </button>
@@ -120,7 +156,8 @@ export function StartConsultForm({
                   type="button"
                   onClick={() => picker.current?.click()}
                   disabled={busy}
-                  className="grid size-20 place-items-center rounded-(--control-radius) border-(length:--border-w) border-dashed border-border bg-muted text-muted-foreground transition-colors hover:bg-muted/70 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  aria-busy={busy}
+                  className="grid size-20 place-items-center gap-1 rounded-(--radius-xl) border-(length:--border-w) border-dashed border-primary/40 bg-primary/5 text-primary transition-colors duration-(--motion-fast) hover:bg-primary/10 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-60"
                 >
                   {busy ? (
                     <Loader2 aria-hidden="true" className="size-5 animate-spin" />
@@ -146,26 +183,40 @@ export function StartConsultForm({
           />
           {uploadError ? (
             <p role="alert" className="text-sm text-destructive">
-              {t(uploadError)}
+              {t(uploadError, { mb: 10 })}
             </p>
           ) : null}
         </fieldset>
       ) : null}
+
       {error ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p
+          role="alert"
+          className="rounded-(--radius-lg) bg-destructive/10 px-3 py-2 text-sm text-destructive"
+        >
           {error}
         </p>
       ) : null}
-      <Button type="submit" size="lg" disabled={pending || busy || tooShort}>
-        <Lock aria-hidden="true" />
-        {pending ? t("pay.redirecting") : t("consult.pay", { fee: feeLabel })}
-      </Button>
+      {/* Phones: the pay button stays in reach above the tab bar. */}
+      <div className="max-sm:sticky max-sm:bottom-[calc(3.5rem+env(safe-area-inset-bottom))] max-sm:z-10 max-sm:-mx-4 max-sm:border-t max-sm:bg-background/95 max-sm:px-4 max-sm:py-3">
+        <Button
+          type="submit"
+          variant="brand"
+          size="lg"
+          className="w-full"
+          disabled={pending || busy || tooShort}
+          aria-busy={pending}
+        >
+          {pending ? <Loader2 aria-hidden="true" className="animate-spin" /> : <Lock aria-hidden="true" />}
+          {pending ? t("pay.redirecting") : t("consult.pay", { fee: feeLabel })}
+        </Button>
+      </div>
     </form>
   );
 }
 
 /** Owner sees how long the vet has to answer before the automatic refund. */
-export function ReplyCountdown({ deadline }: { deadline: string }) {
+export function ReplyCountdown({ deadline, className }: { deadline: string; className?: string }) {
   const t = useT();
   const [left, setLeft] = useState<number | null>(null);
   useEffect(() => {
@@ -176,30 +227,76 @@ export function ReplyCountdown({ deadline }: { deadline: string }) {
   }, [deadline]);
   if (left === null) return null;
   return (
-    <p className="rounded-(--control-radius) bg-info/10 px-3 py-2 text-sm text-info" aria-live="polite">
+    <p
+      className={cn("flex items-center gap-2 bg-info/10 px-3 py-2 text-sm text-info", className)}
+      aria-live="polite"
+    >
+      <Clock aria-hidden="true" className="size-4 shrink-0" />
       {left > 0 ? t("consult.waitingReply", { n: left }) : t("consult.refundSoon")}
     </p>
   );
 }
 
-export function CloseConsultButton({ consultId }: { consultId: string }) {
+/** Vet: end the consult early, after a confirmation (it can't be undone). */
+export function CloseConsultDialog({
+  consultId,
+  open,
+  onOpenChange,
+}: {
+  consultId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const t = useT();
   const locale = useLocale();
   const [pending, start] = useTransition();
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      disabled={pending}
-      onClick={() =>
-        start(async () => {
-          const r = await closeConsult(locale, consultId);
-          if (!r.ok) toast.error(t(r.error));
-        })
-      }
-    >
-      {t("consult.close")}
-    </Button>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="gap-5 rounded-(--radius-2xl) p-5 sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-heading text-lg font-bold tracking-tight">
+            {t("chatui.endTitle")}
+          </DialogTitle>
+          <DialogDescription>{t("chatui.endBody")}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2 sm:flex-row sm:justify-end">
+          <DialogClose render={<Button variant="outline">{t("chatui.keepOpen")}</Button>} />
+          <Button
+            variant="destructive"
+            disabled={pending}
+            aria-busy={pending}
+            onClick={() =>
+              start(async () => {
+                const r = await closeConsult(locale, consultId);
+                if (!r.ok) {
+                  toast.error(t(r.error));
+                  return;
+                }
+                onOpenChange(false);
+                toast(t("consult.sysClosed"));
+              })
+            }
+          >
+            {pending ? <Loader2 aria-hidden="true" className="animate-spin" /> : null}
+            {t("consult.close")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** A standalone "End chat" button (opens the confirmation). */
+export function CloseConsultButton({ consultId }: { consultId: string }) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+        {t("consult.close")}
+      </Button>
+      <CloseConsultDialog consultId={consultId} open={open} onOpenChange={setOpen} />
+    </>
   );
 }
 
@@ -210,10 +307,19 @@ export function ReviewForm({ consultId }: { consultId: string }) {
   const [body, setBody] = useState("");
   const [done, setDone] = useState(false);
   const [pending, start] = useTransition();
-  if (done) return <p className="text-sm text-success">{t("consult.thanksReview")}</p>;
+  if (done)
+    return (
+      <p
+        role="status"
+        className="mx-auto flex w-fit items-center gap-2 rounded-full bg-success/12 px-4 py-2 text-sm font-medium text-success"
+      >
+        <Star aria-hidden="true" className="size-4 fill-current" />
+        {t("consult.thanksReview")}
+      </p>
+    );
   return (
     <form
-      className="grid gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
+      className="mx-auto grid w-full max-w-md gap-3 rounded-(--radius-2xl) bg-card p-4 text-center shadow-(--shadow-card) ring-1 ring-foreground/6 sm:p-5"
       onSubmit={(e) => {
         e.preventDefault();
         start(async () => {
@@ -223,11 +329,14 @@ export function ReviewForm({ consultId }: { consultId: string }) {
         });
       }}
     >
-      <fieldset className="grid gap-2">
-        <legend className="font-medium">{t("consult.rate")}</legend>
+      <fieldset className="grid justify-items-center gap-2">
+        <legend className="mb-1 font-heading text-base font-bold">{t("consult.rate")}</legend>
         <div className="flex gap-1">
           {[1, 2, 3, 4, 5].map((n) => (
-            <label key={n} className="cursor-pointer has-focus-visible:ring-3 has-focus-visible:ring-ring/50">
+            <label
+              key={n}
+              className="cursor-pointer rounded-full p-0.5 has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
+            >
               <input
                 type="radio"
                 name="rating"
@@ -238,8 +347,8 @@ export function ReviewForm({ consultId }: { consultId: string }) {
               <Star
                 aria-hidden="true"
                 className={cn(
-                  "size-8 transition-colors",
-                  n <= rating ? "fill-highlight text-highlight" : "text-muted-foreground",
+                  "size-9 transition-[color,scale] duration-(--motion-fast) ease-(--ease-press) motion-safe:hover:scale-110",
+                  n <= rating ? "fill-highlight text-highlight" : "text-muted-foreground/60",
                 )}
               />
               <span className="sr-only">{t("consult.stars", { n })}</span>
@@ -257,12 +366,11 @@ export function ReviewForm({ consultId }: { consultId: string }) {
         value={body}
         onChange={(e) => setBody(e.target.value)}
         placeholder={t("consult.reviewText")}
+        className="text-start"
       />
-      <div>
-        <Button type="submit" disabled={pending || rating === 0}>
-          {t("common.submit")}
-        </Button>
-      </div>
+      <Button type="submit" variant="brand" disabled={pending || rating === 0} aria-busy={pending}>
+        {t("common.submit")}
+      </Button>
     </form>
   );
 }
