@@ -1,6 +1,7 @@
 import "server-only";
 import { desc, eq, sql } from "drizzle-orm";
 import { db, schema } from "@/infrastructure/db";
+import { dhakaDay } from "@/lib/dhaka";
 import { vetBalance, type VetBalance } from "../ledger";
 
 const L = schema.ledgerEntries;
@@ -17,6 +18,8 @@ export async function vetLedger(providerId: string): Promise<{
     availableAt: Date | null;
   }[];
   payouts: { id: string; amount: number; method: string; reference: string | null; createdAt: Date }[];
+  /** Earned (vet share, net of refunds) in the current Dhaka calendar month, in poisha. */
+  month: number;
 }> {
   const rows = await db()
     .select({
@@ -42,7 +45,12 @@ export async function vetLedger(providerId: string): Promise<{
     .where(eq(schema.payouts.providerId, providerId))
     .orderBy(desc(schema.payouts.createdAt))
     .limit(50);
-  return { balance: vetBalance(rows, new Date()), lines: rows.slice(0, 50), payouts };
+  const now = new Date();
+  const thisMonth = dhakaDay(now).slice(0, 7);
+  const month = rows
+    .filter((r) => r.kind === "vet_payable" && dhakaDay(r.createdAt).slice(0, 7) === thisMonth)
+    .reduce((n, r) => n + r.amount, 0);
+  return { balance: vetBalance(rows, now), lines: rows.slice(0, 50), payouts, month };
 }
 
 /** Admin numbers: money in, Jotno's income, refunds, owed to vets. Last 30 days and all time. */

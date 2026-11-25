@@ -279,6 +279,9 @@ export async function setAvailableNow(on: boolean): Promise<VetResult> {
     .update(p)
     .set({ availableNow: on, availableUntil: on ? until : null, lastSeenAt: new Date() })
     .where(eq(p.profileId, viewer.id));
+  // Re-render the dashboard so the switch's server value (and "until") catch up;
+  // without it useOptimistic falls back to the old value and the switch flips back.
+  revalidatePath("/[locale]/dashboard", "page");
   return { ok: true };
 }
 

@@ -1,6 +1,9 @@
-import { Private, PrivateHeading } from "@/components/layout/private-page";
+import { ArrowLeft, PenLine } from "lucide-react";
+import { PageHeader } from "@/components/layout/app-ui";
+import { SuspenseReveal } from "@/components/motion/suspense-reveal";
+import { ButtonLink } from "@/components/ui/button-link";
 import { ROUTES } from "@/config/routes";
-import { ArticleForm, EMPTY_ARTICLE } from "@/features/articles";
+import { ArticleForm, ArticleFormSkeleton, EMPTY_ARTICLE } from "@/features/articles";
 import { requireVet } from "@/features/providers/server";
 import { getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -12,8 +15,23 @@ async function NewArticle() {
   const t = await getT();
   const { provider } = await requireVet(locale, localeHref(locale, ROUTES.vetNewArticle));
   return (
-    <div className="grid max-w-3xl gap-6">
-      <PrivateHeading title={t("art.new")} />
+    <div className="grid gap-6">
+      <PageHeader
+        icon={PenLine}
+        eyebrow={
+          <ButtonLink
+            href={localeHref(locale, ROUTES.vetArticles)}
+            variant="link"
+            size="xs"
+            className="h-auto px-0"
+          >
+            <ArrowLeft aria-hidden="true" className="rtl:rotate-180" />
+            {t("vetui.art.all")}
+          </ButtonLink>
+        }
+        title={t("art.new")}
+        sub={t("vetui.art.editorSub")}
+      />
       <ArticleForm
         id={null}
         initial={EMPTY_ARTICLE}
@@ -26,8 +44,8 @@ async function NewArticle() {
 
 export default function NewArticlePage() {
   return (
-    <Private rows={6}>
+    <SuspenseReveal fallback={<ArticleFormSkeleton />}>
       <NewArticle />
-    </Private>
+    </SuspenseReveal>
   );
 }

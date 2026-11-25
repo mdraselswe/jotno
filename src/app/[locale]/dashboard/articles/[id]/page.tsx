@@ -1,9 +1,10 @@
-import { ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, PenLine } from "lucide-react";
 import { notFound } from "next/navigation";
-import { Private, PrivateHeading } from "@/components/layout/private-page";
+import { PageHeader } from "@/components/layout/app-ui";
+import { SuspenseReveal } from "@/components/motion/suspense-reveal";
 import { ButtonLink } from "@/components/ui/button-link";
-import { articlePath, vetArticlePath } from "@/config/routes";
-import { ArticleForm } from "@/features/articles";
+import { articlePath, ROUTES, vetArticlePath } from "@/config/routes";
+import { ArticleForm, ArticleFormSkeleton } from "@/features/articles";
 import { myArticle } from "@/features/articles/server";
 import { requireVet } from "@/features/providers/server";
 import { getLocale, getT } from "@/i18n/server";
@@ -20,12 +21,30 @@ async function EditArticle({ params }: { params: Promise<{ id: string }> }) {
   if (!a) notFound();
   const published = a.status === "published";
   return (
-    <div className="grid max-w-3xl gap-6">
-      <PrivateHeading
+    <div className="grid gap-6">
+      <PageHeader
+        icon={PenLine}
+        eyebrow={
+          <ButtonLink
+            href={localeHref(locale, ROUTES.vetArticles)}
+            variant="link"
+            size="xs"
+            className="h-auto px-0"
+          >
+            <ArrowLeft aria-hidden="true" className="rtl:rotate-180" />
+            {t("vetui.art.all")}
+          </ButtonLink>
+        }
         title={t("art.edit")}
-        action={
+        sub={t("vetui.art.editorSub")}
+        actions={
           published ? (
-            <ButtonLink href={localeHref(locale, articlePath(a.slug))} variant="outline" size="sm">
+            <ButtonLink
+              href={localeHref(locale, articlePath(a.slug))}
+              variant="outline"
+              target="_blank"
+              className="max-sm:flex-1"
+            >
               <ExternalLink aria-hidden="true" />
               {t("common.view")}
             </ButtonLink>
@@ -49,8 +68,8 @@ async function EditArticle({ params }: { params: Promise<{ id: string }> }) {
 
 export default function EditArticlePage({ params }: PageProps<"/[locale]/dashboard/articles/[id]">) {
   return (
-    <Private rows={6}>
+    <SuspenseReveal fallback={<ArticleFormSkeleton />}>
       <EditArticle params={params} />
-    </Private>
+    </SuspenseReveal>
   );
 }
