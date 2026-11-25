@@ -31,7 +31,11 @@ export async function getPet(
   return { pet, records };
 }
 
-/** Records due soon across all of an owner's pets (for the account home). */
+/**
+ * Health records across all of an owner's pets (for the account home and the
+ * pets list), soonest due first. Pass them through `currentCare` so a record
+ * replaced by a newer one isn't shown as due.
+ */
 export async function upcomingCare(ownerId: string) {
   return db()
     .select({
@@ -40,11 +44,12 @@ export async function upcomingCare(ownerId: string) {
       petName: patients.name,
       kind: healthRecords.kind,
       title: healthRecords.title,
+      givenOn: healthRecords.givenOn,
       dueOn: healthRecords.dueOn,
     })
     .from(healthRecords)
     .innerJoin(patients, eq(patients.id, healthRecords.patientId))
     .where(eq(patients.ownerId, ownerId))
     .orderBy(asc(healthRecords.dueOn))
-    .limit(20);
+    .limit(500);
 }

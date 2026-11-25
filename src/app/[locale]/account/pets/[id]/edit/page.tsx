@@ -1,10 +1,14 @@
+import { ArrowLeft, Pencil } from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Private, PrivateHeading } from "@/components/layout/private-page";
+import { Suspense } from "react";
+import { PageHeader } from "@/components/layout/app-ui";
 import { petPath } from "@/config/routes";
 import { requireViewer } from "@/features/auth/server";
-import { PetForm } from "@/features/pets";
+import { PetForm, PetFormSkeleton } from "@/features/pets";
 import { getPet } from "@/features/pets/server";
 import { getLocale, getT } from "@/i18n/server";
+import { dhakaDay } from "@/lib/dhaka";
 import { localeHref } from "@/lib/locale-href";
 
 export async function generateMetadata() {
@@ -20,10 +24,20 @@ async function EditPet({ params }: { params: Promise<{ id: string }> }) {
   const found = await getPet(viewer.id, id);
   if (!found) notFound();
   const { pet } = found;
+  const back = localeHref(locale, petPath(pet.id));
   return (
     <div className="grid gap-6">
-      <PrivateHeading title={t("pets.edit", { name: pet.name })} />
+      <Link
+        href={back}
+        className="inline-flex w-fit items-center gap-1.5 rounded-(--radius-md) text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      >
+        <ArrowLeft aria-hidden="true" className="size-4 rtl:rotate-180" />
+        {pet.name}
+      </Link>
+      <PageHeader title={t("pets.edit", { name: pet.name })} icon={Pencil} />
       <PetForm
+        today={dhakaDay(new Date())}
+        cancelHref={back}
         initial={{
           id: pet.id,
           name: pet.name,
@@ -43,8 +57,8 @@ async function EditPet({ params }: { params: Promise<{ id: string }> }) {
 
 export default function EditPetPage({ params }: PageProps<"/[locale]/account/pets/[id]/edit">) {
   return (
-    <Private rows={2}>
+    <Suspense fallback={<PetFormSkeleton />}>
       <EditPet params={params} />
-    </Private>
+    </Suspense>
   );
 }

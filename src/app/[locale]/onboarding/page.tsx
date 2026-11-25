@@ -37,8 +37,25 @@ async function Gate({
 
 export default function OnboardingPage({ searchParams }: PageProps<"/[locale]/onboarding">) {
   return (
-    <div className="container-page py-12">
-      <Suspense fallback={<Skeleton className="mx-auto h-[36rem] w-full max-w-lg" />}>
+    <div className="container-page py-6 md:py-12">
+      <Suspense
+        fallback={
+          <div
+            role="status"
+            className="mx-auto grid w-full max-w-lg gap-6 rounded-(--radius-3xl) bg-card p-5 shadow-(--shadow-card) ring-1 ring-foreground/6 sm:p-8"
+          >
+            <div className="grid justify-items-center gap-2">
+              <Skeleton className="size-24 rounded-full" />
+              <Skeleton className="h-8 w-56 max-w-full" />
+              <Skeleton className="h-4 w-64 max-w-full" />
+            </div>
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-24 w-full rounded-(--radius-2xl)" />
+            <Skeleton className="h-24 w-full rounded-(--radius-2xl)" />
+            <Skeleton className="h-(--control-h-lg) w-full rounded-(--control-radius)" />
+          </div>
+        }
+      >
         <Gate searchParams={searchParams} />
       </Suspense>
     </div>
