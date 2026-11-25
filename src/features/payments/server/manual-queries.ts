@@ -1,6 +1,6 @@
 import "server-only";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
-import { chatPath, orderPath, ROUTES } from "@/config/routes";
+import { chatPath, orderPath, quickRequestPath, ROUTES } from "@/config/routes";
 import { db, schema } from "@/infrastructure/db";
 
 const P = schema.payments;
@@ -17,6 +17,8 @@ export function targetPath(purpose: Purpose, refId: string): string {
       return ROUTES.vetFeatured;
     case "order":
       return orderPath(refId);
+    case "quick":
+      return quickRequestPath(refId);
   }
 }
 
@@ -46,6 +48,11 @@ async function describe(purpose: Purpose, refId: string, locale: string): Promis
           : "Clinic visit booking fee";
     return { title: row?.name ?? "", detail: what };
   }
+  if (purpose === "quick")
+    return {
+      title: bn ? "দ্রুত সাহায্য" : "Quick help",
+      detail: bn ? "ডিউটিতে থাকা যেকোনো ভেট উত্তর দেবেন" : "Any vet on duty answers",
+    };
   if (purpose === "order") {
     const [o] = await db()
       .select({ number: schema.orders.number })

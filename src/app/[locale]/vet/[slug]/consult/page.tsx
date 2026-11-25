@@ -9,6 +9,7 @@ import { consultStartPath, ROUTES } from "@/config/routes";
 import { getViewer } from "@/features/auth/server";
 import { StartConsultForm } from "@/features/consults";
 import { listPets } from "@/features/pets/server";
+import { chatPointsCap } from "@/features/referrals/server";
 import { VetOfflineNotice, VetPhoto } from "@/features/providers";
 import { getProviderBySlug } from "@/features/providers/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
@@ -29,6 +30,7 @@ async function Start({ params }: { params: Promise<{ slug: string }> }) {
   if (!vet) notFound();
   const viewer = await getViewer();
   const pets = viewer ? await listPets(viewer.id) : [];
+  const maxPoints = viewer ? await chatPointsCap(viewer.id, vet.id, vet.consultFee) : 0;
   const here = localeHref(locale, consultStartPath(slug));
   const fee = taka(fmt, vet.consultFee);
   const rules = [
@@ -96,6 +98,7 @@ async function Start({ params }: { params: Promise<{ slug: string }> }) {
             pets={pets.map((p) => ({ id: p.id, name: p.name }))}
             feeLabel={fee}
             maxPhotos={business.consult.intakePhotos}
+            maxPoints={maxPoints}
           />
           <p className="text-center text-xs text-pretty text-muted-foreground">{t("pay.secure")}</p>
         </>

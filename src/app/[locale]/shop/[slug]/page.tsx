@@ -22,8 +22,10 @@ import {
   ProductTileSkeleton,
 } from "@/features/shop";
 import { getProduct, shopCategories } from "@/features/shop/server";
+import { ShareButton } from "@/features/share";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
+import { ogImages } from "@/lib/og";
 import { taka } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +38,7 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/shop/[sl
     title: p.name,
     description: p.description ?? p.name,
     alternates: { canonical: url },
-    openGraph: { title: p.name, url, images: p.imageUrl ? [p.imageUrl] : undefined },
+    openGraph: { title: p.name, url, images: ogImages(p.imageUrl) },
   };
 }
 
@@ -150,7 +152,10 @@ async function Product({ params }: { params: Promise<{ slug: string }> }) {
             <h1 className="font-heading text-2xl leading-tight font-bold tracking-tight text-balance sm:text-3xl lg:text-4xl">
               {p.name}
             </h1>
-            {p.unit ? <p className="text-sm text-muted-foreground">{p.unit}</p> : null}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              {p.unit ? <p className="text-sm text-muted-foreground">{p.unit}</p> : <span />}
+              <ShareButton variant="ghost" title={p.name} text={t("share.productText", { name: p.name })} />
+            </div>
           </div>
 
           {/* Price block */}

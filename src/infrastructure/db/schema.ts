@@ -75,7 +75,29 @@ export const paymentStatus = pgEnum("payment_status", [
   "refund_due",
   "refunded",
 ]);
-export const paymentPurpose = pgEnum("payment_purpose", ["consult", "appointment", "featured", "order"]);
+export const paymentPurpose = pgEnum("payment_purpose", [
+  "consult",
+  "appointment",
+  "featured",
+  "order",
+  "quick",
+]);
+/** full: the vet's own paid chat. quick: a ৳99 quick-help question answered by an on-duty vet. */
+export const consultKind = pgEnum("consult_kind", ["full", "quick"]);
+/**
+ * Quick help: pending_payment → (paid) open → an on-duty vet answers → claimed.
+ * Nobody answered in time: credited (a free next quick help) or, if the owner
+ * asks, refunded. A credit spent on a new request becomes used.
+ */
+export const quickStatus = pgEnum("quick_status", [
+  "pending_payment",
+  "open",
+  "claimed",
+  "credited",
+  "used",
+  "refunded",
+  "cancelled",
+]);
 export const ledgerKind = pgEnum("ledger_kind", ["charge", "commission", "vet_payable", "refund", "payout"]);
 export const healthKind = pgEnum("health_kind", ["vaccine", "deworm", "checkup"]);
 export const appointmentStatus = pgEnum("appointment_status", [
@@ -238,6 +260,9 @@ export const providers = pgTable(
     availableNow: boolean("available_now").notNull().default(false),
     availableUntil: tstz("available_until"),
     emergency24x7: boolean("emergency_24x7").notNull().default(false),
+    /** Quick-help duty hours, minutes from midnight Dhaka time (end before start: past midnight). */
+    dutyStart: integer("duty_start"),
+    dutyEnd: integer("duty_end"),
     homeVisit: boolean("home_visit").notNull().default(false),
     photoPath: text("photo_path"),
     ratingSum: integer("rating_sum").notNull().default(0),
@@ -442,8 +467,13 @@ export const consults = pgTable(
       .references(() => providers.id),
     patientId: uuid("patient_id").references(() => patients.id, { onDelete: "set null" }),
     status: consultStatus("status").notNull().default("pending_payment"),
+    kind: consultKind("kind").notNull().default("full"),
     fee: integer("fee").notNull(),
     commission: integer("commission").notNull(),
+    /** Jotno points the owner spent (৳1 each); they come out of the commission, never the vet's share. */
+    pointsUsed: integer("points_used").notNull().default(0),
+    /** The quick-help chat this full chat continued (upgrade). */
+    upgradedFrom: uuid("upgraded_from"),
     summary: text("summary").notNull(),
     openedAt: tstz("opened_at"),
     firstReplyAt: tstz("first_reply_at"),
@@ -758,6 +788,8 @@ export const orders = pgTable(
     subtotal: integer("subtotal").notNull(),
     discount: integer("discount").notNull().default(0),
     couponCode: text("coupon_code"),
+    /** Jotno points spent on this order (৳1 each, part of `discount`). */
+    pointsUsed: integer("points_used").notNull().default(0),
     deliveryFee: integer("delivery_fee").notNull(),
     total: integer("total").notNull(),
     /** bkash | nagad | cod, chosen on the pay page. */
@@ -826,6 +858,113 @@ export const stockMovements = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("stock_movements_product_idx").on(t.productId, t.createdAt)],
+).enableRLS();
+
+// ── Quick help ──────────────────────────────────────────────────────────────
+/**
+ * A ৳99 quick-help question waiting for any on-duty vet. The first vet to
+ * answer gets it: their answer opens a short quick chat (`consultId`). Server-only.
+ */
+export const quickRequests = pgTable(
+  "quick_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    patientId: uuid("patient_id").references(() => patients.id, { onDelete: "set null" }),
+    speciesId: integer("species_id").references(() => species.id),
+    summary: text("summary").notNull(),
+    /** Private chat uploads shown to the vets on duty. */
+    photos: text("photos")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    status: quickStatus("status").notNull().default("pending_payment"),
+    fee: integer("fee").notNull(),
+    commission: integer("commission").notNull(),
+    pointsUsed: integer("points_used").notNull().default(0),
+    /** The payment that funds it (its own, or the one of a credited request). */
+    paymentId: uuid("payment_id").references(() => payments.id),
+    providerId: uuid("provider_id").references(() => providers.id),
+    consultId: uuid("consult_id").references(() => consults.id, { onDelete: "set null" }),
+    openedAt: tstz("opened_at"),
+    claimedAt: tstz("claimed_at"),
+    /** For a credited request: the request that spent the credit. */
+    creditUsedBy: uuid("credit_used_by"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("quick_requests_status_idx").on(t.status, t.openedAt),
+    index("quick_requests_owner_idx").on(t.ownerId),
+  ],
+).enableRLS();
+
+// ── Referrals and points ────────────────────────────────────────────────────
+/** Everyone's own invite code, and the browser they signed up on. Server-only. */
+export const referralCodes = pgTable("referral_codes", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => profiles.id, { onDelete: "cascade" }),
+  code: text("code").notNull().unique(),
+  deviceId: text("device_id"),
+  createdAt: createdAt(),
+}).enableRLS();
+
+/**
+ * Who invited whom (one row per invited person). Flagged invites (same
+ * device, throwaway email) earn nothing; admins can flag or clear them.
+ */
+export const referrals = pgTable(
+  "referrals",
+  {
+    refereeId: uuid("referee_id")
+      .primaryKey()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    referrerId: uuid("referrer_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    code: text("code").notNull(),
+    deviceId: text("device_id"),
+    status: text("status", { enum: ["ok", "flagged"] })
+      .notNull()
+      .default("ok"),
+    /** same_device | device_reused | disposable_email | admin */
+    flagReason: text("flag_reason"),
+    /** The invited person did something real (added a pet, asked, paid). */
+    activatedAt: tstz("activated_at"),
+    firstPaidAt: tstz("first_paid_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("referrals_referrer_idx").on(t.referrerId, t.createdAt)],
+).enableRLS();
+
+/**
+ * Jotno points (৳1 each), one row per change; the balance is computed
+ * (features/referrals/points.ts), never stored. Earned points expire.
+ */
+export const points = pgTable(
+  "points",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    /** Positive: earned or given back. Negative: spent. */
+    amount: integer("amount").notNull(),
+    /** signup | first_paid | welcome | spend | refund */
+    kind: text("kind").notNull(),
+    /** pending: waits for the invited person to do something. void: taken back by an admin. */
+    status: text("status", { enum: ["pending", "available", "void"] })
+      .notNull()
+      .default("available"),
+    /** order | consult | quick | referral */
+    refType: text("ref_type"),
+    refId: text("ref_id"),
+    expiresAt: tstz("expires_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("points_user_idx").on(t.userId, t.createdAt), index("points_ref_idx").on(t.refType, t.refId)],
 ).enableRLS();
 
 // ── Platform ────────────────────────────────────────────────────────────────

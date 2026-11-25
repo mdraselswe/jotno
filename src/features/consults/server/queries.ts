@@ -25,6 +25,7 @@ export interface ChatMessage {
 export interface ConsultView {
   id: string;
   status: (typeof C.$inferSelect)["status"];
+  kind: (typeof C.$inferSelect)["kind"];
   fee: number;
   summary: string;
   openedAt: Date | null;
@@ -99,6 +100,7 @@ export async function getConsult(
   return {
     id: row.c.id,
     status: row.c.status,
+    kind: row.c.kind,
     fee: row.c.fee,
     summary: row.c.summary,
     openedAt: row.c.openedAt,

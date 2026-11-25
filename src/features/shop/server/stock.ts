@@ -1,4 +1,5 @@
 import "server-only";
+import { givePointsBack } from "@/features/referrals/server";
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/infrastructure/db";
 import { audit } from "@/infrastructure/db/helpers";
@@ -92,7 +93,7 @@ export const CANCELLABLE = ["pending_payment", "placed", "paid", "processing"] a
  * job (refundPlatform).
  */
 export async function releaseOrder(orderId: string, reason: string, actorId: string | null) {
-  return db().transaction(async (tx) => {
+  const released = await db().transaction(async (tx) => {
     const [inReview] = await tx
       .select({ id: schema.payments.id })
       .from(schema.payments)
@@ -124,6 +125,8 @@ export async function releaseOrder(orderId: string, reason: string, actorId: str
       );
     return o;
   });
+  if (released && released.pointsUsed > 0) await givePointsBack(released.userId, "order", orderId);
+  return released;
 }
 
 /** Marks a shipped or delivered order as returned and restocks it. */

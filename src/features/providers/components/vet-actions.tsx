@@ -1,42 +1,28 @@
 "use client";
 
-import { Navigation, Phone, Share2 } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Navigation, Phone } from "lucide-react";
+import type { ReactNode } from "react";
 import { ButtonAnchor } from "@/components/ui/button-link";
 import { useT } from "@/i18n/client";
 import { recordCallTap } from "../server/public-actions";
 import { telHref } from "../tel";
 
-/** Call, directions and share for a vet profile. Call taps are counted for the vet's dashboard. */
+/** Call and directions for a vet profile (plus `children`, e.g. share). Call taps are counted for the vet's dashboard. */
 export function VetContactButtons({
   providerId,
   phone,
   lat,
   lon,
-  name,
+  children,
 }: {
   providerId: string;
   phone: string | null;
   lat: number | null;
   lon: number | null;
-  name: string;
+  children?: ReactNode;
 }) {
   const t = useT();
   const tel = telHref(phone);
-
-  async function share() {
-    const url = window.location.href;
-    try {
-      if (navigator.share) await navigator.share({ title: name, url });
-      else {
-        await navigator.clipboard.writeText(url);
-        toast.success(t("common.copied"));
-      }
-    } catch {
-      // Closing the share sheet is not an error.
-    }
-  }
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -65,10 +51,7 @@ export function VetContactButtons({
           {t("vets.directions")}
         </ButtonAnchor>
       ) : null}
-      <Button variant="ghost" size="sm" onClick={share}>
-        <Share2 aria-hidden="true" />
-        {t("vets.share")}
-      </Button>
+      {children}
     </div>
   );
 }

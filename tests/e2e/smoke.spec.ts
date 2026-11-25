@@ -36,6 +36,7 @@ const ROUTES = [
   "/articles",
   "/shop",
   "/emergency",
+  "/quick",
   "/for-vets",
   "/join",
   "/legal/terms",

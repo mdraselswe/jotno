@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { petPath, ROUTES } from "@/config/routes";
 import { actionViewer } from "@/features/auth/server";
+import { activateReferral } from "@/features/referrals/server";
 import { ownsUpload } from "@/features/uploads/server";
 import type { MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
@@ -68,6 +69,7 @@ export async function savePet(locale: string, id: string | null, input: PetInput
       .values({ ...values, ownerId: viewer.id })
       .returning({ id: patients.id });
     petId = row?.id ?? null;
+    if (petId) await activateReferral(viewer.id);
   }
   revalidatePath(localeHref(locale, ROUTES.pets));
   redirect(petId ? localeHref(locale, petPath(petId)) : localeHref(locale, ROUTES.pets));

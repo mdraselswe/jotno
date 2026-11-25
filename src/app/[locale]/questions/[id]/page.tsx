@@ -22,8 +22,10 @@ import { speciesName } from "@/content/places";
 import { getViewer } from "@/features/auth/server";
 import { AnswerForm, HelpfulButton, ReportButton } from "@/features/questions";
 import { answeringVet, getQuestion } from "@/features/questions/server";
+import { ShareButton } from "@/features/share";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
+import { ogImages } from "@/lib/og";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/questions/[id]">): Promise<Metadata> {
   const { id, locale } = await params;
@@ -35,7 +37,7 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/question
     description: q.excerpt,
     alternates: { canonical: url },
     robots: q.answerCount > 0 ? undefined : { index: false },
-    openGraph: { title: q.title, description: q.excerpt, url, type: "article" },
+    openGraph: { title: q.title, description: q.excerpt, url, type: "article", images: ogImages() },
   };
 }
 
@@ -113,11 +115,14 @@ async function Question({ params }: { params: Promise<{ id: string }> }) {
           <h1 className="max-w-3xl font-heading text-3xl leading-tight font-bold tracking-tight text-balance md:text-4xl">
             {q.title}
           </h1>
-          <p className="text-sm text-muted-foreground">
-            <time dateTime={q.createdAt.toISOString()}>
-              {t("pubui.qa.asked", { date: fmt.date(q.createdAt) })}
-            </time>
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-muted-foreground">
+              <time dateTime={q.createdAt.toISOString()}>
+                {t("pubui.qa.asked", { date: fmt.date(q.createdAt) })}
+              </time>
+            </p>
+            <ShareButton title={q.title} text={t("share.questionText")} />
+          </div>
         </div>
       </header>
 

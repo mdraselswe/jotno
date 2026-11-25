@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LOCALES, localePath } from "@/config/locale";
 import { pageUrl } from "@/config/routes";
+import { ogImages } from "./og";
 import { stripAccent } from "./rich-text";
 
 /**
@@ -17,6 +18,6 @@ export function pageMetadata(title: string, description: string, route: string, 
       canonical: url,
       languages: Object.fromEntries(LOCALES.map((l) => [l, pageUrl(localePath(l, route))])),
     },
-    openGraph: { title: plain, description, url, locale },
+    openGraph: { title: plain, description, url, locale, images: ogImages() },
   };
 }

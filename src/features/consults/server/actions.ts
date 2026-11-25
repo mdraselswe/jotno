@@ -17,6 +17,9 @@ import { audit, rateLimit } from "@/infrastructure/db/helpers";
 import { storage } from "@/infrastructure/storage";
 import { localeHref } from "@/lib/locale-href";
 import { commissionFor } from "@/features/payments";
+import { ownerCanSend } from "@/features/quick";
+import { maxPointsFor } from "@/features/referrals";
+import { chatCommissionBps, pointsOf, spendPoints } from "@/features/referrals/server";
 import { canSend } from "../rules";
 import { endOpenCalls } from "./call-store";
 import { adminCanRead, participant } from "./participant";
@@ -31,6 +34,8 @@ const startSchema = z.object({
   summary: z.string().trim().min(10).max(1000),
   /** Private chat uploads to show the vet first (paths from requestUpload). */
   photos: z.array(z.string()).max(business.consult.intakePhotos).default([]),
+  /** Pay part of Jotno's commission with points. */
+  usePoints: z.boolean().default(false),
 });
 
 /** Creates a consult awaiting payment and sends the owner to the gateway. */
@@ -73,6 +78,11 @@ export async function startConsult(
     if (!pet) return { ok: false, error: "common.notAllowed" };
   }
 
+  // Owners a vet invited pay the same fee, but Jotno takes less (the vet keeps more).
+  const commission = commissionFor(vet.fee, await chatCommissionBps(viewer.id, vet.profileId));
+  const wanted = parsed.data.usePoints
+    ? maxPointsFor(commission, business.referral.commissionSpendBps, (await pointsOf(viewer.id)).available)
+    : 0;
   const [consult] = await db()
     .insert(C)
     .values({
@@ -80,11 +90,13 @@ export async function startConsult(
       providerId: vet.id,
       patientId: parsed.data.patientId,
       fee: vet.fee,
-      commission: commissionFor(vet.fee, business.consult.commissionBps),
+      commission,
       summary: parsed.data.summary,
     })
     .returning({ id: C.id });
   if (!consult) return { ok: false, error: "common.genericError" };
+  const pointsUsed = wanted > 0 && (await spendPoints(viewer.id, wanted, "consult", consult.id)) ? wanted : 0;
+  if (pointsUsed > 0) await db().update(C).set({ pointsUsed }).where(eq(C.id, consult.id));
   // The photos open the chat, so the vet sees them with the summary.
   if (parsed.data.photos.length > 0)
     await db()
@@ -97,7 +109,7 @@ export async function startConsult(
     userId: viewer.id,
     purpose: "consult",
     refId: consult.id,
-    amount: vet.fee,
+    amount: vet.fee - pointsUsed * 100,
     productName: `Jotno chat consult: ${vet.name}`,
     customer: {
       name: viewer.fullName ?? "Jotno user",
@@ -127,6 +139,16 @@ export async function sendMessage(
   const p = await participant(consultId, viewer.id);
   if (!p) return { ok: false, error: "common.notAllowed" };
   if (!canSend(p.c)) return { ok: false, error: "consult.closedNote" };
+  if (p.role === "owner" && p.c.kind === "quick" && p.c.openedAt) {
+    const [{ n } = { n: 0 }] = await db()
+      .select({ n: sql<number>`count(*)::int` })
+      .from(M)
+      .where(
+        and(eq(M.consultId, consultId), eq(M.senderId, viewer.id), sql`${M.createdAt} > ${p.c.openedAt}`),
+      );
+    if (!ownerCanSend("quick", Number(n), business.quick.ownerMessages))
+      return { ok: false, error: "quick.followUpsUsed" };
+  }
   if (parsed.data.imagePath && !ownsUpload(parsed.data.imagePath, "chat", viewer.id))
     return { ok: false, error: "common.notAllowed" };
   if (!(await rateLimit(`msg:${viewer.id}`, 120, 600))) return { ok: false, error: "common.tooMany" };

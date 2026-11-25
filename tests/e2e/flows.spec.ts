@@ -42,7 +42,15 @@ test.describe("public flows", () => {
   });
 
   test("private pages send signed-out people to sign in", async ({ page }) => {
-    for (const path of ["/account/", "/dashboard/", "/admin/"]) {
+    for (const path of [
+      "/account/",
+      "/account/invite/",
+      "/dashboard/",
+      "/dashboard/quick/",
+      "/dashboard/promote/",
+      "/admin/",
+      "/admin/referrals/",
+    ]) {
       await page.goto(path);
       await expect(page).toHaveURL(/\/login\/\?next=/);
     }
@@ -60,6 +68,30 @@ test.describe("public flows", () => {
     await add.click();
     await page.goto("/shop/cart/");
     await expect(page.locator("main a[href*='/shop/']").first()).toBeVisible();
+  });
+
+  test("an invite link is remembered, share offers apps, previews have an image", async ({
+    page,
+    context,
+    request,
+  }) => {
+    await page.goto("/en/?ref=abc234");
+    const cookies = await context.cookies();
+    expect(cookies.find((c) => c.name === "jotno_ref")?.value).toBe("ABC234");
+    expect(cookies.find((c) => c.name === "jotno_did")?.value).toMatch(/^[0-9a-f-]{36}$/);
+
+    await page.goto("/en/emergency/");
+    await page.locator("main").getByRole("button", { name: "Share" }).first().click();
+    await expect(page.getByRole("menuitem", { name: /Facebook/ })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: /WhatsApp/ })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: /Copy link/ })).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    const og = await page.locator("meta[property='og:image']").first().getAttribute("content");
+    expect(og).toContain("/og.png");
+    const img = await request.get("/og.png");
+    expect(img.status()).toBe(200);
+    expect(img.headers()["content-type"]).toContain("image/png");
   });
 
   test("shop filters, search and sort work together", async ({ page }) => {

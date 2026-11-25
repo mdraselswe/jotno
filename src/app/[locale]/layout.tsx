@@ -10,6 +10,7 @@ import { ThemeScript } from "@/components/layout/theme-script";
 import { features, isProduction, site } from "@/config";
 import { LOCALES, localeDir, localePath } from "@/config/locale";
 import { pageUrl } from "@/config/routes";
+import { OG_IMAGE_PATH, ogImages } from "@/lib/og";
 import { Toaster } from "@/components/ui/sonner";
 import { ConnectionBanner } from "@/features/connection";
 import { IncomingCall, VetWaitingAlert } from "@/features/consults";
@@ -43,8 +44,9 @@ export async function generateMetadata(): Promise<Metadata> {
       title: site.seo.title,
       description,
       locale,
+      images: ogImages(),
     },
-    twitter: { card: "summary_large_image", title: site.seo.title, description },
+    twitter: { card: "summary_large_image", title: site.seo.title, description, images: [OG_IMAGE_PATH] },
     // Icons and the manifest are generated from config by scripts/generate-assets.ts.
     icons: {
       icon: [

@@ -33,6 +33,8 @@ export async function startCall(
   const p = await participant(consultId, viewer.id);
   if (!p) return { ok: false, error: "common.notAllowed" };
   if (!canSend(p.c)) return { ok: false, error: "consult.closedNote" };
+  // Quick help is a short written answer: calls come with the full chat (upgrade).
+  if (p.c.kind === "quick") return { ok: false, error: "quick.noCalls" };
   if (!(await rateLimit(`call:${viewer.id}`, 20, 600))) return { ok: false, error: "common.tooMany" };
 
   // The other side is already ringing us: answer that instead of crossing calls.

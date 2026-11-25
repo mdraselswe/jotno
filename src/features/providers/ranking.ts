@@ -20,6 +20,8 @@ export interface RankInput {
   /** Treats the searched species. */
   speciesMatch: boolean;
   lastSeenAt: Date | null;
+  /** Reached the top invite level (brought many paying owners to Jotno). */
+  topPromoter?: boolean;
 }
 
 /**
@@ -43,6 +45,8 @@ export const RANK = {
   available: 8,
   availableEmergency: 30,
   emergency24x7: 15,
+  /** Top invite level (platinum): earned by bringing owners who paid. */
+  topPromoter: 6,
   /** Seen within [days, points], first match wins. */
   seen: [
     [1, 5],
@@ -71,6 +75,7 @@ export function rankScore(p: RankInput, now: Date, emergency = false): number {
   if (p.speciesMatch) score += RANK.speciesMatch;
   if (p.availableNow) score += emergency ? RANK.availableEmergency : RANK.available;
   if (emergency && p.emergency24x7) score += RANK.emergency24x7;
+  if (p.topPromoter) score += RANK.topPromoter;
   if (p.lastSeenAt) {
     const days = (now.getTime() - p.lastSeenAt.getTime()) / 86_400_000;
     score += RANK.seen.find(([within]) => days < within)?.[1] ?? 0;

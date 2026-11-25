@@ -23,6 +23,10 @@ describe("ranking", () => {
     expect(many).toBeGreaterThan(one);
   });
 
+  it("top promoters get a small earned boost", () => {
+    expect(rankScore({ ...base, topPromoter: true }, now) - rankScore(base, now)).toBe(6);
+  });
+
   it("nearby and same-area vets rank higher", () => {
     const far = rankScore({ ...base, distanceKm: 15 }, now);
     const near = rankScore({ ...base, distanceKm: 1, sameArea: true }, now);

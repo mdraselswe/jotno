@@ -1,5 +1,5 @@
 import "server-only";
-import { chatPath, ROUTES } from "@/config/routes";
+import { chatPath, quickRequestPath, ROUTES } from "@/config/routes";
 import { localePath } from "@/config/locale";
 import type { SettleResult } from "./payments";
 
@@ -15,7 +15,9 @@ export function afterPaymentPath(result: SettleResult, locale: string): string {
           ? ROUTES.vetFeatured
           : result.purpose === "order"
             ? ROUTES.orders
-            : ROUTES.home;
+            : result.purpose === "quick" && result.refId
+              ? quickRequestPath(result.refId)
+              : ROUTES.home;
   const path = localePath(locale, route);
   // "/" + "/?…" would be "//?…", a protocol-relative URL.
   return `${path.endsWith("/") ? path : `${path}/`}?payment=${status}`;

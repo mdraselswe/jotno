@@ -19,8 +19,10 @@ import {
   readingMinutes,
 } from "@/features/articles";
 import { getArticle, listArticles } from "@/features/articles/server";
+import { ShareButton } from "@/features/share";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
+import { ogImages } from "@/lib/og";
 import { cn } from "@/lib/utils";
 
 export async function generateMetadata({
@@ -41,6 +43,7 @@ export async function generateMetadata({
       url,
       type: "article",
       publishedTime: a.publishedAt?.toISOString(),
+      images: ogImages(),
     },
   };
 }
@@ -132,6 +135,11 @@ async function Article({ params }: { params: Promise<{ slug: string }> }) {
           {a.excerpt ? (
             <p className="max-w-2xl text-lg text-pretty text-foreground/75 md:text-xl">{a.excerpt}</p>
           ) : null}
+          <ShareButton
+            className="justify-self-start"
+            title={a.title}
+            text={t("share.articleText", { title: a.title })}
+          />
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
             <Link href={profile} className="group flex items-center gap-2.5">
               <VetAvatar photoUrl={a.vet.photoUrl} className="size-10" />

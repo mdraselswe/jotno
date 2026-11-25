@@ -6,6 +6,8 @@ import { translator } from "@/i18n";
 import { publicEnv } from "@/config/env";
 import { chatPath, orderPath, payPath, ROUTES } from "@/config/routes";
 import { notify, notifyAdmins } from "@/features/notifications/server";
+import { openQuick } from "@/features/quick/server";
+import { givePointsBack, onFirstPayment } from "@/features/referrals/server";
 import { PaymentInReview, releaseOrder } from "@/features/shop/server";
 import { db, schema } from "@/infrastructure/db";
 import { audit } from "@/infrastructure/db/helpers";
@@ -117,6 +119,8 @@ export async function markPaid(
     .catch(() => []);
   if (updated.length === 0) return false;
   await applyPaid(payment, opts.locale);
+  // An invited person's first payment rewards whoever invited them (once).
+  await onFirstPayment(payment.userId);
   await audit(opts.reviewedBy ?? payment.userId, "payment.paid", "payment", payment.id, {
     purpose: payment.purpose,
     amount: payment.amount,
@@ -179,10 +183,19 @@ export async function settlePayment(fields: Record<string, string>, locale: stri
 /** Releases what an unpaid payment was holding (chat, booking, order). */
 export async function cancelTarget(purpose: Purpose, refId: string) {
   if (purpose === "consult") {
-    await db()
+    const [c] = await db()
       .update(schema.consults)
       .set({ status: "cancelled" })
-      .where(and(eq(schema.consults.id, refId), eq(schema.consults.status, "pending_payment")));
+      .where(and(eq(schema.consults.id, refId), eq(schema.consults.status, "pending_payment")))
+      .returning({ ownerId: schema.consults.ownerId });
+    if (c) await givePointsBack(c.ownerId, "consult", refId);
+  } else if (purpose === "quick") {
+    const [q] = await db()
+      .update(schema.quickRequests)
+      .set({ status: "cancelled" })
+      .where(and(eq(schema.quickRequests.id, refId), eq(schema.quickRequests.status, "pending_payment")))
+      .returning({ ownerId: schema.quickRequests.ownerId });
+    if (q) await givePointsBack(q.ownerId, "quick", refId);
   } else if (purpose === "appointment") {
     await db()
       .update(schema.appointments)
@@ -207,10 +220,12 @@ async function applyPaid(payment: PaymentRow, locale: string) {
         .where(eq(schema.consults.id, payment.refId))
         .returning();
       if (!c) return;
+      // Points the owner spent come out of Jotno's commission, never the vet's share.
+      const pointsOff = c.pointsUsed * 100;
       await writeLedger(
         paidRows({
-          fee: c.fee,
-          commission: c.commission,
+          fee: c.fee - pointsOff,
+          commission: c.commission - pointsOff,
           providerId: c.providerId,
           paymentId: payment.id,
           refId: c.id,
@@ -273,6 +288,10 @@ async function applyPaid(payment: PaymentRow, locale: string) {
         url: localeHref(locale, ROUTES.appointments),
         tag: `appt-${a.id}`,
       });
+      return;
+    }
+    case "quick": {
+      await openQuick(payment.refId, payment.id, locale);
       return;
     }
     case "featured": {
@@ -361,10 +380,24 @@ export async function refundConsult(
 ): Promise<boolean> {
   const [c] = await db().select().from(schema.consults).where(eq(schema.consults.id, consultId)).limit(1);
   if (!c || c.status !== "active") return false;
+  // A quick chat is paid through its quick-help request (or the credit that request used).
+  const [quick] =
+    c.kind === "quick"
+      ? await db()
+          .select({ id: schema.quickRequests.id, paymentId: schema.quickRequests.paymentId })
+          .from(schema.quickRequests)
+          .where(eq(schema.quickRequests.consultId, consultId))
+          .limit(1)
+      : [];
   const [payment] = await db()
     .select()
     .from(P)
-    .where(and(eq(P.purpose, "consult"), eq(P.refId, consultId), eq(P.status, "paid")))
+    .where(
+      and(
+        quick?.paymentId ? eq(P.id, quick.paymentId) : and(eq(P.purpose, "consult"), eq(P.refId, consultId)),
+        eq(P.status, "paid"),
+      ),
+    )
     .limit(1);
   if (!payment) return false;
 
@@ -376,10 +409,17 @@ export async function refundConsult(
   if (moved.length === 0) return false;
 
   const result = await refundPayment(payment, reason);
+  if (quick)
+    await db()
+      .update(schema.quickRequests)
+      .set({ status: "refunded" })
+      .where(eq(schema.quickRequests.id, quick.id));
+  await givePointsBack(c.ownerId, quick ? "quick" : "consult", quick ? quick.id : c.id);
+  const pointsOff = c.pointsUsed * 100;
   await writeLedger(
     refundRows({
-      fee: c.fee,
-      commission: c.commission,
+      fee: c.fee - pointsOff,
+      commission: c.commission - pointsOff,
       providerId: c.providerId,
       paymentId: payment.id,
       refId: c.id,
@@ -404,6 +444,26 @@ export async function refundConsult(
     url: localeHref(locale, chatPath(c.id)),
     tag: `consult-${c.id}`,
   });
+  return true;
+}
+
+/**
+ * Gives back a quick help nobody answered (the owner chose money over a free
+ * retry). Nothing was charged to a vet, so there are no ledger rows to reverse.
+ */
+export async function refundQuickPayment(
+  paymentId: string,
+  reason: string,
+  actorId: string,
+): Promise<boolean> {
+  const [payment] = await db()
+    .select()
+    .from(P)
+    .where(and(eq(P.id, paymentId), eq(P.status, "paid")))
+    .limit(1);
+  if (!payment) return false;
+  const result = await refundPayment(payment, reason);
+  await audit(actorId, "quick.refund", "payment", paymentId, { reason, ok: result.ok });
   return true;
 }
 

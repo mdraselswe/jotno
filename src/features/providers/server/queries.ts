@@ -191,6 +191,9 @@ function rankScoreSql(o: { areaId: number | null; distanceKm: SQL | null; emerge
   if (o.distanceKm)
     parts.push(sql`greatest(0, ${num(RANK.nearMax)} - ${o.distanceKm} * ${num(RANK.nearPerKm)})`);
   if (o.emergency) parts.push(sql`case when ${p.emergency24x7} then ${num(RANK.emergency24x7)} else 0 end`);
+  parts.push(
+    sql`case when (select count(*) from referrals r where r.referrer_id = ${p.profileId} and r.status = 'ok' and r.first_paid_at is not null) >= ${num(business.referral.levels.platinum)} then ${num(RANK.topPromoter)} else 0 end`,
+  );
   return sql<number>`round((${sql.join(parts, sql` + `)})::numeric, 2)`;
 }
 

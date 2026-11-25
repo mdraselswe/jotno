@@ -21,6 +21,7 @@ import { useEffect, useEffectEvent, useRef, useState, useTransition } from "reac
 import { toast } from "sonner";
 import { EmptyState, SectionCard } from "@/components/layout/app-ui";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +48,8 @@ export interface Buyer {
   name: string;
   phone: string;
   districtId: number | null;
+  /** Jotno points they have, and the share of the goods points may pay (basis points). */
+  points?: { balance: number; bps: number };
 }
 
 const FORM_ID = "checkout-form";
@@ -90,6 +93,7 @@ export function CartView({
   const [phone, setPhone] = useState(buyer?.phone ?? "");
   const [districtId, setDistrictId] = useState(buyer?.districtId ? String(buyer.districtId) : "");
   const [address, setAddress] = useState("");
+  const [usePoints, setUsePoints] = useState(false);
   const [note, setNote] = useState("");
   const [touched, setTouched] = useState<Partial<Record<Field, boolean>>>({});
   const [error, setError] = useState<string | null>(null);
@@ -175,7 +179,15 @@ export function CartView({
   const couponShort = coupon !== null && discount === 0;
   // The server charges delivery on the subtotal after the discount.
   const delivery = deliveryFee(sub - discount, districtId ? Number(districtId) : null, rule);
-  const total = sub - discount + (districtId ? delivery : 0);
+  // Points: whole taka, at most a small share of the goods (the server checks the same).
+  const pointsCap = buyer?.points
+    ? Math.max(
+        0,
+        Math.min(Math.floor(((sub - discount) * buyer.points.bps) / 10_000 / 100), buyer.points.balance),
+      )
+    : 0;
+  const pointsOff = usePoints ? pointsCap * 100 : 0;
+  const total = sub - discount - pointsOff + (districtId ? delivery : 0);
   const blocked = priced.some((l) => l.stock <= 0 || l.qty > l.stock);
   // Same rule as the pay page; before a district is picked the total leaves out delivery.
   const codOver = methods.includes("cod") && !codAllowed(cod, total);
@@ -225,6 +237,7 @@ export function CartView({
         note,
         // A code that takes nothing off is left out, so it isn't used up for nothing.
         coupon: coupon && discount > 0 ? coupon.code : undefined,
+        usePoints: pointsOff > 0,
       });
       if (!res.ok) {
         setError(t(res.error));
@@ -567,6 +580,22 @@ export function CartView({
             )}
           </div>
 
+          {pointsCap > 0 ? (
+            <label className="flex items-start gap-3 rounded-(--radius-lg) bg-success/8 px-3 py-2.5 text-sm ring-1 ring-success/20">
+              <Checkbox
+                checked={usePoints}
+                onCheckedChange={(v) => setUsePoints(v === true)}
+                className="mt-0.5"
+              />
+              <span className="grid gap-0.5">
+                <span className="font-medium">{t("grow.usePoints", { n: pointsCap })}</span>
+                <span className="text-xs text-muted-foreground">
+                  {t("grow.usePointsShop", { n: (buyer?.points?.bps ?? 0) / 100 })}
+                </span>
+              </span>
+            </label>
+          ) : null}
+
           <dl className="grid gap-2 border-t pt-4 text-sm">
             <div className="flex justify-between gap-3">
               <dt className="text-muted-foreground">
@@ -580,6 +609,12 @@ export function CartView({
                   {t("shop.discount")} <span className="font-mono text-xs">({coupon?.code})</span>
                 </dt>
                 <dd className="tabular-nums">−{taka(fmt, discount)}</dd>
+              </div>
+            ) : null}
+            {pointsOff > 0 ? (
+              <div className="flex justify-between gap-3 text-success">
+                <dt>{t("grow.pointsLine")}</dt>
+                <dd className="tabular-nums">−{taka(fmt, pointsOff)}</dd>
               </div>
             ) : null}
             <div className="flex justify-between gap-3">

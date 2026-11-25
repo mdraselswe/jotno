@@ -27,6 +27,7 @@ import { consultStartPath, ROUTES, vetPath } from "@/config/routes";
 import { emergencyContent } from "@/content/emergency";
 import { telHref, VetPhoto, vetPlace } from "@/features/providers";
 import { searchProviders } from "@/features/providers/server";
+import { ShareButton } from "@/features/share";
 import { pickLocale } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -225,6 +226,11 @@ export default async function EmergencyPage() {
             {t("emg.title")}
           </h1>
           <p className="text-lg text-pretty text-foreground/80">{c.intro}</p>
+          <ShareButton
+            className="justify-self-start bg-card"
+            title={t("emg.title")}
+            text={t("share.emergencyText")}
+          />
           <div className="grid gap-3">
             {hotline && hotlineHref ? (
               <ButtonAnchor
@@ -252,6 +258,17 @@ export default async function EmergencyPage() {
                 sub={t("pubui.emg.findNearSub")}
                 tone="plain"
               />
+              {business.quick.enabled ? (
+                <div className="sm:col-span-2">
+                  <BigAction
+                    href={localeHref(locale, ROUTES.quick)}
+                    icon={Zap}
+                    label={t("quick.ctaTitle", { fee: taka(fmt, business.quick.fee) })}
+                    sub={t("quick.ctaSub", { n: business.quick.answerMinutes })}
+                    tone="plain"
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import {
   ArrowRight,
   BellRing,
   CalendarDays,
+  Gift,
   MessageCircle,
   MessageCircleQuestion,
   Package,
@@ -9,6 +10,7 @@ import {
   ShoppingBag,
   Siren,
   Stethoscope,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import type { Route } from "next";
@@ -18,6 +20,7 @@ import { Spot } from "@/components/illustrations/spots";
 import { EmptyState, SectionCard, StatusBadge, type BadgeTone } from "@/components/layout/app-ui";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Skeleton } from "@/components/ui/skeleton";
+import { business } from "@/config";
 import { chatPath, orderPath, petPath, ROUTES } from "@/config/routes";
 import { listOwnerAppointments } from "@/features/appointments/server";
 import { UserAvatar } from "@/features/auth";
@@ -270,6 +273,22 @@ async function Overview() {
             label={t("ownerui.quick.emergency")}
             hint={t("ownerui.quick.emergencyHint")}
             tone="danger"
+          />
+          {business.quick.enabled ? (
+            <QuickTile
+              href={href(ROUTES.quick)}
+              icon={Zap}
+              label={t("quick.ctaTitle", { fee: taka(fmt, business.quick.fee) })}
+              hint={t("quick.ctaSub", { n: business.quick.answerMinutes })}
+              className="col-span-2 sm:col-span-3"
+            />
+          ) : null}
+          <QuickTile
+            href={href(ROUTES.invite)}
+            icon={Gift}
+            label={t("grow.inviteTitle")}
+            hint={t("grow.inviteTile", { n: business.referral.welcomePoints })}
+            className="col-span-2 sm:col-span-3"
           />
         </div>
       </section>

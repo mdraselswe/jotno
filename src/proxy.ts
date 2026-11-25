@@ -4,6 +4,7 @@ import { publicEnv } from "@/config/env";
 import { site } from "@/config";
 import { DEFAULT_LOCALE, isLocale, localePath, splitLocale } from "@/config/locale";
 import { ROUTES } from "@/config/routes";
+import { DEVICE_COOKIE, normalizeRef, REF_COOKIE, REF_COOKIE_DAYS, REF_PARAM } from "@/lib/ref";
 
 /**
  * Runs before every page request:
@@ -16,6 +17,9 @@ import { ROUTES } from "@/config/routes";
  *    can't write cookies).
  * 2. Optimistic guard: private sections send signed-out people to sign-in.
  *    The real permission checks happen again on the server (requireRole).
+ * 3. Invites: `?ref=CODE` is remembered for a month (httpOnly cookie) so the
+ *    sign-up that follows counts for the inviter, and sign-in pages get a
+ *    random browser id (one browser can't invite itself).
  */
 const GUARDED = [ROUTES.account, ROUTES.dashboard, ROUTES.admin, ROUTES.chat, ROUTES.onboarding];
 
@@ -48,7 +52,38 @@ function unprefixedUrl(request: NextRequest): URL | null {
   return url;
 }
 
+/** Pages where the browser id matters: signing up, signing in, the signed-in areas. */
+const DEVICE_PATHS = [ROUTES.login, ...GUARDED];
+
+function remember(request: NextRequest, response: NextResponse): NextResponse {
+  const secure = request.nextUrl.protocol === "https:";
+  const ref = normalizeRef(request.nextUrl.searchParams.get(REF_PARAM));
+  if (ref)
+    response.cookies.set(REF_COOKIE, ref, {
+      path: "/",
+      maxAge: REF_COOKIE_DAYS * 86_400,
+      httpOnly: true,
+      sameSite: "lax",
+      secure,
+    });
+  const { path } = splitLocale(request.nextUrl.pathname);
+  const wantsDevice = ref || DEVICE_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+  if (wantsDevice && !request.cookies.has(DEVICE_COOKIE))
+    response.cookies.set(DEVICE_COOKIE, crypto.randomUUID(), {
+      path: "/",
+      maxAge: 2 * 365 * 86_400,
+      httpOnly: true,
+      sameSite: "lax",
+      secure,
+    });
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
+  return remember(request, await route(request));
+}
+
+async function route(request: NextRequest): Promise<NextResponse> {
   const unprefixed = unprefixedUrl(request);
   if (unprefixed) return NextResponse.redirect(unprefixed, 308);
   const hasSession = request.cookies.getAll().some((c) => c.name.startsWith("sb-"));

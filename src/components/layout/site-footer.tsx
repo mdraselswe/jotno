@@ -8,6 +8,7 @@ import { FOOTER_LINKS, NAV_LINKS } from "@/config/navigation";
 import { ROUTES } from "@/config/routes";
 import { telHref } from "@/features/providers";
 import { InstallLink } from "@/features/pwa";
+import { ShareButton } from "@/features/share";
 import { getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,13 @@ export async function SiteFooter() {
             <Siren aria-hidden="true" />
             {t("nav.emergency")}
           </ButtonLink>
+          <ShareButton
+            className="justify-self-start bg-card"
+            url={localeHref(locale, ROUTES.home)}
+            title={site.name}
+            label={t("share.app")}
+            text={t("share.appText")}
+          />
           {site.socials.length > 0 ? (
             <div className="mt-2 grid gap-2">
               <p className="text-xs font-bold tracking-wide text-foreground uppercase">

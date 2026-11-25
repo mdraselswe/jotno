@@ -6,7 +6,7 @@ import { Spot } from "@/components/illustrations/spots";
 import { ButtonLink } from "@/components/ui/button-link";
 import type { JoinContent } from "@/content/join";
 import { format, type Formatter } from "@/i18n";
-import { ShareButton } from "./join-parts";
+import { ShareButton } from "@/features/share";
 
 /** "[word]" → highlighted word (the brand scribble), like the home hero. */
 function Title({ text }: { text: string }) {
@@ -185,7 +185,13 @@ export function JoinPage({
           <div className="grid gap-3 rounded-(--radius-2xl) bg-card p-6 shadow-(--shadow-card)">
             <p className="font-heading text-xl font-bold">{c.share.title}</p>
             <p className="text-sm text-pretty text-muted-foreground">{c.share.body}</p>
-            <ShareButton label={c.share.button} text={c.share.text} copied={c.share.copied} />
+            <ShareButton
+              size="lg"
+              className="justify-self-start"
+              label={c.share.button}
+              title={c.share.title}
+              text={c.share.text}
+            />
           </div>
         </div>
       </section>

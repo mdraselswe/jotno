@@ -55,7 +55,12 @@ async function Featured() {
     {
       key: "source",
       header: t("vetui.feat.source"),
-      cell: (p) => (p.source === "self" ? t("vetui.feat.self") : t("vetui.feat.manual")),
+      cell: (p) =>
+        p.source === "self"
+          ? t("vetui.feat.self")
+          : p.source === "referral_gold"
+            ? t("grow.goldSource")
+            : t("vetui.feat.manual"),
     },
     {
       key: "status",

@@ -88,7 +88,7 @@ export function codAllowed(cod: Settings["cod"], amount: number): boolean {
 /** Which methods this payment can use. Cash on delivery is for shop orders only. */
 export function availableMethods(
   settings: Settings,
-  purpose: "consult" | "appointment" | "featured" | "order",
+  purpose: "consult" | "appointment" | "featured" | "order" | "quick",
   amount: number,
 ): PayMethod[] {
   const out: PayMethod[] = WALLETS.filter((w) => walletReady(settings[w]));

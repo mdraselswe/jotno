@@ -11,6 +11,7 @@ import { ROUTES } from "@/config/routes";
 import { db, schema } from "@/infrastructure/db";
 import { clientIp, rateLimit } from "@/infrastructure/db/helpers";
 import { ownsUpload } from "@/features/uploads/server";
+import { ensureCode, forgetMyCode, recordSignup, rememberMyCode } from "@/features/referrals/server";
 import { mediaUrl, storage } from "@/infrastructure/storage";
 import { supabaseAdmin, supabaseServer } from "@/infrastructure/supabase/server";
 import type { MessageKey } from "@/i18n";
@@ -74,12 +75,14 @@ export async function verifyCode(
     return { ok: false, error: "common.tooMany" };
 
   const supabase = await supabaseServer();
-  const { error } = await supabase.auth.verifyOtp({
+  const { data, error } = await supabase.auth.verifyOtp({
     email: address,
     token,
     type: "email",
   });
   if (error) return { ok: false, error: "auth.codeInvalid" };
+  // The share button adds this code to links (`?ref=`).
+  if (data.user) await rememberMyCode(await ensureCode(data.user.id)).catch(() => undefined);
   // The browser loads the page itself: a soft redirect would keep the header's
   // Supabase client (which read the cookies at page load) signed out.
   return { ok: true, url: safeNext(next, localeHref(locale, ROUTES.account), locale) };
@@ -117,6 +120,7 @@ export async function demoSignIn(
 export async function signOut(locale: string): Promise<void> {
   const supabase = await supabaseServer();
   await supabase.auth.signOut();
+  await forgetMyCode();
   redirect(localeHref(locale, ROUTES.home));
 }
 
@@ -154,6 +158,8 @@ export async function completeOnboarding(
       homeAreaId: parsed.data.areaId ?? null,
     })
     .where(eq(schema.profiles.id, viewer.id));
+  // Their own invite code, and the invite that brought them (if any).
+  if (!viewer.onboarded) await recordSignup({ id: viewer.id, email: viewer.email });
 
   if (role === "vet" && viewer.role === "owner") {
     await setRole(viewer.id, "vet");

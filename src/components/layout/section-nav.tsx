@@ -10,6 +10,7 @@ import {
   CreditCard,
   FileText,
   Flag,
+  Gift,
   Gauge,
   HandCoins,
   LayoutDashboard,
@@ -19,8 +20,10 @@ import {
   PawPrint,
   ScrollText,
   Settings,
+  Share2,
   ShieldCheck,
   ShoppingBag,
+  Siren,
   Sparkles,
   Stethoscope,
   UserRound,
@@ -63,6 +66,9 @@ export const SECTION_ICONS = {
   stats: BarChart3,
   list: ClipboardList,
   file: FileText,
+  invite: Gift,
+  promote: Share2,
+  quick: Siren,
 } satisfies Record<string, LucideIcon>;
 
 export type SectionIcon = keyof typeof SECTION_ICONS;
@@ -219,9 +225,11 @@ export function SectionLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="container-page grid grid-cols-[minmax(0,1fr)] gap-4 pt-3 pb-10 lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:gap-8 lg:py-10">
-      <ChipNav links={links} label={label} />
-      <SideNav links={links} label={label} title={title} titleIcon={titleIcon} />
+    <div className="container-page grid grid-cols-[minmax(0,1fr)] gap-4 pt-3 pb-10 lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:gap-8 lg:py-10 print:block print:p-0">
+      <div className="contents print:hidden">
+        <ChipNav links={links} label={label} />
+        <SideNav links={links} label={label} title={title} titleIcon={titleIcon} />
+      </div>
       <div className="grid min-w-0 content-start gap-6">{children}</div>
     </div>
   );

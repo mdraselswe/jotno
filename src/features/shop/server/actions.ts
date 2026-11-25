@@ -9,6 +9,8 @@ import { adminOrderPath, orderPath, ROUTES } from "@/config/routes";
 import { actionViewer } from "@/features/auth/server";
 import { notify, notifyAdmins } from "@/features/notifications/server";
 import { beginPayment, markPaid, refundPlatform } from "@/features/payments/server";
+import { maxPointsFor } from "@/features/referrals";
+import { pointsOf, spendPoints } from "@/features/referrals/server";
 import { getSettings } from "@/features/settings/server";
 import { ownsUpload } from "@/features/uploads/server";
 import type { MessageKey } from "@/i18n";
@@ -85,6 +87,8 @@ const checkoutSchema = z.object({
   districtId: z.number().int().positive(),
   note: z.string().trim().max(300).optional(),
   coupon: z.string().trim().max(20).optional(),
+  /** Pay a little of the order with Jotno points (capped, see business.referral). */
+  usePoints: z.boolean().default(false),
 });
 
 /**
@@ -132,7 +136,11 @@ export async function checkout(
     ...settings.delivery,
     homeDistrictId: business.shop.homeDistrictId,
   });
-  const total = sub - discount + delivery;
+  // Points take a small share of the goods off (never the delivery).
+  const wanted = parsed.data.usePoints
+    ? maxPointsFor(sub - discount, business.referral.orderSpendBps, (await pointsOf(viewer.id)).available)
+    : 0;
+  let total = sub - discount - wanted * 100 + delivery;
 
   let orderId: string;
   try {
@@ -142,7 +150,8 @@ export async function checkout(
         .values({
           userId: viewer.id,
           subtotal: sub,
-          discount,
+          discount: discount + wanted * 100,
+          pointsUsed: wanted,
           couponCode: coupon?.code ?? null,
           deliveryFee: delivery,
           total,
@@ -178,6 +187,11 @@ export async function checkout(
     if (error instanceof OutOfStock)
       return { ok: false, error: error.productId === "coupon" ? "shop.couponInvalid" : "shop.stockChanged" };
     throw error;
+  }
+  if (wanted > 0 && !(await spendPoints(viewer.id, wanted, "order", orderId))) {
+    // Spent elsewhere meanwhile: the order goes ahead at full price.
+    total += wanted * 100;
+    await db().update(O).set({ pointsUsed: 0, discount: discount, total }).where(eq(O.id, orderId));
   }
 
   const url = await beginPayment({

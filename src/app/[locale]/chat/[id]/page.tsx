@@ -1,3 +1,4 @@
+import { Siren } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,6 +8,7 @@ import { adminConsultPath, chatPath, ROUTES, vetPath } from "@/config/routes";
 import { requireViewer } from "@/features/auth/server";
 import { canWriteRx, ChatRoom, chatDayKey, ReviewForm } from "@/features/consults";
 import { adminCanRead, getConsult, rxForVet } from "@/features/consults/server";
+import { UpgradeQuickButton } from "@/features/quick";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 
@@ -40,6 +42,20 @@ async function Chat({ params }: { params: Promise<{ id: string }> }) {
   const deadline =
     c.status === "active" && !c.firstReplyAt && c.openedAt
       ? new Date(c.openedAt.getTime() + business.consult.replyWindowMinutes * 60_000).toISOString()
+      : null;
+
+  const quick = c.kind === "quick";
+  // Quick help: the owner has a few follow-ups after the vet's answer.
+  const followUpsLeft =
+    quick && c.openedAt
+      ? Math.max(
+          0,
+          business.quick.ownerMessages -
+            c.messages.filter(
+              (m) =>
+                m.senderId === c.ownerId && new Date(m.createdAt).getTime() > (c.openedAt?.getTime() ?? 0),
+            ).length,
+        )
       : null;
 
   const today = chatDayKey(now, site.i18n.timeZone);
@@ -82,7 +98,7 @@ async function Chat({ params }: { params: Promise<{ id: string }> }) {
       status={c.status}
       canWrite={c.status === "active" && participant}
       live={participant}
-      callable={c.status === "active" && participant}
+      callable={c.status === "active" && participant && !quick}
       initial={c.messages}
       today={today}
       other={
@@ -118,6 +134,24 @@ async function Chat({ params }: { params: Promise<{ id: string }> }) {
       }
       readOnlyReason={readOnlyReason}
     >
+      {quick ? (
+        <div className="mb-4 grid gap-3 rounded-(--radius-2xl) bg-destructive/6 p-4 ring-1 ring-destructive/15">
+          <p className="flex items-center gap-2 text-sm font-semibold">
+            <Siren aria-hidden="true" className="size-4 text-destructive" />
+            {t("quick.chatBadge")}
+          </p>
+          <p className="text-sm text-pretty text-muted-foreground">
+            {c.role === "owner" && followUpsLeft !== null
+              ? t("quick.chatOwnerNote", { n: fmt.number(followUpsLeft) })
+              : t("quick.chatVetNote", { n: business.quick.ownerMessages })}
+          </p>
+          {c.role === "owner" && c.status === "active" ? (
+            <div>
+              <UpgradeQuickButton consultId={c.id} label={t("quick.upgrade")} />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       {c.role === "owner" && c.firstReplyAt && c.status !== "refunded" && !c.reviewed ? (
         <ReviewForm consultId={c.id} />
       ) : null}

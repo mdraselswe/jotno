@@ -5,19 +5,21 @@ import { removeUnconfirmedAccounts } from "@/features/auth/server";
 import { runCallJobs, runConsultJobs } from "@/features/consults/server";
 import { expireUnpaid } from "@/features/payments/server";
 import { runHealthReminders } from "@/features/pets/server";
+import { runQuickJobs } from "@/features/quick/server";
 import { notifyLowStock } from "@/features/shop/server";
 
 /**
  * Scheduled jobs, called by Cloudflare Cron Triggers (worker/cron-worker.js) with
  * `Authorization: Bearer $CRON_SECRET`. Every job is idempotent, so a retry or
  * a double call is harmless.
- *   /api/cron/frequent  every 5 min: unpaid holds, chat refunds/closing, visit reminders
+ *   /api/cron/frequent  every 5 min: unpaid holds, chat refunds/closing, unanswered quick help, visit reminders
  *   /api/cron/daily     once a day: vaccine & deworming reminders, low stock, unconfirmed accounts
  */
 const JOBS = {
   frequent: async () => ({
     payments: await expireUnpaid(),
     consults: await runConsultJobs(),
+    quick: await runQuickJobs(),
     calls: await runCallJobs(),
     appointments: await runAppointmentJobs(),
   }),

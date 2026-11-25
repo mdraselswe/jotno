@@ -1,4 +1,4 @@
-import { ArrowRight, BadgeCheck, CircleCheck, Siren, Truck } from "lucide-react";
+import { ArrowRight, BadgeCheck, CircleCheck, Siren, Truck, Zap } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import type { CSSProperties } from "react";
@@ -382,6 +382,17 @@ export default async function HomePage() {
               <Siren aria-hidden="true" />
               {c.emergency.button}
             </ButtonLink>
+            {business.quick.enabled ? (
+              <ButtonLink
+                href={localeHref(locale, ROUTES.quick)}
+                variant="outline"
+                size="lg"
+                className="w-full sm:w-auto md:w-full"
+              >
+                <Zap aria-hidden="true" />
+                {t("quick.ctaTitle", { fee: taka(fmt, business.quick.fee) })}
+              </ButtonLink>
+            ) : null}
             <ButtonLink href={vets} variant="outline" size="lg" className="w-full sm:w-auto md:w-full">
               {t("nav.vets")}
               <ArrowRight aria-hidden="true" />

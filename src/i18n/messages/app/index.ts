@@ -20,6 +20,7 @@ import { pubui } from "./pubui";
 import { vetui } from "./vetui";
 import { adminui } from "./adminui";
 import { shopui } from "./shopui";
+import { grow } from "./grow";
 
 /**
  * Jotno's UI text, one pack per area (both languages side by side).
@@ -48,6 +49,7 @@ const PACKS = [
   pubui,
   adminui,
   shopui,
+  grow,
 ] as const;
 
 type Merge<T extends readonly { en: object }[]> = T extends readonly [infer H, ...infer R]

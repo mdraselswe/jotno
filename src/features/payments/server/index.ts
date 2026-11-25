@@ -6,6 +6,7 @@ export {
   markPaid,
   refundConsult,
   refundPlatform,
+  refundQuickPayment,
   requestOrigin,
   settlePayment,
   type PaymentRow,

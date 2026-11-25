@@ -13,6 +13,8 @@ export const ROUTES = {
   questions: "/questions",
   ask: "/questions/ask",
   emergency: "/emergency",
+  /** ৳99 quick help: a short question any on-duty vet answers. */
+  quick: "/quick",
   articles: "/articles",
   shop: "/shop",
   cart: "/shop/cart",
@@ -33,6 +35,7 @@ export const ROUTES = {
   appointments: "/account/appointments",
   orders: "/account/orders",
   settings: "/account/settings",
+  invite: "/account/invite",
   chat: "/chat",
   // Vet
   dashboard: "/dashboard",
@@ -45,6 +48,9 @@ export const ROUTES = {
   vetArticles: "/dashboard/articles",
   vetNewArticle: "/dashboard/articles/new",
   vetFeatured: "/dashboard/featured",
+  vetPromote: "/dashboard/promote",
+  vetPoster: "/dashboard/promote/poster",
+  vetQuick: "/dashboard/quick",
   // Admin
   admin: "/admin",
   adminVets: "/admin/vets",
@@ -63,6 +69,7 @@ export const ROUTES = {
   adminAppointments: "/admin/appointments",
   adminAudit: "/admin/audit",
   adminConsults: "/admin/consults",
+  adminReferrals: "/admin/referrals",
   /** Design-system preview, development only (not in the sitemap; robots.txt disallows it). */
   dev: "/dev",
 } as const;
@@ -76,6 +83,7 @@ export const SITEMAP_ROUTES: readonly string[] = [
   ROUTES.vets,
   ROUTES.questions,
   ROUTES.emergency,
+  ROUTES.quick,
   ROUTES.articles,
   ROUTES.shop,
   ROUTES.forVets,
@@ -106,3 +114,4 @@ export const adminProductPath = (id: string) => `/admin/shop/products/${id}`;
 export const adminOrderPath = (id: string) => `/admin/shop/orders/${id}`;
 export const orderPath = (id: string) => `/account/orders/${id}`;
 export const payPath = (paymentId: string) => `/pay/${paymentId}`;
+export const quickRequestPath = (id: string) => `/account/quick/${id}`;

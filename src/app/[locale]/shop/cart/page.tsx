@@ -5,6 +5,7 @@ import { ButtonLink } from "@/components/ui/button-link";
 import { business } from "@/config";
 import { ROUTES } from "@/config/routes";
 import { getViewer } from "@/features/auth/server";
+import { pointsOf } from "@/features/referrals/server";
 import { availableMethods } from "@/features/settings";
 import { getSettings } from "@/features/settings/server";
 import { CartSkeleton, CartView } from "@/features/shop";
@@ -16,6 +17,7 @@ export const metadata = { robots: { index: false } };
 async function Cart() {
   const locale = await getLocale();
   const [viewer, settings] = await Promise.all([getViewer(), getSettings()]);
+  const points = viewer ? (await pointsOf(viewer.id)).available : 0;
   const here = localeHref(locale, ROUTES.cart);
   return (
     <CartView
@@ -27,7 +29,12 @@ async function Cart() {
       }}
       buyer={
         viewer
-          ? { name: viewer.fullName ?? "", phone: viewer.phone ?? "", districtId: viewer.homeDistrictId }
+          ? {
+              name: viewer.fullName ?? "",
+              phone: viewer.phone ?? "",
+              districtId: viewer.homeDistrictId,
+              points: { balance: points, bps: business.referral.orderSpendBps },
+            }
           : null
       }
       methods={availableMethods(settings, "order", 0)}

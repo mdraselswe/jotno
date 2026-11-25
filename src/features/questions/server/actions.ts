@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { questionPath } from "@/config/routes";
 import { actionViewer } from "@/features/auth/server";
+import { activateReferral } from "@/features/referrals/server";
 import { notify } from "@/features/notifications/server";
 import { ownsUpload } from "@/features/uploads/server";
 import type { MessageKey } from "@/i18n";
@@ -46,6 +47,7 @@ export async function askQuestion(locale: string, input: z.input<typeof askSchem
     })
     .returning({ id: Q.id });
   if (!row) return { ok: false, error: "common.genericError" };
+  await activateReferral(viewer.id);
   revalidatePath("/[locale]/questions", "page");
   redirect(localeHref(locale, questionPath(row.id)));
 }

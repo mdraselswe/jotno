@@ -1,5 +1,6 @@
 import { SectionLayout, type SectionLink } from "@/components/layout/section-nav";
 import { ROUTES } from "@/config/routes";
+import { MyCodeSync } from "@/features/referrals";
 
 const LINKS: readonly SectionLink[] = [
   { href: ROUTES.account, label: "account.home", icon: "overview", exact: true },
@@ -7,12 +8,14 @@ const LINKS: readonly SectionLink[] = [
   { href: ROUTES.consults, label: "account.consults", icon: "chats" },
   { href: ROUTES.appointments, label: "account.appointments", icon: "calendar" },
   { href: ROUTES.orders, label: "account.orders", icon: "orders" },
+  { href: ROUTES.invite, label: "grow.nav.invite", icon: "invite" },
   { href: ROUTES.settings, label: "account.settings", icon: "settings" },
 ];
 
 export default function AccountLayout({ children }: LayoutProps<"/[locale]/account">) {
   return (
     <SectionLayout links={LINKS} label="account.nav" title="section.account" titleIcon="profile">
+      <MyCodeSync />
       {children}
     </SectionLayout>
   );

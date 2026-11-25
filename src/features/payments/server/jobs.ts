@@ -15,6 +15,7 @@ const WAIT_MINUTES: Record<Purpose, number> = {
   consult: 6 * 60,
   order: 24 * 60,
   featured: 2 * 24 * 60,
+  quick: 60,
 };
 
 /** When an unpaid payment expires (the clock restarts when an admin sends a TrxID back). */

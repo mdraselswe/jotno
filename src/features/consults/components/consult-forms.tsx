@@ -13,10 +13,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useUpload } from "@/features/uploads";
 import { Textarea } from "@/components/ui/textarea";
+import type { MessageKey } from "@/i18n";
 import { useLocale, useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 import { closeConsult, leaveReview, startConsult } from "../server/actions";
@@ -28,17 +30,34 @@ const CARD =
   "grid gap-4 rounded-(--radius-2xl) bg-card p-4 shadow-(--shadow-card) ring-1 ring-foreground/6 sm:p-5";
 
 /** Owner: describe the problem, pick the pet, pay. */
+export interface AskInput {
+  patientId: string | null;
+  summary: string;
+  photos: string[];
+  usePoints: boolean;
+}
+
 export function StartConsultForm({
   providerId,
   pets,
   feeLabel,
   maxPhotos,
+  maxPoints = 0,
+  onAsk,
+  submitLabel,
 }: {
-  providerId: string;
+  /** The vet for a full chat (ignored when `onAsk` is given). */
+  providerId?: string;
   pets: { id: string; name: string }[];
   feeLabel: string;
   /** How many photos can go with the booking (0 hides the field). */
   maxPhotos: number;
+  /** Points (৳1 each) the owner may use here; 0 hides the choice. */
+  maxPoints?: number;
+  /** Another server action to send the question to (quick help). */
+  onAsk?: (locale: string, input: AskInput) => Promise<{ ok: true } | { ok: false; error: MessageKey }>;
+  /** Button text instead of "Pay {fee}" (e.g. a free retry). */
+  submitLabel?: string;
 }) {
   const t = useT();
   const locale = useLocale();
@@ -46,6 +65,7 @@ export function StartConsultForm({
   const [summary, setSummary] = useState("");
   const [photos, setPhotos] = useState<{ path: string; preview: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [usePoints, setUsePoints] = useState(false);
   const [pending, start] = useTransition();
   const { upload, busy, error: uploadError } = useUpload("chat");
   const picker = useRef<HTMLInputElement>(null);
@@ -65,11 +85,12 @@ export function StartConsultForm({
     e.preventDefault();
     setError(null);
     start(async () => {
-      const r = await startConsult(locale, providerId, {
-        patientId: petId || null,
-        summary,
-        photos: photos.map((p) => p.path),
-      });
+      const input = { patientId: petId || null, summary, photos: photos.map((p) => p.path), usePoints };
+      const r = onAsk
+        ? await onAsk(locale, input)
+        : providerId
+          ? await startConsult(locale, providerId, input)
+          : null;
       if (r && !r.ok) setError(t(r.error));
     });
   }
@@ -189,6 +210,20 @@ export function StartConsultForm({
         </fieldset>
       ) : null}
 
+      {maxPoints > 0 ? (
+        <label className="flex items-start gap-3 rounded-(--radius-xl) bg-success/8 px-4 py-3 text-sm ring-1 ring-success/20">
+          <Checkbox
+            checked={usePoints}
+            onCheckedChange={(v) => setUsePoints(v === true)}
+            className="mt-0.5"
+          />
+          <span className="grid gap-0.5">
+            <span className="font-medium">{t("grow.usePoints", { n: maxPoints })}</span>
+            <span className="text-muted-foreground">{t("grow.usePointsSub")}</span>
+          </span>
+        </label>
+      ) : null}
+
       {error ? (
         <p
           role="alert"
@@ -208,7 +243,7 @@ export function StartConsultForm({
           aria-busy={pending}
         >
           {pending ? <Loader2 aria-hidden="true" className="animate-spin" /> : <Lock aria-hidden="true" />}
-          {pending ? t("pay.redirecting") : t("consult.pay", { fee: feeLabel })}
+          {pending ? t("pay.redirecting") : (submitLabel ?? t("consult.pay", { fee: feeLabel }))}
         </Button>
       </div>
     </form>

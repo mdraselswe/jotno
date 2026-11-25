@@ -1,36 +1,7 @@
 "use client";
 
-import { Check, Share2 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { useFormatter } from "@/i18n/client";
-
-/** Share the page: the phone's share sheet where there is one, else copy the link. */
-export function ShareButton({ label, text, copied }: { label: string; text: string; copied: string }) {
-  const [done, setDone] = useState(false);
-  async function share() {
-    const url = window.location.href.split("#")[0] ?? window.location.href;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: document.title, text, url });
-        return;
-      }
-      await navigator.clipboard.writeText(url);
-      setDone(true);
-      toast.success(copied);
-      window.setTimeout(() => setDone(false), 2500);
-    } catch {
-      // Share sheet closed, or clipboard blocked: nothing to do.
-    }
-  }
-  return (
-    <Button type="button" size="lg" variant="outline" onClick={share}>
-      {done ? <Check aria-hidden="true" /> : <Share2 aria-hidden="true" />}
-      {label}
-    </Button>
-  );
-}
 
 /**
  * Vet earnings example: chats a day × fee × working days, minus commission.

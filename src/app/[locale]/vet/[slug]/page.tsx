@@ -27,10 +27,12 @@ import { bookPath, consultStartPath, pageUrl, ROUTES, vetPath } from "@/config/r
 import { getHours } from "@/features/appointments/server";
 import { speciesNames, VetContactButtons, VetOfflineNotice, VetPhoto, vetPlace } from "@/features/providers";
 import { getProviderBySlug, recordStat, type ProviderPublic } from "@/features/providers/server";
+import { ShareButton } from "@/features/share";
 import type { Formatter, Translate } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { dhakaDay, dhakaWeekday } from "@/lib/dhaka";
 import { localeHref } from "@/lib/locale-href";
+import { ogImages } from "@/lib/og";
 import { taka } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -54,7 +56,7 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/vet/[slu
       description,
       url,
       type: "profile",
-      images: vet.photoUrl ? [vet.photoUrl] : undefined,
+      images: ogImages(vet.photoUrl),
     },
     robots: vet.isDemo ? { index: false } : undefined,
   };
@@ -285,13 +287,13 @@ async function VetProfile({ params }: { params: Promise<{ slug: string }> }) {
                   </ButtonLink>
                 ) : null}
               </div>
-              <VetContactButtons
-                providerId={vet.id}
-                phone={vet.phonePublic}
-                lat={vet.lat}
-                lon={vet.lon}
-                name={vet.displayName}
-              />
+              <VetContactButtons providerId={vet.id} phone={vet.phonePublic} lat={vet.lat} lon={vet.lon}>
+                <ShareButton
+                  variant="ghost"
+                  title={vet.displayName}
+                  text={t("share.vetText", { name: vet.displayName })}
+                />
+              </VetContactButtons>
             </div>
           </div>
           {stats.length > 0 ? (

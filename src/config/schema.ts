@@ -226,6 +226,66 @@ export const businessSchema = z.object({
     /** Days after delivery to report a wrong or damaged item. */
     returnDays: z.number().int().min(1),
   }),
+  /**
+   * Quick help: a short paid question any on-duty vet can answer. Self-funding:
+   * the owner's payment is split between the vet and Jotno, nothing is subsidised.
+   */
+  quick: z
+    .object({
+      enabled: z.boolean(),
+      /** What the owner pays. */
+      fee: poisha,
+      /** What the answering vet earns; Jotno keeps fee − vetShare. */
+      vetShare: poisha,
+      /** Nobody answered within this: the owner gets a free retry (or the money back). */
+      answerMinutes: z.number().int().min(5),
+      /** The quick chat stays open this long after the vet's answer. */
+      openMinutes: z.number().int().min(10),
+      /** Messages the owner can send after the answer (follow-ups). */
+      ownerMessages: z.number().int().min(1),
+      photos: z.number().int().min(0).max(10),
+    })
+    .refine((q) => q.vetShare <= q.fee, "vetShare must not exceed fee"),
+  /**
+   * Invites and Jotno points (৳1 each). Points only lower Jotno's own share, so
+   * they never cost money that wasn't earned.
+   */
+  referral: z.object({
+    /** To the inviter when the invited person signs up (waits until they add a pet, ask or pay). */
+    signupPoints: z.number().int().min(0),
+    /** To the inviter when the invited person pays for the first time. */
+    firstPaidPoints: z.number().int().min(0),
+    /** To the invited person, for their first order or chat. */
+    welcomePoints: z.number().int().min(0),
+    /** Sign-up points count for at most this many invites a month. */
+    signupMonthlyCap: z.number().int().min(0),
+    pointsExpireDays: z.number().int().min(1),
+    /** Points can pay at most this share of a shop order subtotal (basis points). */
+    orderSpendBps: z.number().int().min(0).max(10_000),
+    /** …and at most this share of Jotno's commission on a chat or quick help. */
+    commissionSpendBps: z.number().int().min(0).max(10_000),
+    /** Commission on chats with owners a vet invited, once the vet reaches `vetOwnClientLevel`. */
+    vetOwnClientBps: z.number().int().min(0).max(10_000),
+    vetOwnClientLevel: z.enum(["star", "gold", "platinum"]),
+    /** Paid invites needed for each level. */
+    levels: z
+      .object({
+        star: z.number().int().min(1),
+        gold: z.number().int().min(1),
+        platinum: z.number().int().min(1),
+      })
+      .refine((l) => l.star < l.gold && l.gold < l.platinum, "levels must grow"),
+    /** Invite points multiplier per level (basis points: 15000 = 1.5×). */
+    multiplierBps: z.object({
+      star: z.number().int().min(10_000),
+      gold: z.number().int().min(10_000),
+      platinum: z.number().int().min(10_000),
+    }),
+    /** Gold vets can turn on this many free featured days once a month. */
+    goldFeaturedDays: z.number().int().min(0),
+    /** An inviter with more sign-ups than this in a day shows on the admin's watch list. */
+    watchPerDay: z.number().int().min(1),
+  }),
   /** "Available now" turns itself off after this many hours. */
   availableHours: z.number().int().min(1).max(24),
   /** Emergency hotline shown on the emergency page (optional). */
