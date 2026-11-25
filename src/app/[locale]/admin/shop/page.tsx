@@ -32,8 +32,11 @@ import { ADMIN_ORDERS_PAGE, adminOrders, lowStockProducts, orderCounts } from "@
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
+import { adminMetadata } from "@/features/admin/server";
 
-export const metadata = { title: "Admin · Orders", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("shopAdmin.orders");
+}
 
 type Filter = OrderStatus | "open" | "all";
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);

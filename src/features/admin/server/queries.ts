@@ -4,6 +4,7 @@ import { business } from "@/config";
 import { vetBalance } from "@/features/payments";
 import { db, schema } from "@/infrastructure/db";
 import { mediaUrl } from "@/infrastructure/storage";
+import { RESTORE_ACTION } from "../restore";
 
 const P = schema.providers;
 
@@ -19,7 +20,9 @@ export async function adminCounts() {
       refunded30: sql<number>`(select count(*)::int from ${schema.consults} where status = 'refunded' and created_at > now() - interval '30 days')`,
       openQuestions: sql<number>`(select count(*)::int from ${schema.questions} where status = 'open')`,
       openReports: sql<number>`(select count(*)::int from ${schema.reports} where resolved_at is null)`,
+      // Paid by wallet, or cash on delivery waiting for the phone check: both need packing.
       paidOrders: sql<number>`(select count(*)::int from ${schema.orders} where status = 'paid')`,
+      placedOrders: sql<number>`(select count(*)::int from ${schema.orders} where status = 'placed')`,
       paymentsReview: sql<number>`(select count(*)::int from ${schema.payments} where status = 'review')`,
       refundsDue: sql<number>`(select count(*)::int from ${schema.payments} where status = 'refund_due')`,
     })
@@ -35,14 +38,19 @@ export async function adminCounts() {
     | "openQuestions"
     | "openReports"
     | "paidOrders"
+    | "placedOrders"
     | "paymentsReview"
     | "refundsDue",
     number
   >;
 }
 
-/** Vets by status (200 newest), optionally by name, email or BVC number. */
-export async function providersByStatus(status: (typeof P.$inferSelect)["status"] | "all", q = "") {
+/** Rows per page on the admin lists; each query fetches one more to tell the page there is a next one. */
+export const ADMIN_PAGE = 50;
+const pageOffset = (page: number) => (Math.max(1, page) - 1) * ADMIN_PAGE;
+
+/** Vets by status, newest first, optionally by name, email or BVC number (a page of 50, plus one). */
+export async function providersByStatus(status: (typeof P.$inferSelect)["status"] | "all", q = "", page = 1) {
   const term = q.trim().slice(0, 60);
   const like = `%${term.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
   return db()
@@ -68,8 +76,9 @@ export async function providersByStatus(status: (typeof P.$inferSelect)["status"
           : undefined,
       ),
     )
-    .orderBy(desc(P.submittedAt), desc(P.createdAt))
-    .limit(200);
+    .orderBy(desc(P.submittedAt), desc(P.createdAt), desc(P.id))
+    .limit(ADMIN_PAGE + 1)
+    .offset(pageOffset(page));
 }
 
 export async function providerForReview(id: string) {
@@ -252,6 +261,25 @@ export async function auditEntries({
     .offset((Math.max(1, page) - 1) * AUDIT_PAGE);
 }
 
+/** Which of these "report.hide" audit entries have already been undone (`restoreHidden`). */
+export async function restoredHides(auditIds: readonly number[]): Promise<Set<number>> {
+  if (auditIds.length === 0) return new Set();
+  const A = schema.auditLog;
+  const rows = await db()
+    .select({ from: sql<string>`${A.meta}->>'auditId'` })
+    .from(A)
+    .where(
+      and(
+        eq(A.action, RESTORE_ACTION),
+        inArray(
+          sql`${A.meta}->>'auditId'`,
+          auditIds.map((id) => String(id)),
+        ),
+      ),
+    );
+  return new Set(rows.map((r) => Number(r.from)));
+}
+
 export async function recentRefundable() {
   return db()
     .select({
@@ -304,8 +332,8 @@ export async function listUsers(q: string, role: UserRoleFilter, page = 1) {
     .offset((Math.max(1, page) - 1) * USERS_PAGE);
 }
 
-/** Admin: every article (drafts too), newest first. */
-export async function listArticles(status: "draft" | "published" | "all") {
+/** Admin: every article (drafts too), newest first (a page of 50, plus one). */
+export async function listArticles(status: "draft" | "published" | "all", page = 1) {
   const AR = schema.articles;
   return db()
     .select({
@@ -321,14 +349,15 @@ export async function listArticles(status: "draft" | "published" | "all") {
     .from(AR)
     .innerJoin(P, eq(P.id, AR.providerId))
     .where(status === "all" ? undefined : eq(AR.status, status))
-    .orderBy(desc(AR.updatedAt))
-    .limit(200);
+    .orderBy(desc(AR.updatedAt), desc(AR.id))
+    .limit(ADMIN_PAGE + 1)
+    .offset(pageOffset(page));
 }
 
 export type AppointmentFilter = "upcoming" | "past" | "cancelled" | "all";
 
-/** Admin: clinic visits across all vets. */
-export async function listAppointments(filter: AppointmentFilter) {
+/** Admin: clinic visits across all vets (a page of 50, plus one). */
+export async function listAppointments(filter: AppointmentFilter, page = 1) {
   const A = schema.appointments;
   const PF = schema.profiles;
   const where =
@@ -356,6 +385,7 @@ export async function listAppointments(filter: AppointmentFilter) {
     .innerJoin(P, eq(P.id, A.providerId))
     .innerJoin(PF, eq(PF.id, A.ownerId))
     .where(where)
-    .orderBy(filter === "upcoming" ? A.startsAt : desc(A.startsAt))
-    .limit(200);
+    .orderBy(filter === "upcoming" ? A.startsAt : desc(A.startsAt), A.id)
+    .limit(ADMIN_PAGE + 1)
+    .offset(pageOffset(page));
 }

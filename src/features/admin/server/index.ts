@@ -2,6 +2,7 @@ import "server-only";
 
 export {
   CONSULT_FILTERS,
+  CONSULTS_PAGE,
   consultAlerts,
   consultForAdmin,
   consultTimeline,
@@ -15,6 +16,7 @@ export {
 
 export {
   activeFeatured,
+  ADMIN_PAGE,
   adminCounts,
   AUDIT_PAGE,
   auditEntries,
@@ -28,7 +30,9 @@ export {
   providersByStatus,
   recentPayouts,
   recentRefundable,
+  restoredHides,
   verifiedVetOptions,
   type AppointmentFilter,
   type UserRoleFilter,
 } from "./queries";
+export { adminMetadata } from "./meta";

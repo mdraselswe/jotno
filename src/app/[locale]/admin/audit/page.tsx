@@ -17,17 +17,22 @@ import {
   AdminSearch,
   AUDIT_GROUP_KEYS,
   AUDIT_GROUPS,
+  auditActionLabel,
   auditTone,
   listHref,
   pageParam,
+  restorable,
+  RestoreButton,
   type AuditGroup,
 } from "@/features/admin";
-import { AUDIT_PAGE, auditEntries } from "@/features/admin/server";
+import { adminMetadata, AUDIT_PAGE, auditEntries, restoredHides } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 
-export const metadata = { title: "Admin · Audit", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("admin.audit");
+}
 
 type SP = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
@@ -43,6 +48,14 @@ async function Audit({ searchParams }: { searchParams: Promise<SP> }) {
   const found = await auditEntries({ prefixes: AUDIT_GROUPS[group], q, page });
   const rows = found.slice(0, AUDIT_PAGE);
   const more = found.length > AUDIT_PAGE;
+  // Content a report hid can be put back once, from its "report.hide" entry.
+  const hides = new Map(
+    rows.flatMap((r) => {
+      const hidden = restorable(r.action, r.meta);
+      return hidden ? [[r.id, hidden] as const] : [];
+    }),
+  );
+  const restored = await restoredHides([...hides.keys()]);
   const base = localeHref(locale, ROUTES.adminAudit);
   const href = (p: { area?: AuditGroup; q?: string; page?: number }) =>
     listHref(
@@ -52,8 +65,19 @@ async function Audit({ searchParams }: { searchParams: Promise<SP> }) {
     ) as Route;
 
   type Row = (typeof rows)[number];
+  const undo = (r: Row) => {
+    const hidden = hides.get(r.id);
+    if (!hidden) return null;
+    return restored.has(r.id) ? (
+      <StatusBadge tone="success">{t("adminui.restore.done")}</StatusBadge>
+    ) : (
+      <RestoreButton auditId={r.id} entity={hidden.entity} />
+    );
+  };
   const details = (r: Row) => {
-    const meta = r.meta && typeof r.meta === "object" ? Object.entries(r.meta) : [];
+    // The saved copy of hidden content is for restoring, not for reading here.
+    const meta =
+      r.meta && typeof r.meta === "object" ? Object.entries(r.meta).filter(([k]) => k !== "copy") : [];
     return meta.length > 0 ? (
       <details className="text-xs">
         <summary className="cursor-pointer text-primary">{t("adminui.audit.details")}</summary>
@@ -73,17 +97,26 @@ async function Audit({ searchParams }: { searchParams: Promise<SP> }) {
       key: "what",
       header: t("admin.what"),
       mobile: "title",
-      cell: (r) => (
-        <span className="grid min-w-0 gap-1">
-          <StatusBadge tone={auditTone(r.action)} className="font-mono">
-            {r.action}
-          </StatusBadge>
-          <span className="truncate text-xs font-normal text-muted-foreground">
-            {r.entity}
-            {r.entityId ? <span className="font-mono"> · {r.entityId}</span> : null}
+      cell: (r) => {
+        const label = auditActionLabel(r.action);
+        return (
+          <span className="grid min-w-0 justify-items-start gap-1">
+            <StatusBadge tone={auditTone(r.action)} className={label ? undefined : "font-mono"}>
+              {label ? t(label) : r.action}
+            </StatusBadge>
+            {label ? (
+              <span className="font-mono text-[0.7rem] font-normal text-muted-foreground">
+                <span className="sr-only">{t("adminui.audit.code", { code: r.action })}</span>
+                <span aria-hidden="true">{r.action}</span>
+              </span>
+            ) : null}
+            <span className="truncate text-xs font-normal text-muted-foreground">
+              {r.entity}
+              {r.entityId ? <span className="font-mono"> · {r.entityId}</span> : null}
+            </span>
           </span>
-        </span>
-      ),
+        );
+      },
     },
     {
       key: "who",
@@ -101,7 +134,21 @@ async function Audit({ searchParams }: { searchParams: Promise<SP> }) {
         </time>
       ),
     },
-    { key: "details", header: t("adminui.audit.detailsCol"), className: "max-w-80", cell: details },
+    {
+      key: "details",
+      header: t("adminui.audit.detailsCol"),
+      className: "max-w-80",
+      cell: (r) => {
+        const d = details(r);
+        const u = undo(r);
+        return d || u ? (
+          <span className="grid justify-items-end gap-2 md:justify-items-start">
+            {u}
+            {d}
+          </span>
+        ) : null;
+      },
+    },
   ];
 
   return (

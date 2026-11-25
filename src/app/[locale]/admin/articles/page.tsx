@@ -11,25 +11,40 @@ import {
 } from "@/components/layout/app-ui";
 import { SuspenseReveal } from "@/components/motion/suspense-reveal";
 import { articlePath, ROUTES } from "@/config/routes";
-import { AdminListSkeleton, ArticleControls, articleTone, listHref } from "@/features/admin";
-import { listArticles } from "@/features/admin/server";
+import {
+  AdminListSkeleton,
+  AdminPager,
+  ArticleControls,
+  articleTone,
+  listHref,
+  pageParam,
+} from "@/features/admin";
+import { ADMIN_PAGE, adminMetadata, listArticles } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 
-export const metadata = { title: "Admin · Articles", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("manage.articles");
+}
 
 const FILTERS = ["all", "published", "draft"] as const;
 type Filter = (typeof FILTERS)[number];
 type SP = Record<string, string | string[] | undefined>;
+const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 async function Articles({ searchParams }: { searchParams: Promise<SP> }) {
   const [sp, locale, t, fmt] = await Promise.all([searchParams, getLocale(), getT(), getFormatter()]);
   await requireRole(["admin"], locale, localeHref(locale, ROUTES.adminArticles));
-  const raw = Array.isArray(sp.status) ? sp.status[0] : sp.status;
-  const status: Filter = (FILTERS as readonly string[]).includes(raw ?? "") ? (raw as Filter) : "all";
-  const rows = await listArticles(status);
+  const raw = one(sp.status);
+  const status: Filter = (FILTERS as readonly string[]).includes(raw) ? (raw as Filter) : "all";
+  const page = pageParam(one(sp.page));
+  const found = await listArticles(status, page);
+  const rows = found.slice(0, ADMIN_PAGE);
+  const more = found.length > ADMIN_PAGE;
   const base = localeHref(locale, ROUTES.adminArticles);
+  const href = (p: { status?: Filter; page?: number }) =>
+    listHref(base, { status: p.status ?? status, page: p.page ?? 1 }, { status: "all", page: 1 }) as Route;
 
   type Row = (typeof rows)[number];
   const columns: Column<Row>[] = [
@@ -78,7 +93,7 @@ async function Articles({ searchParams }: { searchParams: Promise<SP> }) {
       <FilterPills
         label={t("common.status")}
         items={FILTERS.map((f) => ({
-          href: listHref(base, { status: f }, { status: "all" }) as Route,
+          href: href({ status: f }),
           label: f === "all" ? t("common.all") : t(`manage.article.${f}`),
           active: f === status,
         }))}
@@ -96,7 +111,15 @@ async function Articles({ searchParams }: { searchParams: Promise<SP> }) {
           />
         }
       />
-      {rows.length === 200 ? <p className="text-sm text-muted-foreground">{t("adminui.first200")}</p> : null}
+      <AdminPager
+        page={page}
+        prevHref={page > 1 ? href({ page: page - 1 }) : undefined}
+        nextHref={more ? href({ page: page + 1 }) : undefined}
+        label={t("adminui.pages")}
+        prev={t("adminui.prev")}
+        next={t("adminui.next")}
+        pageLabel={t("common.page", { n: fmt.number(page) })}
+      />
     </div>
   );
 }

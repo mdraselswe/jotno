@@ -8,8 +8,11 @@ import { SettingsForm } from "@/features/settings";
 import { getSettings } from "@/features/settings/server";
 import { getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
+import { adminMetadata } from "@/features/admin/server";
 
-export const metadata = { title: "Admin · Settings", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("settingsAdmin.title");
+}
 
 async function Settings() {
   const [locale, t] = await Promise.all([getLocale(), getT()]);

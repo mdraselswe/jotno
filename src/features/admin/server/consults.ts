@@ -135,8 +135,10 @@ function filterWhere(filter: ConsultFilter): SQL | undefined {
   }
 }
 
-/** Newest paid consults (100), filtered, optionally by vet or owner name/email. */
-export async function listConsults(filter: ConsultFilter, q = ""): Promise<ConsultRow[]> {
+export const CONSULTS_PAGE = 50;
+
+/** Newest paid consults, filtered, optionally by vet or owner name/email (a page of 50, plus one). */
+export async function listConsults(filter: ConsultFilter, q = "", page = 1): Promise<ConsultRow[]> {
   const term = q.trim().slice(0, 60);
   const like = `%${term.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
   const rows = await db()
@@ -151,8 +153,9 @@ export async function listConsults(filter: ConsultFilter, q = ""): Promise<Consu
         term ? or(ilike(Pv.displayName, like), ilike(O.fullName, like), ilike(O.email, like)) : undefined,
       ),
     )
-    .orderBy(desc(C.createdAt))
-    .limit(100);
+    .orderBy(desc(C.createdAt), desc(C.id))
+    .limit(CONSULTS_PAGE + 1)
+    .offset((Math.max(1, page) - 1) * CONSULTS_PAGE);
   return rows.map(num);
 }
 

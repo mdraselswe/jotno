@@ -23,6 +23,7 @@ import { ButtonLink } from "@/components/ui/button-link";
 import { adminVetPath, ROUTES, vetPath } from "@/config/routes";
 import {
   AdminDetailSkeleton,
+  auditActionName,
   auditTone,
   BackLink,
   DocumentButton,
@@ -31,7 +32,7 @@ import {
   providerTone,
   ReviewActions,
 } from "@/features/admin";
-import { providerForReview, vetConsultStats } from "@/features/admin/server";
+import { providerForReview, vetConsultStats, adminMetadata } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
 import { VetProfileForm, vetProfileValues } from "@/features/providers";
 import { getMyProvider } from "@/features/providers/server";
@@ -40,7 +41,9 @@ import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 
-export const metadata = { title: "Admin · Review", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("adminui.meta.vet");
+}
 
 const DOC_KIND: Record<string, MessageKey> = {
   bvc_certificate: "vet.docBvc",
@@ -223,7 +226,7 @@ async function Review({ params }: { params: Promise<{ id: string }> }) {
                 {r.history.map((h) => (
                   <li key={h.id} className="grid gap-1 text-sm">
                     <span className="flex flex-wrap items-center gap-2">
-                      <StatusBadge tone={auditTone(h.action)}>{h.action}</StatusBadge>
+                      <StatusBadge tone={auditTone(h.action)}>{auditActionName(t, h.action)}</StatusBadge>
                       <time
                         className="text-xs text-muted-foreground tabular-nums"
                         dateTime={h.createdAt.toISOString()}

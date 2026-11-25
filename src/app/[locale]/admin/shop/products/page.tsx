@@ -19,8 +19,11 @@ import { adminProducts, shopCategories } from "@/features/shop/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
+import { adminMetadata } from "@/features/admin/server";
 
-export const metadata = { title: "Admin · Products", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("shopAdmin.products");
+}
 
 const VIEWS = ["all", "live", "low", "out", "hidden"] as const;
 type View = (typeof VIEWS)[number];

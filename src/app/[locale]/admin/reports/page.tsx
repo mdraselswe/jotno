@@ -13,13 +13,15 @@ import { SuspenseReveal } from "@/components/motion/suspense-reveal";
 import { ButtonLink } from "@/components/ui/button-link";
 import { adminConsultPath, questionPath, ROUTES } from "@/config/routes";
 import { AdminListSkeleton, listHref, ReportActions } from "@/features/admin";
-import { openReports } from "@/features/admin/server";
+import { openReports, adminMetadata } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
 import type { MessageKey } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 
-export const metadata = { title: "Admin · Reports", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("admin.reports");
+}
 
 const ENTITY: Record<string, { label: MessageKey; tone: BadgeTone }> = {
   consult: { label: "adminui.report.consult", tone: "danger" },

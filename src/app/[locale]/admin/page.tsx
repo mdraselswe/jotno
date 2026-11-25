@@ -30,7 +30,7 @@ import { PageHeader, StatCard, StatGrid, type Tone } from "@/components/layout/a
 import { SuspenseReveal } from "@/components/motion/suspense-reveal";
 import { ROUTES } from "@/config/routes";
 import { AdminOverviewSkeleton, listHref } from "@/features/admin";
-import { adminCounts, consultAlerts } from "@/features/admin/server";
+import { adminCounts, consultAlerts, adminMetadata } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
 import { platformSummary } from "@/features/payments/server";
 import type { MessageKey } from "@/i18n";
@@ -38,7 +38,9 @@ import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 
-export const metadata = { title: "Admin", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata();
+}
 
 interface Tile {
   label: string;
@@ -127,12 +129,19 @@ async function Overview() {
       tone: "warning" as const,
     },
     {
-      count: c.paidOrders,
+      // Paid orders and cash-on-delivery orders waiting for the phone check. The
+      // link opens just that status when only one kind waits, else all open orders.
+      count: c.paidOrders + c.placedOrders,
       label: t("admin.paidOrders"),
-      value: n(c.paidOrders),
+      value: n(c.paidOrders + c.placedOrders),
       hint: t("adminui.home.ordersHint"),
       icon: PackageCheck,
-      href: to(ROUTES.adminShop, { status: "paid" }),
+      href:
+        c.placedOrders === 0
+          ? to(ROUTES.adminShop, { status: "paid" })
+          : c.paidOrders === 0
+            ? to(ROUTES.adminShop, { status: "placed" })
+            : to(ROUTES.adminShop),
       tone: "warning" as const,
     },
   ].filter((a) => a.count > 0);

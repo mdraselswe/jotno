@@ -10,25 +10,40 @@ import {
 } from "@/components/layout/app-ui";
 import { SuspenseReveal } from "@/components/motion/suspense-reveal";
 import { ROUTES } from "@/config/routes";
-import { AdminListSkeleton, appointmentTone, CancelAppointmentButton, listHref } from "@/features/admin";
-import { listAppointments, type AppointmentFilter } from "@/features/admin/server";
+import {
+  AdminListSkeleton,
+  AdminPager,
+  appointmentTone,
+  CancelAppointmentButton,
+  listHref,
+  pageParam,
+} from "@/features/admin";
+import { ADMIN_PAGE, adminMetadata, listAppointments, type AppointmentFilter } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 
-export const metadata = { title: "Admin · Visits", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("manage.appointments");
+}
 
 const FILTERS: AppointmentFilter[] = ["upcoming", "past", "cancelled", "all"];
 type SP = Record<string, string | string[] | undefined>;
+const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 async function Appointments({ searchParams }: { searchParams: Promise<SP> }) {
   const [sp, locale, t, fmt] = await Promise.all([searchParams, getLocale(), getT(), getFormatter()]);
   await requireRole(["admin"], locale, localeHref(locale, ROUTES.adminAppointments));
-  const raw = Array.isArray(sp.show) ? sp.show[0] : sp.show;
-  const show = (FILTERS as string[]).includes(raw ?? "") ? (raw as AppointmentFilter) : "upcoming";
-  const rows = await listAppointments(show);
+  const raw = one(sp.show);
+  const show = (FILTERS as string[]).includes(raw) ? (raw as AppointmentFilter) : "upcoming";
+  const page = pageParam(one(sp.page));
+  const found = await listAppointments(show, page);
+  const rows = found.slice(0, ADMIN_PAGE);
+  const more = found.length > ADMIN_PAGE;
   const base = localeHref(locale, ROUTES.adminAppointments);
+  const href = (p: { show?: AppointmentFilter; page?: number }) =>
+    listHref(base, { show: p.show ?? show, page: p.page ?? 1 }, { show: "upcoming", page: 1 }) as Route;
 
   type Row = (typeof rows)[number];
   const columns: Column<Row>[] = [
@@ -101,7 +116,7 @@ async function Appointments({ searchParams }: { searchParams: Promise<SP> }) {
       <FilterPills
         label={t("common.status")}
         items={FILTERS.map((f) => ({
-          href: listHref(base, { show: f }, { show: "upcoming" }) as Route,
+          href: href({ show: f }),
           label: t(`manage.visits.${f}`),
           active: f === show,
         }))}
@@ -119,7 +134,15 @@ async function Appointments({ searchParams }: { searchParams: Promise<SP> }) {
           />
         }
       />
-      {rows.length === 200 ? <p className="text-sm text-muted-foreground">{t("adminui.first200")}</p> : null}
+      <AdminPager
+        page={page}
+        prevHref={page > 1 ? href({ page: page - 1 }) : undefined}
+        nextHref={more ? href({ page: page + 1 }) : undefined}
+        label={t("adminui.pages")}
+        prev={t("adminui.prev")}
+        next={t("adminui.next")}
+        pageLabel={t("common.page", { n: fmt.number(page) })}
+      />
     </div>
   );
 }

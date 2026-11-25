@@ -12,12 +12,14 @@ import { business } from "@/config";
 import { ROUTES } from "@/config/routes";
 import { districtName } from "@/content/places";
 import { AdminListSkeleton, EndFeaturedButton, FeaturedForm } from "@/features/admin";
-import { activeFeatured, verifiedVetOptions } from "@/features/admin/server";
+import { activeFeatured, verifiedVetOptions, adminMetadata } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 
-export const metadata = { title: "Admin · Featured", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("admin.featured");
+}
 
 async function Featured() {
   const [locale, t, fmt] = await Promise.all([getLocale(), getT(), getFormatter()]);

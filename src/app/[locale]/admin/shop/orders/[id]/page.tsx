@@ -25,8 +25,11 @@ import { adminOrder } from "@/features/shop/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
+import { adminMetadata } from "@/features/admin/server";
 
-export const metadata = { title: "Admin · Order", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("adminui.meta.order");
+}
 
 const PAY_TONE = {
   pending: "warning",

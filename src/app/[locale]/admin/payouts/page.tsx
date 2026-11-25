@@ -15,13 +15,18 @@ import { adminConsultPath, adminVetPath, ROUTES } from "@/config/routes";
 import { AdminListSkeleton, PayoutForm, RefundButton } from "@/features/admin";
 import { payoutQueue, recentPayouts, recentRefundable } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
+import { PayoutAccountView } from "@/features/providers";
+import { payoutAccountsFor } from "@/features/providers/server";
 import type { MessageKey } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 import Link from "next/link";
 
-export const metadata = { title: "Admin · Payouts", robots: { index: false } };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("adminui.meta.title", { page: t("admin.payouts") }), robots: { index: false } };
+}
 
 const METHOD: Record<string, MessageKey> = {
   bkash: "pay.method.bkash",
@@ -33,6 +38,8 @@ async function Payouts() {
   const [locale, t, fmt] = await Promise.all([getLocale(), getT(), getFormatter()]);
   await requireRole(["admin"], locale, localeHref(locale, ROUTES.adminPayouts));
   const [queue, done, refundable] = await Promise.all([payoutQueue(), recentPayouts(), recentRefundable()]);
+  // Where each vet wants the money (private; admins only).
+  const accounts = await payoutAccountsFor(queue.map((v) => v.providerId));
   const ready = queue.filter((v) => v.ready);
   const readyTotal = ready.reduce((s, v) => s + v.balance.available, 0);
   const pendingTotal = queue.reduce((s, v) => s + v.balance.pending, 0);
@@ -162,6 +169,7 @@ async function Payouts() {
                     </dd>
                   </div>
                 </dl>
+                <PayoutAccountView account={accounts.get(v.providerId) ?? null} name={v.name} />
                 {v.balance.available > 0 ? (
                   <div className="border-t pt-4">
                     <PayoutForm providerId={v.providerId} max={v.balance.available} name={v.name} />

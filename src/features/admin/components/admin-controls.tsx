@@ -51,12 +51,15 @@ import {
   recordPayout,
   rejectProvider,
   resolveReport,
+  restoreHidden,
   setArticlePublished,
   setUserBlocked,
   suspendProvider,
   verifyProvider,
   type AdminResult,
 } from "../server/actions";
+import type { HiddenContent } from "../restore";
+import { verifyBlock } from "../status";
 
 type Variant = "default" | "brand" | "outline" | "secondary" | "ghost" | "destructive";
 type Size = "default" | "sm" | "lg";
@@ -188,15 +191,23 @@ export function ReviewActions({
   name: string;
 }) {
   const t = useT();
+  const id = useId();
   const reason = { label: t("admin.reason"), hint: t("admin.reasonHint"), min: 3, max: 300 };
+  // Only a profile sent for review (or a suspended vet) can be verified; the server checks too.
+  const block = status === "verified" ? null : verifyBlock(status);
   return (
     <div className="grid gap-3">
-      {status === "draft" ? (
-        <p className="rounded-(--radius-lg) bg-warning/15 px-3 py-2 text-sm text-pretty">
-          {t("adminui.vet.draftNote")}
-        </p>
-      ) : null}
-      {status !== "verified" ? (
+      {block ? (
+        <>
+          <p id={`${id}-why`} className="rounded-(--radius-lg) bg-warning/15 px-3 py-2 text-sm text-pretty">
+            {t(block)}
+          </p>
+          <Button variant="brand" className="w-full" disabled aria-describedby={`${id}-why`}>
+            <BadgeCheck aria-hidden="true" />
+            {t("admin.verify")}
+          </Button>
+        </>
+      ) : status !== "verified" ? (
         <ConfirmAction
           label={t("admin.verify")}
           icon={BadgeCheck}
@@ -497,9 +508,10 @@ export function RefundButton({ consultId, amount }: { consultId: string; amount:
 // ── Reports ─────────────────────────────────────────────────────────────────
 
 /**
- * Hide the reported content (asks first: answers and reviews are deleted for
- * good) or dismiss the report. Consult complaints have nothing to hide: they
- * are only marked as handled (refunds and warnings happen on the consult page).
+ * Hide the reported content (asks first: answers and reviews are deleted, with
+ * a copy kept in the audit log to restore from) or dismiss the report. Consult
+ * complaints have nothing to hide: they are only marked as handled (refunds and
+ * warnings happen on the consult page).
  */
 export function ReportActions({ id, entity }: { id: string; entity: string }) {
   const { pending, run, t } = useAction();
@@ -512,7 +524,13 @@ export function ReportActions({ id, entity }: { id: string; entity: string }) {
           icon={EyeOff}
           variant="destructive"
           title={t("adminui.report.hideTitle")}
-          body={t(entity === "question" ? "adminui.report.hideQuestion" : "adminui.report.hideDelete")}
+          body={t(
+            entity === "question"
+              ? "adminui.report.hideQuestion"
+              : entity === "answer"
+                ? "adminui.report.hideAnswer"
+                : "adminui.report.hideDelete",
+          )}
           confirm={t("admin.hide")}
           onConfirm={() => resolveReport(id, true)}
         />
@@ -527,6 +545,23 @@ export function ReportActions({ id, entity }: { id: string; entity: string }) {
         {hideable ? t("admin.dismiss") : t("adminui.report.handled")}
       </Button>
     </div>
+  );
+}
+
+/** Audit log: put back content a report hid (asks first; the server says why when it can't). */
+export function RestoreButton({ auditId, entity }: { auditId: number; entity: HiddenContent["entity"] }) {
+  const t = useT();
+  return (
+    <ConfirmAction
+      label={t("adminui.restore.button")}
+      icon={RotateCcw}
+      title={t("adminui.restore.title")}
+      body={t(`adminui.restore.${entity}`)}
+      confirm={t("adminui.restore.confirm")}
+      confirmVariant="brand"
+      success="adminui.restore.done"
+      onConfirm={() => restoreHidden(auditId)}
+    />
   );
 }
 

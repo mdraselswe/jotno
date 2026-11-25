@@ -7,6 +7,7 @@ export {
   PayoutForm,
   RefundButton,
   ReportActions,
+  RestoreButton,
   ReviewActions,
   UserControls,
 } from "./components/admin-controls";
@@ -22,6 +23,8 @@ export {
 } from "./components/admin-ui";
 export { FilterChips } from "./components/filter-chips";
 export { ReadConsultForm } from "./components/read-consult";
+export { AUDIT_ACTION_LABELS, auditActionLabel, auditActionName } from "./audit-labels";
+export { restorable, type HiddenContent } from "./restore";
 export {
   AUDIT_GROUP_KEYS,
   AUDIT_GROUPS,
@@ -33,5 +36,7 @@ export {
   pageParam,
   providerTone,
   roleTone,
+  VERIFIABLE_STATUSES,
+  verifyBlock,
   type AuditGroup,
 } from "./status";

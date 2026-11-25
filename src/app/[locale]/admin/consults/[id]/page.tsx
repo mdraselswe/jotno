@@ -36,7 +36,7 @@ import {
   ReadConsultForm,
   RefundButton,
 } from "@/features/admin";
-import { consultForAdmin, consultTimeline, type TimelineItem } from "@/features/admin/server";
+import { consultForAdmin, consultTimeline, type TimelineItem, adminMetadata } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
 import { clock } from "@/features/consults";
 import { READ_GRANT_MINUTES } from "@/features/consults/server";
@@ -46,7 +46,9 @@ import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
-export const metadata = { title: "Admin · Consult", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("adminui.meta.consult");
+}
 
 const SYSTEM: Record<string, MessageKey> = {
   "system:opened": "consult.sysOpened",

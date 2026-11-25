@@ -12,15 +12,31 @@ import { SuspenseReveal } from "@/components/motion/suspense-reveal";
 import { ButtonLink } from "@/components/ui/button-link";
 import { business } from "@/config";
 import { adminConsultPath, ROUTES } from "@/config/routes";
-import { AdminListSkeleton, AdminSearch, consultTone, listHref } from "@/features/admin";
-import { CONSULT_FILTERS, listConsults, type ConsultFilter, type ConsultRow } from "@/features/admin/server";
+import {
+  AdminListSkeleton,
+  AdminPager,
+  AdminSearch,
+  consultTone,
+  listHref,
+  pageParam,
+} from "@/features/admin";
+import {
+  adminMetadata,
+  CONSULT_FILTERS,
+  CONSULTS_PAGE,
+  listConsults,
+  type ConsultFilter,
+  type ConsultRow,
+} from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
 import { clock } from "@/features/consults";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 
-export const metadata = { title: "Admin · Consults", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("monitor.title");
+}
 
 type SP = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
@@ -32,10 +48,17 @@ async function Consults({ searchParams }: { searchParams: Promise<SP> }) {
   const show = (CONSULT_FILTERS as readonly string[]).includes(one(sp.show))
     ? (one(sp.show) as ConsultFilter)
     : "all";
-  const rows = await listConsults(show, q);
+  const page = pageParam(one(sp.page));
+  const found = await listConsults(show, q, page);
+  const rows = found.slice(0, CONSULTS_PAGE);
+  const more = found.length > CONSULTS_PAGE;
   const base = localeHref(locale, ROUTES.adminConsults);
-  const href = (p: { show?: ConsultFilter; q?: string }) =>
-    listHref(base, { q: p.q ?? q, show: p.show ?? show }, { show: "all" }) as Route;
+  const href = (p: { show?: ConsultFilter; q?: string; page?: number }) =>
+    listHref(
+      base,
+      { q: p.q ?? q, show: p.show ?? show, page: p.page ?? 1 },
+      { show: "all", page: 1 },
+    ) as Route;
   const late = Math.max(5, Math.floor(business.consult.replyWindowMinutes / 2));
   const slow = (c: ConsultRow) => (c.replyMinutes === null ? c.status !== "closed" : c.replyMinutes > late);
 
@@ -179,7 +202,15 @@ async function Consults({ searchParams }: { searchParams: Promise<SP> }) {
           />
         }
       />
-      {rows.length === 100 ? <p className="text-sm text-muted-foreground">{t("adminui.first100")}</p> : null}
+      <AdminPager
+        page={page}
+        prevHref={page > 1 ? href({ page: page - 1 }) : undefined}
+        nextHref={more ? href({ page: page + 1 }) : undefined}
+        label={t("adminui.pages")}
+        prev={t("adminui.prev")}
+        next={t("adminui.next")}
+        pageLabel={t("common.page", { n: fmt.number(page) })}
+      />
     </div>
   );
 }

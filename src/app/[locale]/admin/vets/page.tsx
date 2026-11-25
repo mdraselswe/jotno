@@ -11,14 +11,23 @@ import {
 import { SuspenseReveal } from "@/components/motion/suspense-reveal";
 import { ButtonLink } from "@/components/ui/button-link";
 import { adminVetPath, ROUTES } from "@/config/routes";
-import { AdminListSkeleton, AdminSearch, listHref, providerTone } from "@/features/admin";
-import { adminCounts, providersByStatus } from "@/features/admin/server";
+import {
+  AdminListSkeleton,
+  AdminPager,
+  AdminSearch,
+  listHref,
+  pageParam,
+  providerTone,
+} from "@/features/admin";
+import { ADMIN_PAGE, adminCounts, providersByStatus, adminMetadata } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { cn } from "@/lib/utils";
 
-export const metadata = { title: "Admin · Vets", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("admin.vets");
+}
 
 const FILTERS = ["pending", "verified", "rejected", "suspended", "draft", "all"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -32,10 +41,17 @@ async function Vets({ searchParams }: { searchParams: Promise<SP> }) {
   const status: Filter = (FILTERS as readonly string[]).includes(one(sp.status))
     ? (one(sp.status) as Filter)
     : "pending";
-  const [rows, counts] = await Promise.all([providersByStatus(status, q), adminCounts()]);
+  const page = pageParam(one(sp.page));
+  const [found, counts] = await Promise.all([providersByStatus(status, q, page), adminCounts()]);
+  const rows = found.slice(0, ADMIN_PAGE);
+  const more = found.length > ADMIN_PAGE;
   const base = localeHref(locale, ROUTES.adminVets);
-  const href = (p: { status?: Filter; q?: string }) =>
-    listHref(base, { q: p.q ?? q, status: p.status ?? status }, { status: "pending" }) as Route;
+  const href = (p: { status?: Filter; q?: string; page?: number }) =>
+    listHref(
+      base,
+      { q: p.q ?? q, status: p.status ?? status, page: p.page ?? 1 },
+      { status: "pending", page: 1 },
+    ) as Route;
 
   type Row = (typeof rows)[number];
   const columns: Column<Row>[] = [
@@ -164,7 +180,15 @@ async function Vets({ searchParams }: { searchParams: Promise<SP> }) {
           )
         }
       />
-      {rows.length === 200 ? <p className="text-sm text-muted-foreground">{t("adminui.first200")}</p> : null}
+      <AdminPager
+        page={page}
+        prevHref={page > 1 ? href({ page: page - 1 }) : undefined}
+        nextHref={more ? href({ page: page + 1 }) : undefined}
+        label={t("adminui.pages")}
+        prev={t("adminui.prev")}
+        next={t("adminui.next")}
+        pageLabel={t("common.page", { n: fmt.number(page) })}
+      />
     </div>
   );
 }

@@ -7,8 +7,11 @@ import { CategoryForm, productArt } from "@/features/shop";
 import { categoriesWithCounts } from "@/features/shop/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
+import { adminMetadata } from "@/features/admin/server";
 
-export const metadata = { title: "Admin · Categories", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("shopAdmin.categories");
+}
 
 async function Categories() {
   const locale = await getLocale();

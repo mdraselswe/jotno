@@ -12,8 +12,11 @@ import type { MessageKey } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { cn } from "@/lib/utils";
+import { adminMetadata } from "@/features/admin/server";
 
-export const metadata = { title: "Admin · Product", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("adminui.meta.product");
+}
 
 const takaText = (poisha: number | null) => (poisha == null ? "" : String(poisha / 100));
 

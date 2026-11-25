@@ -1,4 +1,5 @@
 import type { BadgeTone } from "@/components/layout/app-ui";
+import type { MessageKey } from "@/i18n";
 
 /**
  * Which colour each state gets on the admin pages, so "pending" looks the same
@@ -16,6 +17,28 @@ export function providerTone(status: string): BadgeTone {
       return "danger";
     default:
       return "neutral";
+  }
+}
+
+/**
+ * The statuses an admin can verify from: a profile the vet sent for review
+ * (`pending`), or a suspended vet coming back. A draft was never sent and a
+ * rejected profile must be fixed and sent again first.
+ */
+export const VERIFIABLE_STATUSES = ["pending", "suspended"] as const;
+
+/** Why Verify is off for a vet in this status, or null when it can be verified. */
+export function verifyBlock(status: string): MessageKey | null {
+  if ((VERIFIABLE_STATUSES as readonly string[]).includes(status)) return null;
+  switch (status) {
+    case "draft":
+      return "adminui.vet.verifyDraft";
+    case "rejected":
+      return "adminui.vet.verifyRejected";
+    case "verified":
+      return "adminui.vet.verifyAlready";
+    default:
+      return "common.notAllowed";
   }
 }
 
@@ -65,7 +88,7 @@ export function auditTone(action: string): BadgeTone {
     /^(delete|block|reject|suspend|refund|refunded|cancel|admin_cancel|hide|unpublish|rejected)$/.test(verb)
   )
     return "danger";
-  if (/^(verify|paid|publish|unblock|record|add|create)$/.test(verb)) return "success";
+  if (/^(verify|paid|publish|unblock|record|add|create|restore)$/.test(verb)) return "success";
   if (verb === "read" || verb === "view") return "warning";
   return "neutral";
 }

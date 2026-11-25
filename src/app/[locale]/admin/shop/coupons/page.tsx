@@ -8,8 +8,11 @@ import { listCoupons } from "@/features/shop/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
+import { adminMetadata } from "@/features/admin/server";
 
-export const metadata = { title: "Admin · Coupons", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("shopAdmin.coupons");
+}
 
 const dhakaDate = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka" }).format(d);
 

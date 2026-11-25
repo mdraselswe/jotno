@@ -19,8 +19,11 @@ import type { Translate } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
+import { adminMetadata } from "@/features/admin/server";
 
-export const metadata = { title: "Admin · Payments", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("payAdmin.title");
+}
 
 const trxOf = (p: QueuedPayment) => p.gatewayTxId?.split(":")[1] ?? "—";
 

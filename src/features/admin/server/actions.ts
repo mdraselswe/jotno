@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { business } from "@/config";
@@ -9,10 +9,14 @@ import { actionViewer, setRole, type Role } from "@/features/auth/server";
 import { notify } from "@/features/notifications/server";
 import { canPayout, vetBalance } from "@/features/payments";
 import { refundConsult, refundPlatform } from "@/features/payments/server";
-import type { MessageKey } from "@/i18n";
+import { formatter, translator, type MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
 import { audit } from "@/infrastructure/db/helpers";
 import { supabaseAdmin } from "@/infrastructure/supabase/server";
+import { localeHref } from "@/lib/locale-href";
+import { taka } from "@/lib/money";
+import { RESTORE_ACTION, restorable, toCopy } from "../restore";
+import { VERIFIABLE_STATUSES, verifyBlock } from "../status";
 
 const P = schema.providers;
 export type AdminResult = { ok: true } | { ok: false; error: MessageKey };
@@ -22,44 +26,74 @@ async function admin() {
   return actionViewer(["admin"]);
 }
 
-async function vetProfileId(providerId: string) {
-  const [row] = await db().select({ profileId: P.profileId }).from(P).where(eq(P.id, providerId)).limit(1);
-  return row?.profileId ?? null;
+/** The vet's account and the language they use the app in (for pushes sent outside their own request). */
+async function vetContact(providerId: string) {
+  const [row] = await db()
+    .select({ profileId: P.profileId, locale: schema.profiles.locale })
+    .from(P)
+    .innerJoin(schema.profiles, eq(schema.profiles.id, P.profileId))
+    .where(eq(P.id, providerId))
+    .limit(1);
+  return row ?? null;
 }
 
+/** The language someone uses the app in (pushes go out in it). */
+async function localeOf(profileId: string): Promise<string> {
+  const [row] = await db()
+    .select({ locale: schema.profiles.locale })
+    .from(schema.profiles)
+    .where(eq(schema.profiles.id, profileId))
+    .limit(1);
+  return row?.locale ?? "bn";
+}
+
+/** A reason the person sees (and the audit log keeps): 3 to 300 letters once trimmed. */
+const reasonSchema = z.string().trim().min(3).max(300);
+
+/** Verify a vet: only a profile sent for review, or a suspended vet coming back (see `verifyBlock`). */
 export async function verifyProvider(providerId: string): Promise<AdminResult> {
   const me = await admin();
   if (!me || !uuid.safeParse(providerId).success) return { ok: false, error: "common.notAllowed" };
-  await db()
+  const [current] = await db().select({ status: P.status }).from(P).where(eq(P.id, providerId)).limit(1);
+  if (!current) return { ok: false, error: "common.notAllowed" };
+  const block = verifyBlock(current.status);
+  if (block) return { ok: false, error: block };
+  const [done] = await db()
     .update(P)
     .set({ status: "verified", verifiedAt: new Date(), rejectionReason: null })
-    .where(eq(P.id, providerId));
+    .where(and(eq(P.id, providerId), inArray(P.status, [...VERIFIABLE_STATUSES])))
+    .returning({ id: P.id });
+  // Someone changed the status in the meantime.
+  if (!done) return { ok: false, error: "common.genericError" };
   await audit(me.id, "provider.verify", "provider", providerId);
-  const to = await vetProfileId(providerId);
-  if (to)
-    await notify(to, "vet.verified", {
-      title: "You're verified on Jotno",
-      body: "Pet owners can now find you and start chats.",
-      url: ROUTES.dashboard,
+  const vet = await vetContact(providerId);
+  if (vet) {
+    const t = translator(vet.locale);
+    await notify(vet.profileId, "vet.verified", {
+      title: t("adminui.push.verifiedTitle"),
+      body: t("adminui.push.verifiedBody"),
+      url: localeHref(vet.locale, ROUTES.dashboard),
       tag: "vet-status",
     });
+  }
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
 export async function rejectProvider(providerId: string, reason: string): Promise<AdminResult> {
   const me = await admin();
-  const text = reason.trim().slice(0, 300);
-  if (!me || !uuid.safeParse(providerId).success || text.length < 3)
-    return { ok: false, error: "common.notAllowed" };
+  if (!me || !uuid.safeParse(providerId).success) return { ok: false, error: "common.notAllowed" };
+  const why = reasonSchema.safeParse(reason);
+  if (!why.success) return { ok: false, error: "adminui.reasonShort" };
+  const text = why.data;
   await db().update(P).set({ status: "rejected", rejectionReason: text }).where(eq(P.id, providerId));
   await audit(me.id, "provider.reject", "provider", providerId, { reason: text });
-  const to = await vetProfileId(providerId);
-  if (to)
-    await notify(to, "vet.rejected", {
-      title: "Profile needs changes",
+  const vet = await vetContact(providerId);
+  if (vet)
+    await notify(vet.profileId, "vet.rejected", {
+      title: translator(vet.locale)("adminui.push.rejectedTitle"),
       body: text,
-      url: ROUTES.dashboard,
+      url: localeHref(vet.locale, ROUTES.dashboard),
       tag: "vet-status",
     });
   revalidatePath("/", "layout");
@@ -69,11 +103,13 @@ export async function rejectProvider(providerId: string, reason: string): Promis
 export async function suspendProvider(providerId: string, reason: string): Promise<AdminResult> {
   const me = await admin();
   if (!me || !uuid.safeParse(providerId).success) return { ok: false, error: "common.notAllowed" };
+  const why = reasonSchema.safeParse(reason);
+  if (!why.success) return { ok: false, error: "adminui.reasonShort" };
   await db()
     .update(P)
-    .set({ status: "suspended", availableNow: false, rejectionReason: reason.trim().slice(0, 300) || null })
+    .set({ status: "suspended", availableNow: false, rejectionReason: why.data })
     .where(eq(P.id, providerId));
-  await audit(me.id, "provider.suspend", "provider", providerId, { reason });
+  await audit(me.id, "provider.suspend", "provider", providerId, { reason: why.data });
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -135,6 +171,12 @@ const payoutSchema = z.object({
   reference: z.string().trim().min(3).max(80),
 });
 
+const PAYOUT_METHOD_LABEL: Record<z.infer<typeof payoutSchema>["method"], MessageKey> = {
+  bkash: "pay.method.bkash",
+  nagad: "pay.method.nagad",
+  bank: "adminui.payout.bank",
+};
+
 /** Records a payout that was sent by hand (bKash/Nagad/bank) and debits the vet's ledger. */
 export async function recordPayout(input: z.input<typeof payoutSchema>): Promise<AdminResult> {
   const me = await admin();
@@ -180,14 +222,21 @@ export async function recordPayout(input: z.input<typeof payoutSchema>): Promise
     method: v.method,
     reference: v.reference,
   });
-  const to = await vetProfileId(v.providerId);
-  if (to)
-    await notify(to, "vet.payout", {
-      title: "Payout sent",
-      body: `৳${v.amount / 100} via ${v.method} (${v.reference})`,
-      url: ROUTES.vetEarnings,
+  const vet = await vetContact(v.providerId);
+  if (vet) {
+    // In the vet's own language, not the admin's.
+    const t = translator(vet.locale);
+    await notify(vet.profileId, "vet.payout", {
+      title: t("adminui.push.payoutTitle"),
+      body: t("adminui.push.payoutBody", {
+        amount: taka(formatter(vet.locale), v.amount),
+        method: t(PAYOUT_METHOD_LABEL[v.method]),
+        ref: v.reference,
+      }),
+      url: localeHref(vet.locale, ROUTES.vetEarnings),
       tag: "payout",
     });
+  }
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -200,29 +249,164 @@ export async function adminRefund(consultId: string, reason: string): Promise<Ad
   return done ? { ok: true } : { ok: false, error: "common.genericError" };
 }
 
+/**
+ * Close a report; with `hide`, also take the content down. A question is
+ * hidden; an answer or a review is deleted (an answer's helpful votes go with
+ * it), but the audit entry keeps a full copy so `restoreHidden` can put it back.
+ */
 export async function resolveReport(id: string, hide: boolean): Promise<AdminResult> {
   const me = await admin();
   if (!me || !uuid.safeParse(id).success) return { ok: false, error: "common.notAllowed" };
-  const [report] = await db()
-    .update(schema.reports)
-    .set({ resolvedAt: new Date() })
-    .where(eq(schema.reports.id, id))
-    .returning();
-  if (report && hide) {
-    if (report.entity === "question")
-      await db()
+  const meta = await db().transaction(async (tx) => {
+    const [report] = await tx
+      .update(schema.reports)
+      .set({ resolvedAt: new Date() })
+      .where(eq(schema.reports.id, id))
+      .returning();
+    const base: Record<string, unknown> = { entity: report?.entity, entityId: report?.entityId };
+    if (!report || !hide) return base;
+    if (report.entity === "question") {
+      const Q = schema.questions;
+      const [before] = await tx
+        .select({ id: Q.id, status: Q.status })
+        .from(Q)
+        .where(eq(Q.id, report.entityId))
+        .limit(1);
+      await tx.update(Q).set({ status: "hidden" }).where(eq(Q.id, report.entityId));
+      return before && before.status !== "hidden" ? { ...base, copy: before } : base;
+    }
+    if (report.entity === "answer") {
+      const AN = schema.answers;
+      const [row] = await tx.delete(AN).where(eq(AN.id, report.entityId)).returning();
+      if (!row) return base;
+      await tx
         .update(schema.questions)
-        .set({ status: "hidden" })
-        .where(eq(schema.questions.id, report.entityId));
-    if (report.entity === "answer")
-      await db().delete(schema.answers).where(eq(schema.answers.id, report.entityId));
-    if (report.entity === "review")
-      await db().delete(schema.reviews).where(eq(schema.reviews.id, report.entityId));
-  }
-  await audit(me.id, hide ? "report.hide" : "report.dismiss", "report", id, {
-    entity: report?.entity,
-    entityId: report?.entityId,
+        .set({
+          answerCount: sql`greatest(${schema.questions.answerCount} - 1, 0)`,
+          // Its last answer gone: the question is open again.
+          status: sql`case when ${schema.questions.answerCount} <= 1 and ${schema.questions.status} = 'answered' then 'open' else ${schema.questions.status} end`,
+        })
+        .where(eq(schema.questions.id, row.questionId));
+      return { ...base, copy: toCopy(row) };
+    }
+    if (report.entity === "review") {
+      const R = schema.reviews;
+      const [row] = await tx.delete(R).where(eq(R.id, report.entityId)).returning();
+      if (!row) return base;
+      await tx
+        .update(P)
+        .set({
+          ratingSum: sql`greatest(${P.ratingSum} - ${row.rating}, 0)`,
+          ratingCount: sql`greatest(${P.ratingCount} - 1, 0)`,
+        })
+        .where(eq(P.id, row.providerId));
+      return { ...base, copy: toCopy(row) };
+    }
+    return base;
   });
+  await audit(me.id, hide ? "report.hide" : "report.dismiss", "report", id, meta);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+async function rowExists(table: "questions" | "providers" | "profiles" | "consults", id: string) {
+  const T = schema[table];
+  const [row] = await db().select({ id: T.id }).from(T).where(eq(T.id, id)).limit(1);
+  return Boolean(row);
+}
+
+/**
+ * Admin: put back content a report hid, from its audit entry. The row comes
+ * back with its original id if what it belonged to (the question, the vet, the
+ * reviewer) still exists and nothing has taken its place. Helpful votes deleted
+ * with an answer stay gone.
+ */
+export async function restoreHidden(auditId: number): Promise<AdminResult> {
+  const me = await admin();
+  if (!me || me.role !== "admin" || !Number.isSafeInteger(auditId) || auditId < 1)
+    return { ok: false, error: "common.notAllowed" };
+  const A = schema.auditLog;
+  const [entry] = await db()
+    .select({ action: A.action, meta: A.meta })
+    .from(A)
+    .where(eq(A.id, auditId))
+    .limit(1);
+  const hidden = entry ? restorable(entry.action, entry.meta) : null;
+  if (!hidden) return { ok: false, error: "adminui.restore.noCopy" };
+  const [again] = await db()
+    .select({ id: A.id })
+    .from(A)
+    .where(and(eq(A.action, RESTORE_ACTION), sql`${A.meta}->>'auditId' = ${String(auditId)}`))
+    .limit(1);
+  if (again) return { ok: false, error: "adminui.restore.already" };
+
+  let error: MessageKey | null = null;
+  if (hidden.entity === "question") {
+    const Q = schema.questions;
+    const [back] = await db()
+      .update(Q)
+      .set({ status: hidden.copy.status })
+      .where(and(eq(Q.id, hidden.copy.id), eq(Q.status, "hidden")))
+      .returning({ id: Q.id });
+    if (!back)
+      error = (await rowExists("questions", hidden.copy.id))
+        ? "adminui.restore.taken"
+        : "adminui.restore.gone";
+  } else if (hidden.entity === "answer") {
+    const c = hidden.copy;
+    const AN = schema.answers;
+    if (!(await rowExists("questions", c.questionId)) || !(await rowExists("providers", c.providerId)))
+      error = "adminui.restore.gone";
+    else
+      error = await db().transaction(async (tx): Promise<MessageKey | null> => {
+        // The vet may have answered the same question again since (one answer each).
+        const [newer] = await tx
+          .select({ id: AN.id })
+          .from(AN)
+          .where(and(eq(AN.questionId, c.questionId), eq(AN.providerId, c.providerId)))
+          .limit(1);
+        if (newer) return "adminui.restore.taken";
+        const [back] = await tx
+          .insert(AN)
+          .values({ ...c, helpfulCount: 0 })
+          .onConflictDoNothing()
+          .returning({ id: AN.id });
+        if (!back) return "adminui.restore.taken";
+        await tx
+          .update(schema.questions)
+          .set({
+            answerCount: sql`${schema.questions.answerCount} + 1`,
+            status: sql`case when ${schema.questions.status} = 'open' then 'answered' else ${schema.questions.status} end`,
+          })
+          .where(eq(schema.questions.id, c.questionId));
+        return null;
+      });
+  } else {
+    const c = hidden.copy;
+    const R = schema.reviews;
+    if (!(await rowExists("providers", c.providerId)) || !(await rowExists("profiles", c.ownerId)))
+      error = "adminui.restore.gone";
+    else {
+      // A deleted consult sets a review's link to null; restore it the same way.
+      const consultId = c.consultId && (await rowExists("consults", c.consultId)) ? c.consultId : null;
+      error = await db().transaction(async (tx): Promise<MessageKey | null> => {
+        // Same id, or one review per consult/visit already there: it can't come back.
+        const [back] = await tx
+          .insert(R)
+          .values({ ...c, consultId })
+          .onConflictDoNothing()
+          .returning({ id: R.id });
+        if (!back) return "adminui.restore.taken";
+        await tx
+          .update(P)
+          .set({ ratingSum: sql`${P.ratingSum} + ${c.rating}`, ratingCount: sql`${P.ratingCount} + 1` })
+          .where(eq(P.id, c.providerId));
+        return null;
+      });
+    }
+  }
+  if (error) return { ok: false, error };
+  await audit(me.id, RESTORE_ACTION, hidden.entity, hidden.entityId, { auditId: String(auditId) });
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -307,12 +491,12 @@ export async function setArticlePublished(articleId: string, publish: boolean): 
   if (!row) return { ok: false, error: "common.notAllowed" };
   await audit(me.id, publish ? "article.publish" : "article.unpublish", "article", articleId);
   if (!publish) {
-    const to = await vetProfileId(row.providerId);
-    if (to)
-      await notify(to, "article.unpublished", {
-        title: "Your article was taken down",
+    const vet = await vetContact(row.providerId);
+    if (vet)
+      await notify(vet.profileId, "article.unpublished", {
+        title: translator(vet.locale)("adminui.push.articleDownTitle"),
         body: row.title,
-        url: ROUTES.vetArticles,
+        url: localeHref(vet.locale, ROUTES.vetArticles),
         tag: `article-${articleId}`,
       });
   }
@@ -337,7 +521,7 @@ export async function adminDeleteArticle(articleId: string): Promise<AdminResult
 /** Admin: cancel a visit for the vet or owner; a paid booking fee goes to the refund queue. */
 export async function adminCancelAppointment(id: string, reason: string): Promise<AdminResult> {
   const me = await admin();
-  const why = reason.trim().slice(0, 200) || "cancelled by Jotno";
+  const why = reason.trim().slice(0, 200);
   if (!me || me.role !== "admin" || !uuid.safeParse(id).success)
     return { ok: false, error: "common.notAllowed" };
   const A = schema.appointments;
@@ -347,16 +531,30 @@ export async function adminCancelAppointment(id: string, reason: string): Promis
     .where(and(eq(A.id, id), sql`${A.status} in ('pending_payment', 'confirmed')`))
     .returning({ ownerId: A.ownerId, providerId: A.providerId, startsAt: A.startsAt });
   if (!row) return { ok: false, error: "common.notAllowed" };
-  const refunded = await refundPlatform("appointment", id, why, me.id);
+  const refunded = await refundPlatform("appointment", id, why || "cancelled by Jotno", me.id);
   await audit(me.id, "appointment.admin_cancel", "appointment", id, { reason: why, refunded });
-  const note = {
-    title: "Visit cancelled by Jotno",
-    body: refunded ? `${why}. The booking fee will be refunded.` : why,
-    tag: `appt-${id}`,
+  // Each side hears it in their own language.
+  const note = (locale: string) => {
+    const t = translator(locale);
+    return {
+      title: t("adminui.push.visitCancelledTitle"),
+      body: refunded
+        ? t("adminui.push.visitCancelledRefund", { reason: why || t("adminui.push.visitCancelledTitle") })
+        : why || t("adminui.push.visitCancelledTitle"),
+      tag: `appt-${id}`,
+    };
   };
-  await notify(row.ownerId, "appointment.cancelled", { ...note, url: ROUTES.appointments });
-  const vet = await vetProfileId(row.providerId);
-  if (vet) await notify(vet, "appointment.cancelled", { ...note, url: ROUTES.vetAppointments });
+  const ownerLocale = await localeOf(row.ownerId);
+  await notify(row.ownerId, "appointment.cancelled", {
+    ...note(ownerLocale),
+    url: localeHref(ownerLocale, ROUTES.appointments),
+  });
+  const vet = await vetContact(row.providerId);
+  if (vet)
+    await notify(vet.profileId, "appointment.cancelled", {
+      ...note(vet.locale),
+      url: localeHref(vet.locale, ROUTES.vetAppointments),
+    });
   revalidatePath("/", "layout");
   return { ok: true };
 }

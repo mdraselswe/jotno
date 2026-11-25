@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { auditTone, consultTone, listHref, pageParam, providerTone } from "./status";
+import { auditTone, consultTone, listHref, pageParam, providerTone, verifyBlock } from "./status";
 
 describe("admin status tones", () => {
   it("colours vet states", () => {
@@ -44,5 +44,21 @@ describe("listHref", () => {
     expect(listHref("/bn/admin/users", { q: "রহিম খান", role: "vet" }, { role: "all" })).toBe(
       "/bn/admin/users/?q=%E0%A6%B0%E0%A6%B9%E0%A6%BF%E0%A6%AE+%E0%A6%96%E0%A6%BE%E0%A6%A8&role=vet",
     );
+  });
+});
+
+describe("who can be verified", () => {
+  it("allows a profile sent for review and a suspended vet", () => {
+    expect(verifyBlock("pending")).toBeNull();
+    expect(verifyBlock("suspended")).toBeNull();
+  });
+  it("blocks a draft, a profile sent back for changes and a verified vet, with a reason", () => {
+    expect(verifyBlock("draft")).toBe("adminui.vet.verifyDraft");
+    expect(verifyBlock("rejected")).toBe("adminui.vet.verifyRejected");
+    expect(verifyBlock("verified")).toBe("adminui.vet.verifyAlready");
+    expect(verifyBlock("whatever")).toBe("common.notAllowed");
+  });
+  it("colours a restore as good news", () => {
+    expect(auditTone("report.restore")).toBe("success");
   });
 });

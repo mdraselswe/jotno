@@ -26,8 +26,11 @@ import { shopReport } from "@/features/shop/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
+import { adminMetadata } from "@/features/admin/server";
 
-export const metadata = { title: "Admin · Sales", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("shopAdmin.reports");
+}
 
 const RANGES = [7, 30, 90] as const;
 

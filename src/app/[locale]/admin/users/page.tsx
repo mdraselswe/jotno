@@ -22,14 +22,16 @@ import {
   roleTone,
   UserControls,
 } from "@/features/admin";
-import { listUsers, USERS_PAGE, type UserRoleFilter } from "@/features/admin/server";
+import { listUsers, USERS_PAGE, type UserRoleFilter, adminMetadata } from "@/features/admin/server";
 import { UserAvatar } from "@/features/auth";
 import { mediaUrl } from "@/infrastructure/storage";
 import { requireRole } from "@/features/auth/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 
-export const metadata = { title: "Admin · People", robots: { index: false } };
+export async function generateMetadata() {
+  return adminMetadata("manage.users");
+}
 
 const FILTERS: UserRoleFilter[] = ["all", "owner", "vet", "admin"];
 type SP = Record<string, string | string[] | undefined>;
