@@ -26,7 +26,7 @@ import { prescriptionPath } from "@/config/routes";
 import { useFormatter, useLocale, useT } from "@/i18n/client";
 import { localeHref } from "@/lib/locale-href";
 import { cn } from "@/lib/utils";
-import { clock, parseCallLine, type CallMedia } from "../calls";
+import { callLineText, parseCallLine, type CallMedia } from "../calls";
 import { chatImageUrl } from "../server/actions";
 import { isEmojiOnly, linkify, relativeDay, type BubblePosition, type ThreadMessage } from "./chat-thread";
 
@@ -123,7 +123,6 @@ export function SystemRow({
 
   const call = parseCallLine(message.body);
   if (call) {
-    const media = t(`call.media.${call.media}`);
     const missed = call.status !== "ended";
     const Icon = missed
       ? call.media === "video"
@@ -132,17 +131,7 @@ export function SystemRow({
       : call.media === "video"
         ? Video
         : Phone;
-    const label =
-      call.status === "ended"
-        ? t("call.line.ended", { media, time: clock(call.seconds, fmt.number) })
-        : t(
-            call.status === "declined"
-              ? "call.line.declined"
-              : call.status === "failed"
-                ? "call.line.failed"
-                : "call.line.missed",
-            { media },
-          );
+    const label = callLineText(call, t, fmt.number);
     return (
       <li className="flex justify-center py-1.5">
         <div className="flex max-w-full items-center gap-3 rounded-(--radius-2xl) bg-card py-2 ps-2 pe-3 shadow-(--shadow-card) ring-1 ring-foreground/6">

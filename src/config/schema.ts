@@ -186,6 +186,8 @@ export const businessSchema = z.object({
       ringSeconds: z.number().int().min(15).max(120),
       /** A call with no heartbeat for this long is over (tab closed, phone off). */
       staleSeconds: z.number().int().min(30).max(600),
+      /** A call counts as the vet's reply (no "no reply" refund) once both sides talked this long. */
+      replySeconds: z.number().int().min(0).max(600),
     }),
   }),
   appointment: z.object({
@@ -211,6 +213,18 @@ export const businessSchema = z.object({
     homeDistrictId: z.number().int(),
     /** Extra product photos after the main one. */
     galleryMax: z.number().int().min(0).max(12),
+    /** Usual delivery time in days, shown on product pages. */
+    deliveryDays: z
+      .object({
+        inside: z.object({ min: z.number().int().min(0), max: z.number().int().min(0) }),
+        outside: z.object({ min: z.number().int().min(0), max: z.number().int().min(0) }),
+      })
+      .refine(
+        (d) => d.inside.min <= d.inside.max && d.outside.min <= d.outside.max,
+        "min must not exceed max",
+      ),
+    /** Days after delivery to report a wrong or damaged item. */
+    returnDays: z.number().int().min(1),
   }),
   /** "Available now" turns itself off after this many hours. */
   availableHours: z.number().int().min(1).max(24),

@@ -26,6 +26,8 @@ export async function runConsultJobs(): Promise<{ nudged: number; refunded: numb
         eq(C.status, "active"),
         isNull(C.firstReplyAt),
         sql`${C.openedAt} <= now() - make_interval(mins => ${window})`,
+        // Never refund in the middle of a call: it may become the reply when it ends.
+        sql`not exists (select 1 from calls k where k.consult_id = ${C.id} and k.status = 'active')`,
       ),
     )
     .limit(50);
@@ -67,7 +69,14 @@ async function nudgeSilentVets(window: number): Promise<number> {
     .from(C)
     .innerJoin(schema.providers, eq(schema.providers.id, C.providerId))
     .innerJoin(schema.profiles, eq(schema.profiles.id, schema.providers.profileId))
-    .where(and(eq(C.status, "active"), isNull(C.firstReplyAt)))
+    .where(
+      and(
+        eq(C.status, "active"),
+        isNull(C.firstReplyAt),
+        // Already on a call with the owner: no "owner waiting" reminders.
+        sql`not exists (select 1 from calls k where k.consult_id = ${C.id} and k.status = 'active')`,
+      ),
+    )
     .limit(100);
   const now = new Date();
   let nudged = 0;

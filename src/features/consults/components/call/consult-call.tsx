@@ -1,6 +1,6 @@
 "use client";
 
-import { Lock, Mic, MicOff, Phone, PhoneOff, Video, VideoOff } from "lucide-react";
+import { Lock, Mic, MicOff, Phone, PhoneOff, SwitchCamera, Video, VideoOff } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -50,15 +50,36 @@ function support(): "ok" | "inApp" | "unsupported" {
   return "ok";
 }
 
-async function acquire(media: CallMedia): Promise<MediaStream | MessageKey> {
+type Facing = "user" | "environment";
+
+async function acquire(media: CallMedia, facing: Facing = "user"): Promise<MediaStream | MessageKey> {
   try {
     return await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       video:
         media === "video"
-          ? { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { max: 24 } }
+          ? { facingMode: facing, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { max: 24 } }
           : false,
     });
+  } catch (error) {
+    const name = error instanceof DOMException ? error.name : "";
+    if (name === "NotAllowedError" || name === "SecurityError") return "call.permission";
+    if (name === "NotFoundError" || name === "OverconstrainedError") return "call.noDevice";
+    return "call.unsupported";
+  }
+}
+
+/**
+ * A camera track alone (no new mic capture: on iPhone a second mic capture
+ * mutes the call's own mic).
+ */
+async function camera(facing: Facing): Promise<MediaStreamTrack | MessageKey> {
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { max: 24 } },
+    });
+    return s.getVideoTracks()[0] ?? "call.noDevice";
   } catch (error) {
     const name = error instanceof DOMException ? error.name : "";
     if (name === "NotAllowedError" || name === "SecurityError") return "call.permission";
@@ -98,6 +119,9 @@ export function ConsultCall({
   const [phase, setPhase] = useState<Phase>({ name: "idle" });
   const [muted, setMuted] = useState(false);
   const [camOn, setCamOn] = useState(true);
+  /** Front or back camera; phones with more than one camera can flip. */
+  const [facing, setFacing] = useState<Facing>("user");
+  const [canFlip, setCanFlip] = useState(false);
   /** What this side sends: an owner can answer a video call with audio only. */
   const [myMedia, setMyMedia] = useState<CallMedia>("audio");
   const [remoteCam, setRemoteCam] = useState(true);
@@ -212,6 +236,7 @@ export function ConsultCall({
   }
 
   async function placeCall(media: CallMedia) {
+    setFacing("user");
     const stream = await acquire(media);
     if (typeof stream === "string") {
       toast.error(t(stream));
@@ -243,6 +268,7 @@ export function ConsultCall({
     if (p.name !== "incoming") return;
     stopTone();
     const media: CallMedia = audioOnly ? "audio" : p.media;
+    setFacing("user");
     const stream = await acquire(media);
     if (typeof stream === "string") {
       toast.error(t(stream));
@@ -406,6 +432,52 @@ export function ConsultCall({
     setMuted(next);
   }
 
+  // Offer "flip camera" only on devices with more than one camera.
+  useEffect(() => {
+    if (phase.name !== "live" || myMedia !== "video") return;
+    let alive = true;
+    void navigator.mediaDevices
+      ?.enumerateDevices()
+      .then((list) => {
+        if (alive) setCanFlip(list.filter((d) => d.kind === "videoinput").length > 1);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [phase.name, myMedia]);
+
+  /** Switch between the front and back camera without dropping the call. */
+  async function flipCamera() {
+    const p = phaseRef.current;
+    const stream = local.current;
+    if (p.name !== "live" || !stream || !camOn) return;
+    const next: Facing = facing === "user" ? "environment" : "user";
+    // Many phones can't open the second camera while the first is held: let go first.
+    for (const old of stream.getVideoTracks()) {
+      old.stop();
+      stream.removeTrack(old);
+    }
+    let used = next;
+    let track = await camera(next);
+    if (typeof track === "string") {
+      toast.error(t(track));
+      used = facing;
+      track = await camera(facing);
+    }
+    if (typeof track === "string") {
+      // Neither camera opened: carry on with the camera off.
+      await peer.current?.replaceVideo(null);
+      setCamOn(false);
+      signal({ kind: "cam", callId: p.callId, on: false });
+      return;
+    }
+    stream.addTrack(track);
+    await peer.current?.replaceVideo(track);
+    if (localVideo.current) localVideo.current.srcObject = stream;
+    setFacing(used);
+  }
+
   async function toggleCamera() {
     const p = phaseRef.current;
     if (p.name !== "live" || !local.current) return;
@@ -419,14 +491,11 @@ export function ConsultCall({
       signal({ kind: "cam", callId: p.callId, on: false });
       return;
     }
-    const cam = await acquire("video");
-    if (typeof cam === "string") {
-      toast.error(t(cam));
+    const track = await camera(facing);
+    if (typeof track === "string") {
+      toast.error(t(track));
       return;
     }
-    const track = cam.getVideoTracks()[0];
-    for (const a of cam.getAudioTracks()) a.stop();
-    if (!track) return;
     local.current.addTrack(track);
     await peer.current?.replaceVideo(track);
     setCamOn(true);
@@ -567,7 +636,11 @@ export function ConsultCall({
             playsInline
             muted
             aria-label={t("call.yourCamera")}
-            className="absolute end-4 bottom-4 aspect-3/4 w-28 -scale-x-100 rounded-(--radius-2xl) object-cover shadow-(--shadow-card) ring-2 ring-foreground/20 sm:w-36"
+            className={cn(
+              "absolute end-4 bottom-4 aspect-3/4 w-28 rounded-(--radius-2xl) object-cover shadow-(--shadow-card) ring-2 ring-foreground/20 sm:w-36",
+              // A selfie view is mirrored; the back camera shows the world as it is.
+              facing === "user" && "-scale-x-100",
+            )}
           />
         ) : null}
       </div>
@@ -636,6 +709,15 @@ export function ConsultCall({
                 ) : (
                   <VideoOff aria-hidden="true" className="size-6" />
                 )}
+              </Control>
+            ) : null}
+            {phase.name === "live" && myMedia === "video" && camOn && canFlip ? (
+              <Control
+                label={t("chatui.call.flip")}
+                ariaLabel={t("chatui.call.flipAria")}
+                onClick={() => void flipCamera()}
+              >
+                <SwitchCamera aria-hidden="true" className="size-6" />
               </Control>
             ) : null}
             <Control

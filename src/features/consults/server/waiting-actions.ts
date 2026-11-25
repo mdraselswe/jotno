@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { business } from "@/config";
 import { actionViewer } from "@/features/auth/server";
 import { db, schema } from "@/infrastructure/db";
@@ -27,7 +27,15 @@ export async function waitingChats(): Promise<WaitingChat[]> {
     .from(C)
     .innerJoin(schema.providers, eq(schema.providers.id, C.providerId))
     .leftJoin(schema.profiles, eq(schema.profiles.id, C.ownerId))
-    .where(and(eq(schema.providers.profileId, viewer.id), eq(C.status, "active"), isNull(C.firstReplyAt)))
+    .where(
+      and(
+        eq(schema.providers.profileId, viewer.id),
+        eq(C.status, "active"),
+        isNull(C.firstReplyAt),
+        // Already on a call with that owner: not "waiting".
+        sql`not exists (select 1 from calls k where k.consult_id = ${C.id} and k.status = 'active')`,
+      ),
+    )
     .orderBy(asc(C.openedAt))
     .limit(10);
   const window = business.consult.replyWindowMinutes * 60_000;

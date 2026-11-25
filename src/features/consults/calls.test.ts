@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   answerUrl,
-  isChatPage,
   callLine,
   clock,
+  countsAsReply,
   endStatus,
+  isChatPage,
   isInAppBrowser,
   isStale,
   parseCallLine,
@@ -109,5 +110,14 @@ describe("answerUrl / isChatPage", () => {
     expect(isChatPage(`/en/chat/${id}/`, id)).toBe(true);
     expect(isChatPage(`/chat/${id}/rx`, id)).toBe(false);
     expect(isChatPage("/dashboard", id)).toBe(false);
+  });
+});
+
+describe("countsAsReply", () => {
+  it("needs an answered call of at least the reply length", () => {
+    expect(countsAsReply("ended", 30, 30)).toBe(true);
+    expect(countsAsReply("ended", 4, 30)).toBe(false);
+    expect(countsAsReply("missed", 0, 0)).toBe(false);
+    expect(countsAsReply("ended", 0, 0)).toBe(true);
   });
 });

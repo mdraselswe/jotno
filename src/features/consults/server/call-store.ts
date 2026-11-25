@@ -1,8 +1,8 @@
 import "server-only";
-import { and, eq, inArray, lte, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, lte, ne, sql } from "drizzle-orm";
 import { business, site } from "@/config";
 import { db, schema } from "@/infrastructure/db";
-import { callLine, endStatus, talkSeconds, type EndReason } from "../calls";
+import { callLine, countsAsReply, endStatus, talkSeconds, type EndReason } from "../calls";
 import { callSides, pushMissed, signalUser } from "./call-signal";
 
 const K = schema.calls;
@@ -22,19 +22,34 @@ export async function finishCall(
   endedAt = new Date(),
 ): Promise<CallRow | null> {
   const status = endStatus(call.answeredAt !== null, reason);
-  const [done] = await db()
-    .update(K)
-    .set({ status, endedAt, endedBy, endReason: reason })
-    .where(and(eq(K.id, call.id), inArray(K.status, [...OPEN])))
-    .returning();
+  const seconds = talkSeconds(call.answeredAt, endedAt);
+  // One transaction: the refund cron never sees the call ended before it counts as the reply.
+  const done = await db().transaction(async (tx) => {
+    const [row] = await tx
+      .update(K)
+      .set({ status, endedAt, endedBy, endReason: reason })
+      .where(and(eq(K.id, call.id), inArray(K.status, [...OPEN])))
+      .returning();
+    if (!row) return null;
+    await tx
+      .insert(schema.messages)
+      .values({ consultId: call.consultId, senderId: null, body: callLine(call.media, status, seconds) });
+    // Talking long enough on a call is the vet's reply (no "vet didn't reply" refund).
+    if (call.answeredAt && countsAsReply(status, seconds, business.consult.call.replySeconds)) {
+      await tx
+        .update(schema.consults)
+        .set({ firstReplyAt: call.answeredAt })
+        .where(
+          and(
+            eq(schema.consults.id, call.consultId),
+            eq(schema.consults.status, "active"),
+            isNull(schema.consults.firstReplyAt),
+          ),
+        );
+    }
+    return row;
+  });
   if (!done) return null;
-  await db()
-    .insert(schema.messages)
-    .values({
-      consultId: call.consultId,
-      senderId: null,
-      body: callLine(call.media, status, talkSeconds(call.answeredAt, endedAt)),
-    });
   return done;
 }
 

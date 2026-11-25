@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { site } from "@/config";
+import { business, site } from "@/config";
 import { prescriptionPath } from "@/config/routes";
 import { PushPrompt } from "@/features/notifications";
 import { useUpload } from "@/features/uploads";
 import { useLocale, useT } from "@/i18n/client";
 import { localeHref } from "@/lib/locale-href";
 import { cn } from "@/lib/utils";
-import { parseCallLine } from "../calls";
+import { countsAsReply, parseCallLine } from "../calls";
 import type { RxInput } from "../prescription";
 import { markRead, sendMessage } from "../server/actions";
 import type { ChatMessage } from "../server/queries";
@@ -144,10 +144,10 @@ export function ChatRoom({
   const open = status === "active" && !endedHere;
   const writable = canWrite && open;
   const canCall = callable && open;
-  // A call both sides joined counts as talking (no text needed).
+  // A call both sides talked on long enough counts as the reply (no text needed).
   const talked = messages.some((m) => {
     const call = m.senderId === null ? parseCallLine(m.body) : null;
-    return call !== null && (call.status === "ended" || call.seconds > 0);
+    return call !== null && countsAsReply(call.status, call.seconds, business.consult.call.replySeconds);
   });
   const anyCall = messages.some((m) => m.senderId === null && parseCallLine(m.body) !== null);
   const otherReplied = talked || messages.some((m) => m.senderId !== null && m.senderId !== viewerId);

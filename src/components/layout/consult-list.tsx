@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { site } from "@/config";
 import { chatPath } from "@/config/routes";
-import { chatDayKey } from "@/features/consults";
+import { callLineText, chatDayKey, parseCallLine } from "@/features/consults";
 import type { Formatter, Translate } from "@/i18n";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
@@ -21,6 +21,8 @@ export interface ConsultRowData {
   /** The vet hasn't answered yet ("New" on the vet side). */
   firstReplyAt?: Date | null;
   unread: number;
+  /** The newest message or call line (the preview under the name). */
+  last?: { body: string | null; hasImage: boolean; mine: boolean; at: Date } | null;
 }
 
 const STATUS_TONE: Record<ConsultRowData["status"], BadgeTone> = {
@@ -37,6 +39,17 @@ function when(date: Date, now: Date, fmt: Formatter) {
   if (chatDayKey(date, tz) === chatDayKey(now, tz)) return fmt.date(date, { timeStyle: "short" });
   if (now.getTime() - date.getTime() < 6 * 86_400_000) return fmt.date(date, { weekday: "short" });
   return fmt.date(date, { day: "numeric", month: "short" });
+}
+
+/** What the row says under the name: the last message, else the case. */
+function preview(c: ConsultRowData, t: Translate, fmt: Formatter): string {
+  const last = c.last;
+  if (!last) return c.summary;
+  const call = parseCallLine(last.body);
+  const text = call
+    ? callLineText(call, t, fmt.number)
+    : last.body?.trim() || (last.hasImage ? t("chatui.list.photo") : c.summary);
+  return last.mine && !call ? t("chatui.list.you", { text }) : text;
 }
 
 /** An inbox of chats (owner or vet side): who, the case, when, unread count, status. */
@@ -86,13 +99,13 @@ export function ConsultList({
                     {name}
                   </span>
                   <time
-                    dateTime={c.createdAt.toISOString()}
+                    dateTime={(c.last?.at ?? c.createdAt).toISOString()}
                     className={cn(
                       "ms-auto shrink-0 text-xs",
                       unread ? "font-semibold text-primary" : "text-muted-foreground",
                     )}
                   >
-                    {when(c.createdAt, now, fmt)}
+                    {when(c.last?.at ?? c.createdAt, now, fmt)}
                   </time>
                 </span>
                 <span className="flex items-center gap-2">
@@ -102,7 +115,7 @@ export function ConsultList({
                       unread ? "font-medium text-foreground" : "text-muted-foreground",
                     )}
                   >
-                    {c.summary}
+                    {preview(c, t, fmt)}
                   </span>
                   {unread ? (
                     <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground tabular-nums">

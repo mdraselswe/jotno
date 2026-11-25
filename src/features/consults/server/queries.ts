@@ -133,6 +133,14 @@ export async function getConsult(
   };
 }
 
+export interface LastMessage {
+  body: string | null;
+  hasImage: boolean;
+  /** Sent by the person viewing the list. */
+  mine: boolean;
+  at: Date;
+}
+
 export interface ConsultListItem {
   id: string;
   status: (typeof C.$inferSelect)["status"];
@@ -143,7 +151,43 @@ export interface ConsultListItem {
   otherName: string | null;
   otherPhoto: string | null;
   unread: number;
+  /** The newest message or call line, for the inbox preview. */
+  last: LastMessage | null;
 }
+
+/** The newest real message or call line of each consult (system notices skipped). */
+const lastFor = async (consultIds: string[], viewerId: string) => {
+  const map = new Map<string, LastMessage>();
+  if (consultIds.length === 0) return map;
+  const rows = await db()
+    .selectDistinctOn([M.consultId], {
+      consultId: M.consultId,
+      senderId: M.senderId,
+      body: M.body,
+      imagePath: M.imagePath,
+      createdAt: M.createdAt,
+    })
+    .from(M)
+    .where(
+      and(
+        inArray(M.consultId, consultIds),
+        sql`(${M.senderId} is not null or ${M.body} like 'system:call:%')`,
+      ),
+    )
+    .orderBy(M.consultId, desc(M.createdAt));
+  for (const r of rows)
+    map.set(r.consultId, {
+      body: r.body,
+      hasImage: r.imagePath !== null,
+      mine: r.senderId === viewerId,
+      at: r.createdAt,
+    });
+  return map;
+};
+
+/** Newest activity first: the last message, else when the chat was made. */
+const byActivity = (a: ConsultListItem, b: ConsultListItem) =>
+  (b.last?.at ?? b.createdAt).getTime() - (a.last?.at ?? a.createdAt).getTime();
 
 const unreadFor = async (consultIds: string[], viewerId: string) => {
   if (consultIds.length === 0) return new Map<string, number>();
@@ -167,21 +211,22 @@ export async function listOwnerConsults(ownerId: string): Promise<ConsultListIte
     .where(and(eq(C.ownerId, ownerId), inArray(C.status, ["active", "closed", "refunded"])))
     .orderBy(desc(C.createdAt))
     .limit(100);
-  const unread = await unreadFor(
-    rows.map((r) => r.c.id),
-    ownerId,
-  );
-  return rows.map((r) => ({
-    id: r.c.id,
-    status: r.c.status,
-    summary: r.c.summary,
-    fee: r.c.fee,
-    createdAt: r.c.createdAt,
-    firstReplyAt: r.c.firstReplyAt,
-    otherName: r.name,
-    otherPhoto: mediaUrl(r.photo),
-    unread: unread.get(r.c.id) ?? 0,
-  }));
+  const ids = rows.map((r) => r.c.id);
+  const [unread, last] = await Promise.all([unreadFor(ids, ownerId), lastFor(ids, ownerId)]);
+  return rows
+    .map((r) => ({
+      id: r.c.id,
+      status: r.c.status,
+      summary: r.c.summary,
+      fee: r.c.fee,
+      createdAt: r.c.createdAt,
+      firstReplyAt: r.c.firstReplyAt,
+      otherName: r.name,
+      otherPhoto: mediaUrl(r.photo),
+      unread: unread.get(r.c.id) ?? 0,
+      last: last.get(r.c.id) ?? null,
+    }))
+    .sort(byActivity);
 }
 
 export async function listVetConsults(
@@ -201,10 +246,8 @@ export async function listVetConsults(
     )
     .orderBy(desc(C.createdAt))
     .limit(100);
-  const unread = await unreadFor(
-    rows.map((r) => r.c.id),
-    vetProfileId,
-  );
+  const ids = rows.map((r) => r.c.id);
+  const [unread, last] = await Promise.all([unreadFor(ids, vetProfileId), lastFor(ids, vetProfileId)]);
   const items = rows.map((r) => ({
     id: r.c.id,
     status: r.c.status,
@@ -215,6 +258,8 @@ export async function listVetConsults(
     otherName: r.name,
     otherPhoto: mediaUrl(r.photo),
     unread: unread.get(r.c.id) ?? 0,
+    last: last.get(r.c.id) ?? null,
   }));
+  items.sort(byActivity);
   return onlyWaiting ? items.filter((i) => !i.firstReplyAt || i.unread > 0) : items;
 }

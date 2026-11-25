@@ -1,3 +1,5 @@
+import type { Translate } from "@/i18n";
+
 /**
  * Call rules (audio/video inside a consult) as plain functions. Times are UTC Dates.
  *
@@ -32,6 +34,14 @@ export function endStatus(answered: boolean, reason: EndReason): Exclude<CallSta
 export function talkSeconds(answeredAt: Date | null, endedAt: Date | null): number {
   if (!answeredAt || !endedAt) return 0;
   return Math.max(0, Math.round((endedAt.getTime() - answeredAt.getTime()) / 1000));
+}
+
+/**
+ * A call both sides talked on for at least `replySeconds` is the vet's reply:
+ * the chat then no longer gets the automatic "no reply" refund.
+ */
+export function countsAsReply(status: CallStatus, seconds: number, replySeconds: number): boolean {
+  return status === "ended" && seconds >= replySeconds;
 }
 
 /** A ringing call nobody answered in time. */
@@ -92,4 +102,22 @@ export function clock(seconds: number, num?: (n: number) => string): string {
  */
 export function isInAppBrowser(userAgent: string): boolean {
   return /FBAN|FBAV|FB_IAB|FBIOS|Messenger|Instagram|Line\/|MicroMessenger|; wv\)/i.test(userAgent);
+}
+
+/** The words for a call line ("Audio call · 4:05", "Missed video call"). */
+export function callLineText(
+  call: { media: CallMedia; status: CallStatus; seconds: number },
+  t: Translate,
+  num?: (n: number) => string,
+): string {
+  const media = t(`call.media.${call.media}`);
+  if (call.status === "ended") return t("call.line.ended", { media, time: clock(call.seconds, num) });
+  return t(
+    call.status === "declined"
+      ? "call.line.declined"
+      : call.status === "failed"
+        ? "call.line.failed"
+        : "call.line.missed",
+    { media },
+  );
 }
