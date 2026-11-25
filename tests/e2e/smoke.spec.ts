@@ -110,20 +110,31 @@ test.describe("smoke", () => {
   test("theme toggle cycles and is remembered", async ({ page }) => {
     await page.goto("/");
     const html = page.locator("html");
-    const theme = new RegExp(text(DEFAULT_LOCALE)["theme.system"].split(":")[0] ?? "Theme");
     const messages = text(DEFAULT_LOCALE);
-    const button = page.getByRole("button", { name: theme });
-    // On phones the toggle lives in the menu sheet.
     const menu = page.getByRole("button", { name: messages["nav.menu"] });
-    // A click before hydration is lost, so click again until the app reacts.
-    await expect(async () => {
-      if ((await menu.isVisible()) && !(await button.isVisible())) await menu.click();
-      if ((await button.getAttribute("aria-label")) === messages["theme.system"]) await button.click();
-      await expect(button).toHaveAttribute("aria-label", messages["theme.light"], { timeout: 1000 });
-    }).toPass(); // system → light
-    await expect(html).not.toHaveClass(/\bdark\b/);
-    await button.click(); // light → dark
-    await expect(html).toHaveClass(/\bdark\b/);
+    if (await menu.isVisible()) {
+      // Phones: the menu sheet has a Light / Dark / Auto picker.
+      const light = page.getByRole("radio", { name: messages["theme.optLight"] });
+      // A click before hydration is lost, so click again until the app reacts.
+      await expect(async () => {
+        if (!(await light.isVisible())) await menu.click();
+        await light.click();
+        await expect(light).toBeChecked({ timeout: 1000 });
+      }).toPass();
+      await expect(html).not.toHaveClass(/\bdark\b/);
+      await page.getByRole("radio", { name: messages["theme.optDark"] }).click();
+      await expect(html).toHaveClass(/\bdark\b/);
+    } else {
+      const theme = new RegExp(messages["theme.system"].split(":")[0] ?? "Theme");
+      const button = page.getByRole("button", { name: theme });
+      await expect(async () => {
+        if ((await button.getAttribute("aria-label")) === messages["theme.system"]) await button.click();
+        await expect(button).toHaveAttribute("aria-label", messages["theme.light"], { timeout: 1000 });
+      }).toPass(); // system → light
+      await expect(html).not.toHaveClass(/\bdark\b/);
+      await button.click(); // light → dark
+      await expect(html).toHaveClass(/\bdark\b/);
+    }
     await page.reload();
     await expect(html).toHaveClass(/\bdark\b/);
   });

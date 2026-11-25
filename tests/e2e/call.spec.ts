@@ -45,9 +45,9 @@ test.describe("calls inside a consult", () => {
     const vet = vetCtx.pages()[0];
     if (!owner || !vet) throw new Error("pages missing");
 
-    // Both are on the private channel and see each other.
-    await expect(owner.getByText(/is in the chat now/)).toBeVisible({ timeout: 20_000 });
-    await expect(vet.getByText(/is in the chat now/)).toBeVisible({ timeout: 20_000 });
+    // Both are on the private channel and see each other (the call buttons wait for that).
+    await expect(owner.getByRole("button", { name: "Video call" })).toBeEnabled({ timeout: 20_000 });
+    await expect(vet.getByRole("button", { name: "Video call" })).toBeEnabled({ timeout: 20_000 });
 
     await owner.getByRole("button", { name: "Video call" }).click();
     await expect(callScreen(owner)).toContainText(/Calling/, { timeout: 15_000 });
@@ -104,7 +104,7 @@ test.describe("calls inside a consult", () => {
     const owner = ownerCtx.pages()[0];
     const vet = vetCtx.pages()[0];
     if (!owner || !vet) throw new Error("pages missing");
-    await expect(vet.getByText(/is in the chat now/)).toBeVisible({ timeout: 20_000 });
+    await expect(vet.getByRole("button", { name: "Audio call" })).toBeEnabled({ timeout: 20_000 });
 
     await vet.getByRole("button", { name: "Audio call" }).click();
     await expect(callScreen(owner)).toContainText(/is calling/, { timeout: 15_000 });

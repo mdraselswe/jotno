@@ -7,13 +7,14 @@ import { expect, test } from "@playwright/test";
 test.describe("public flows", () => {
   test("search → vet profile → sign-in gate for a paid chat", async ({ page }) => {
     await page.goto("/vets/");
-    const firstVet = page.locator("main a[href*='/vet/']").first();
+    const firstVet = page.locator("main a[href*='/vet/']").filter({ visible: true }).first();
     await expect(firstVet).toBeVisible();
     await firstVet.click();
-    await expect(page).toHaveURL(/\/vet\/[a-z0-9-]+\/$/);
+    await expect(page).toHaveURL(/\/vet\/[a-z0-9-]+\/$/, { timeout: 15_000 });
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
-    const chat = page.locator("main a[href$='/consult/']").first();
+    // Phones hide the hero buttons and show a sticky bar instead: click whichever is visible.
+    const chat = page.locator("main a[href$='/consult/']").filter({ visible: true }).first();
     await chat.click();
     await expect(page).toHaveURL(/\/consult\/$/);
     // Signed out: a sign-in link that comes back here.
@@ -29,7 +30,7 @@ test.describe("public flows", () => {
     for (const species of ["dog", "cat"]) {
       await filters.locator(`a[href$='species=${species}']`).click();
       await expect(page).toHaveURL(new RegExp(`species=${species}`));
-      await expect(filters.locator(`a[href$='species=${species}']`)).toHaveClass(/bg-primary/);
+      await expect(filters.locator(`a[href$='species=${species}']`)).toHaveAttribute("aria-current", "true");
     }
     await page.goto("/shop/");
     await page.locator("main a[href$='category=toys']").first().click();

@@ -24,7 +24,8 @@
   --color-bkash: #e2136e;
   --color-nagad: #f6921e;
   /* Social network marks (footer follow buttons only). */
-  --color-facebook: #1877f2;
+  /* Facebook's current blue (#0866ff): white text on it passes 4.5:1, the older #1877f2 does not. */
+  --color-facebook: #0866ff;
   --color-highlight-foreground: var(--highlight-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
@@ -89,7 +90,8 @@
   --muted-foreground: oklch(0.46 0.012 70);
   --accent: oklch(0.93 0.03 268);
   --accent-foreground: oklch(0.2 0.004 70);
-  --destructive: oklch(0.577 0.245 27.325);
+  /* One step darker than the stock red: small red text on a red tint (badges, "Don't") still passes 4.5:1. */
+  --destructive: oklch(0.505 0.213 27.518);
   /* Status colours: badges, alerts, toasts. Text on them uses the -foreground token. */
   --success: oklch(0.52 0.14 150);
   --success-foreground: oklch(0.985 var(--nc, 0) var(--nh, 0));

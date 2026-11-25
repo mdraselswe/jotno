@@ -198,9 +198,7 @@ function BigAction({
       </span>
       <span className="grid gap-0.5">
         <span className="font-heading text-lg leading-tight font-bold">{label}</span>
-        <span className={cn("text-sm", tone === "brand" ? "opacity-85" : "text-muted-foreground")}>
-          {sub}
-        </span>
+        <span className={cn("text-sm", tone === "brand" ? undefined : "text-muted-foreground")}>{sub}</span>
       </span>
     </Link>
   );
