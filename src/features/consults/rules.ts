@@ -67,3 +67,15 @@ export function roleIn(
   if (consult.providerProfileId === userId) return "vet";
   return null;
 }
+
+/**
+ * Which reminder a chat still waiting for the vet's first reply is due:
+ * 0 none yet, 1 after a third of the reply window, 2 after two thirds.
+ */
+export function nudgeStep(openedAt: Date, now: Date, replyWindowMinutes: number): 0 | 1 | 2 {
+  const waited = (now.getTime() - openedAt.getTime()) / MINUTE;
+  if (waited >= replyWindowMinutes) return 0;
+  if (waited >= (replyWindowMinutes * 2) / 3) return 2;
+  if (waited >= replyWindowMinutes / 3) return 1;
+  return 0;
+}

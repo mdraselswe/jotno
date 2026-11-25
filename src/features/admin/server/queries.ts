@@ -284,6 +284,7 @@ export async function listUsers(q: string, role: UserRoleFilter, page = 1) {
       email: PF.email,
       phone: PF.phone,
       role: PF.role,
+      avatarPath: PF.avatarPath,
       isDemo: PF.isDemo,
       createdAt: PF.createdAt,
       blocked: sql<boolean>`coalesce((select u.banned_until > now() from auth.users u where u.id = "profiles"."id"), false)`,

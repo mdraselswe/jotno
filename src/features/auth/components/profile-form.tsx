@@ -13,6 +13,7 @@ import { useT } from "@/i18n/client";
 import { supabaseBrowser } from "@/infrastructure/supabase/browser";
 import { isBdMobile } from "../phone";
 import { updateProfile } from "../server/actions";
+import { profileChanged } from "./use-auth-user";
 import { useSignOut } from "./user-menu";
 
 export interface ProfileValues {
@@ -56,6 +57,7 @@ export function ProfileForm({ initial }: { initial: ProfileValues }) {
         toast.success(t("common.saved"));
         // Pick up the new photo in the header (it comes from the session).
         if (v.avatarPath !== saved.avatarPath) await supabaseBrowser().auth.refreshSession();
+        profileChanged();
         setSaved(v);
       } else toast.error(t(r.error));
     });

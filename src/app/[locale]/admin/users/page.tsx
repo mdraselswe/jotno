@@ -24,6 +24,7 @@ import {
 } from "@/features/admin";
 import { listUsers, USERS_PAGE, type UserRoleFilter } from "@/features/admin/server";
 import { UserAvatar } from "@/features/auth";
+import { mediaUrl } from "@/infrastructure/storage";
 import { requireRole } from "@/features/auth/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -60,7 +61,10 @@ async function Users({ searchParams }: { searchParams: Promise<SP> }) {
       mobile: "title",
       cell: (u) => (
         <span className="flex min-w-0 items-center gap-3">
-          <UserAvatar user={{ name: u.fullName, email: u.email, avatarUrl: null }} className="size-9" />
+          <UserAvatar
+            user={{ name: u.fullName, email: u.email, avatarUrl: mediaUrl(u.avatarPath) }}
+            className="size-9"
+          />
           <span className="grid min-w-0">
             <span className="flex flex-wrap items-center gap-x-2 truncate font-medium">
               {u.fullName ?? "—"}

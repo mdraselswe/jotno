@@ -12,6 +12,7 @@ import { useUpload } from "@/features/uploads";
 import { useLocale, useT } from "@/i18n/client";
 import { localeHref } from "@/lib/locale-href";
 import { cn } from "@/lib/utils";
+import { parseCallLine } from "../calls";
 import type { RxInput } from "../prescription";
 import { markRead, sendMessage } from "../server/actions";
 import type { ChatMessage } from "../server/queries";
@@ -51,7 +52,8 @@ const scrollBehavior = (): ScrollBehavior =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
 
 const isEndLine = (m: ChatMessage) =>
-  m.senderId === null && (m.body === "system:closed" || m.body === "system:refunded");
+  m.senderId === null &&
+  (m.body === "system:closed" || m.body === "system:refunded" || m.body === "system:refunded:admin");
 
 export function ChatRoom({
   consultId,
@@ -142,7 +144,13 @@ export function ChatRoom({
   const open = status === "active" && !endedHere;
   const writable = canWrite && open;
   const canCall = callable && open;
-  const otherReplied = messages.some((m) => m.senderId !== null && m.senderId !== viewerId);
+  // A call both sides joined counts as talking (no text needed).
+  const talked = messages.some((m) => {
+    const call = m.senderId === null ? parseCallLine(m.body) : null;
+    return call !== null && (call.status === "ended" || call.seconds > 0);
+  });
+  const anyCall = messages.some((m) => m.senderId === null && parseCallLine(m.body) !== null);
+  const otherReplied = talked || messages.some((m) => m.senderId !== null && m.senderId !== viewerId);
   const mineSent = messages.some((m) => m.senderId === viewerId);
   const hasRx =
     Boolean(rx?.initial) || messages.some((m) => m.body === "system:rx" || m.body === "system:rx:updated");
@@ -381,7 +389,7 @@ export function ChatRoom({
             profileHref={other.href}
             rxHref={hasRx ? localeHref(locale, prescriptionPath(consultId)) : null}
             rx={rx ? { editing: Boolean(rx.initial), onOpen: () => setRxOpen(true) } : null}
-            canClose={role === "vet" && open && (canClose || mineSent)}
+            canClose={role === "vet" && open && (canClose || mineSent || talked)}
             canReport={role !== "admin"}
           />
         }
@@ -500,7 +508,7 @@ export function ChatRoom({
               />
             ))}
           </ol>
-          {!otherReplied && !mineSent && outgoing.length === 0 ? (
+          {!otherReplied && !mineSent && !anyCall && outgoing.length === 0 ? (
             <div className="mx-auto mt-8 grid max-w-xs justify-items-center gap-3 text-center">
               <span className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
                 <MessagesSquare aria-hidden="true" className="size-6" />
@@ -566,6 +574,7 @@ export function ChatRoom({
           consultId={consultId}
           initial={rx.initial}
           linkedNames={rx.linkedNames}
+          patient={{ pet: details.pet, owner: other.name, complaint: details.summary }}
           open={rxOpen}
           onOpenChange={setRxOpen}
         />

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canSend, closesAt, needsAutoRefund, needsClose, replyMinutesLeft, roleIn } from "./rules";
+import { canSend, closesAt, needsAutoRefund, needsClose, nudgeStep, replyMinutesLeft, roleIn } from "./rules";
 
 const policy = { openHours: 24, replyWindowMinutes: 30 };
 const opened = new Date("2026-12-01T10:00:00Z");
@@ -47,5 +47,15 @@ describe("consult rules", () => {
     expect(roleIn(c, "u2")).toBe("vet");
     expect(roleIn(c, "u3")).toBeNull();
     expect(roleIn(c, undefined)).toBeNull();
+  });
+});
+
+describe("nudgeStep", () => {
+  it("reminds the vet at a third and two thirds of the reply window", () => {
+    expect(nudgeStep(opened, at(5), 30)).toBe(0);
+    expect(nudgeStep(opened, at(10), 30)).toBe(1);
+    expect(nudgeStep(opened, at(19), 30)).toBe(1);
+    expect(nudgeStep(opened, at(20), 30)).toBe(2);
+    expect(nudgeStep(opened, at(30), 30)).toBe(0);
   });
 });

@@ -1,7 +1,8 @@
 import "server-only";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { headers } from "next/headers";
-import { business } from "@/config";
+import { business, site } from "@/config";
+import { translator } from "@/i18n";
 import { publicEnv } from "@/config/env";
 import { chatPath, orderPath, payPath, ROUTES } from "@/config/routes";
 import { notify, notifyAdmins } from "@/features/notifications/server";
@@ -385,12 +386,22 @@ export async function refundConsult(
       memo: `refund: ${reason}${result.reference ? ` (${result.reference})` : ""}`,
     }),
   );
-  await db().insert(schema.messages).values({ consultId: c.id, senderId: null, body: "system:refunded" });
+  const noReply = reason === "vet_no_reply";
+  await db()
+    .insert(schema.messages)
+    .values({ consultId: c.id, senderId: null, body: noReply ? "system:refunded" : "system:refunded:admin" });
   await audit(actorId, "consult.refund", "consult", c.id, { reason, ok: result.ok });
+  const [owner] = await db()
+    .select({ locale: schema.profiles.locale })
+    .from(schema.profiles)
+    .where(eq(schema.profiles.id, c.ownerId))
+    .limit(1);
+  const locale = owner?.locale ?? site.i18n.defaultLocale;
+  const t = translator(locale);
   await notify(c.ownerId, "consult.refunded", {
-    title: "Refund on the way",
-    body: reason,
-    url: chatPath(c.id),
+    title: t("consult.pushRefundTitle"),
+    body: t(noReply ? "consult.pushRefundNoReply" : "consult.pushRefundAdmin"),
+    url: localeHref(locale, chatPath(c.id)),
     tag: `consult-${c.id}`,
   });
   return true;

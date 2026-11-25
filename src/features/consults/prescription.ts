@@ -64,3 +64,24 @@ export function followUpDay(writtenAt: Date, days: number | null): string | null
   if (!days) return null;
   return new Date(writtenAt.getTime() + days * 86_400_000).toISOString().slice(0, 10);
 }
+
+export type RxItemField = "name" | "dose" | "frequency";
+export interface RxErrors {
+  diagnosis: boolean;
+  /** By row index in the form (blank rows are never wrong). */
+  items: Record<number, RxItemField[]>;
+}
+
+/** Which fields stop the form from saving, for marking them in place. */
+export function rxErrors(input: Pick<RxInput, "diagnosis" | "items">): RxErrors | null {
+  const diagnosis = !rxSchema.shape.diagnosis.safeParse(input.diagnosis).success;
+  const items: Record<number, RxItemField[]> = {};
+  input.items.forEach((item, i) => {
+    if (withoutBlankRows([item]).length === 0) return;
+    const bad = (["name", "dose", "frequency"] as const).filter(
+      (f) => !rxItemSchema.shape[f].safeParse(item[f]).success,
+    );
+    if (bad.length > 0) items[i] = bad;
+  });
+  return diagnosis || Object.keys(items).length > 0 ? { diagnosis, items } : null;
+}

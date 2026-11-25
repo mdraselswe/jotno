@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/infrastructure/db";
 import { mediaUrl } from "@/infrastructure/storage";
 import { roleIn, type ConsultRole } from "../rules";
@@ -7,6 +7,11 @@ import { roleIn, type ConsultRole } from "../rules";
 const C = schema.consults;
 const M = schema.messages;
 const Pv = schema.providers;
+
+/** The vet's photo: the profile photo, else the account photo they uploaded. */
+const vetPhotoPath = sql<
+  string | null
+>`coalesce(${Pv.photoPath}, (select avatar_path from profiles vp where vp.id = ${Pv.profileId}))`;
 
 export interface ChatMessage {
   id: string;
@@ -30,6 +35,7 @@ export interface ConsultView {
   role: Exclude<ConsultRole, null> | "admin";
   ownerId: string;
   ownerName: string | null;
+  ownerPhotoUrl: string | null;
   vet: { id: string; profileId: string; displayName: string; slug: string; photoUrl: string | null };
   pet: {
     id: string;
@@ -65,8 +71,9 @@ export async function getConsult(
       vetProfileId: Pv.profileId,
       vetName: Pv.displayName,
       vetSlug: Pv.slug,
-      vetPhoto: Pv.photoPath,
+      vetPhoto: vetPhotoPath,
       ownerName: schema.profiles.fullName,
+      ownerPhoto: schema.profiles.avatarPath,
     })
     .from(C)
     .innerJoin(Pv, eq(Pv.id, C.providerId))
@@ -102,6 +109,7 @@ export async function getConsult(
     role: role ?? "admin",
     ownerId: row.c.ownerId,
     ownerName: row.ownerName,
+    ownerPhotoUrl: mediaUrl(row.ownerPhoto),
     vet: {
       id: row.c.providerId,
       profileId: row.vetProfileId,
@@ -153,7 +161,7 @@ const unreadFor = async (consultIds: string[], viewerId: string) => {
 
 export async function listOwnerConsults(ownerId: string): Promise<ConsultListItem[]> {
   const rows = await db()
-    .select({ c: C, name: Pv.displayName, photo: Pv.photoPath })
+    .select({ c: C, name: Pv.displayName, photo: vetPhotoPath })
     .from(C)
     .innerJoin(Pv, eq(Pv.id, C.providerId))
     .where(and(eq(C.ownerId, ownerId), inArray(C.status, ["active", "closed", "refunded"])))
@@ -182,7 +190,7 @@ export async function listVetConsults(
   onlyWaiting = false,
 ): Promise<ConsultListItem[]> {
   const rows = await db()
-    .select({ c: C, name: schema.profiles.fullName })
+    .select({ c: C, name: schema.profiles.fullName, photo: schema.profiles.avatarPath })
     .from(C)
     .leftJoin(schema.profiles, eq(schema.profiles.id, C.ownerId))
     .where(
@@ -205,7 +213,7 @@ export async function listVetConsults(
     createdAt: r.c.createdAt,
     firstReplyAt: r.c.firstReplyAt,
     otherName: r.name,
-    otherPhoto: null,
+    otherPhoto: mediaUrl(r.photo),
     unread: unread.get(r.c.id) ?? 0,
   }));
   return onlyWaiting ? items.filter((i) => !i.firstReplyAt || i.unread > 0) : items;

@@ -21,7 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { chatPath, orderPath, petPath, ROUTES } from "@/config/routes";
 import { listOwnerAppointments } from "@/features/appointments/server";
 import { UserAvatar } from "@/features/auth";
-import { requireViewer } from "@/features/auth/server";
+import { headerProfile, requireViewer } from "@/features/auth/server";
 import { listOwnerConsults } from "@/features/consults/server";
 import { dueState } from "@/features/health";
 import {
@@ -149,6 +149,8 @@ async function Overview() {
   const t = await getT();
   const fmt = await getFormatter();
   const viewer = await requireViewer(locale, localeHref(locale, ROUTES.account));
+  // Same photo as the header: uploaded here, else the Google one.
+  const me = await headerProfile();
   const [pets, care, appts, consults, orders] = await Promise.all([
     listPets(viewer.id),
     upcomingCare(viewer.id),
@@ -199,7 +201,11 @@ async function Overview() {
         />
         <div className="relative flex items-center gap-4 sm:gap-5">
           <UserAvatar
-            user={{ name: viewer.fullName, email: viewer.email, avatarUrl: mediaUrl(viewer.avatarPath) }}
+            user={{
+              name: viewer.fullName,
+              email: viewer.email,
+              avatarUrl: me?.avatarUrl ?? mediaUrl(viewer.avatarPath),
+            }}
             className="size-14 text-xl ring-4 ring-card sm:size-18 sm:text-2xl"
           />
           <div className="grid min-w-0 flex-1 gap-1">

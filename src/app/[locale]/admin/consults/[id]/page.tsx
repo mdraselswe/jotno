@@ -52,6 +52,7 @@ const SYSTEM: Record<string, MessageKey> = {
   "system:opened": "consult.sysOpened",
   "system:closed": "consult.sysClosed",
   "system:refunded": "consult.sysRefunded",
+  "system:refunded:admin": "consult.sysRefundedAdmin",
   "system:rx": "monitor.tl.rx",
 };
 

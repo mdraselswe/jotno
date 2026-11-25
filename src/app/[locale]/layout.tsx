@@ -12,7 +12,7 @@ import { LOCALES, localeDir, localePath } from "@/config/locale";
 import { pageUrl } from "@/config/routes";
 import { Toaster } from "@/components/ui/sonner";
 import { ConnectionBanner } from "@/features/connection";
-import { IncomingCall } from "@/features/consults";
+import { IncomingCall, VetWaitingAlert } from "@/features/consults";
 import { PaymentNotice } from "@/features/payments";
 import { InstallCard, PwaScript } from "@/features/pwa";
 import { LocaleProvider } from "@/i18n/client";
@@ -110,6 +110,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
           <TabBar />
           <Suspense fallback={null}>
             <IncomingCall />
+            <VetWaitingAlert />
           </Suspense>
           {features.offlineBanner ? <ConnectionBanner /> : null}
           {features.toaster.enabled ? <Toaster /> : null}

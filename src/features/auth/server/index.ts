@@ -10,3 +10,4 @@ export {
   type Viewer,
 } from "./session";
 export { removeUnconfirmedAccounts } from "./jobs";
+export { headerProfile } from "./actions";

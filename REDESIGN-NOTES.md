@@ -110,6 +110,13 @@ Prottek page 360px mobile, desktop, light ar dark — char bhabe dekhun.
 - Check kora: hamburger-e item tap → navigate + drawer bondho; Bangla heading `letter-spacing: normal`; chat full-screen-e tab bar/footer lukay; demo owner/vet/admin login; vet ar admin-er main page gulo error chara load hoy.
 - Dekha hoyni: desktop ar dark mode chokhe (pane hidden chilo, screenshot neya jayni), shop checkout/pay flow click kore, ashol iPhone.
 
+### Dwitiyo dofa (apnar 4 ta issue)
+
+1. **Shudhu call-e kotha holeo "ভেট সময়মতো উত্তর দেননি" + refund** — asol bug chilo: vet-er "prothom uttor" shudhu text message dile gona hoto. Call-e kotha bolleo 30 min por cron (`/api/cron/frequent`) chat-ke `refunded` kore dito: owner-er payment `refund_due` hoto, admin-er kache "Refund to send" push jeto, vet-er ay theke taka kete nito. Ekhon **call receive (answer) holei** vet-er reply hisebe gona hoy (`answerCall` → `firstReplyAt`), tai ar refund hoy na; chat-e "Hello bolun" empty message-o call thakle dekhay na; owner-er countdown call-er por lukay. Refund-er text-o thik kora: bKash/Nagad manual, tai "ফেরত দেওয়া হয়েছে" na, "ফেরত পাঠানো হচ্ছে"; admin refund korle alada text ("যত্ন টিম চ্যাট বন্ধ করেছে"); owner-er push owner-er bhashay (aage raw `vet_no_reply` jeto).
+2. **Vet-ke notun chat-er khobor** — (a) vet app-er **jekono page-e** thakle niche ekta lal/neel alert: "Farhana আপনার উত্তরের অপেক্ষায় · আর ১৮ মিনিট" + "এখনই উত্তর দিন" (notun chat ashle shobdo + vibrate, tab title-e "(1)"); 10 min-er niche lal. (b) App bondho thakle: chat khulle push (aage theke chilo) + **10 min ar 20 min-e abar push** ("আর ২০ মিনিট বাকি…"). (c) **20 min-e admin-ke push** (vet-er naam + phone) jate phone kore janano jay.
+3. **Prescription form** — upore patient/owner/somossa, 3 ta numbered section (Diagnosis → Medicines → Advice ar follow-up), quick chip (দিনে ১/২/৩ বার, দরকার হলে; ৩/৫/৭/১০/১৪ দিন; খাবারের আগে/পরে; follow-up ৩/৭/১৪/৩০ দিন), field-er niche error, niche summary (কয়টা ওষুধ · follow-up).
+4. **Profile chobi shob jaygay** — owner-er chobi ekhon vet-er chat header/bubble/call screen/chat list-e, admin user list-e, account page-e (Google chobi fallback shoho); vet-er account chobi vet photo na thakle chat-e. Settings ba vet profile-e chobi save korle header/menu **reload chara** shathe shathe bodlay.
+
 ## Open issues / apnar decision lagbe
 
 (Egulo bodlano hoyni — product decision lage ba app bhangte pare.)
@@ -164,3 +171,6 @@ Prottek page 360px mobile, desktop, light ar dark — char bhabe dekhun.
 28. Admin audit log-e action code (`consult.refund`, `payment.paid`) raw dekhay — admin-er jonno chole, chaile label map kora jay.
 29. Demo vet "Dr. Nusrat Jahan"-er profile photo nei, tai avatar-e initial dekhay — photo upload kore header/menu-te chobi check korun.
 30. Admin page-gulor browser tab title ekhono English ("Admin · Vets") — shudhu staff dekhe; chaile `generateMetadata` + `getT()` diye Bangla kora jay (owner/vet page-e kora hoyeche).
+31. **App-er baire vet-ke "jor kore" janano**: push shudhu tokhon kaj kore jokhon vet notification on koreche (Android Chrome-e browser bondho thakleo ashe; iPhone-e shudhu "Add to Home Screen" kora app-e). Push off ba phone-e internet nei emon vet-er jonno SMS (BD-r kono SMS provider, prottek SMS-e khoroch) ba auto voice call lagbe — provider ar khoroch apnar decision. Proposal: chat khulle + 15 min-e SMS.
+32. Vet "available now" off thakleo owner paid chat khulte pare kina — off vet-er kache chat na pathano (ba owner-ke "ei vet ekhon offline, uttor dite deri hote pare" dekhano) apnar decision.
+33. Call answer holei reply dhora hoy, call 2 second-e kete geleo. Chaile "minimum 30 second kotha" niyom kora jay.

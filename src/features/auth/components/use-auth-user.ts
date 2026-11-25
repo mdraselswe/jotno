@@ -18,6 +18,17 @@ export interface AuthUser {
 /** One database read per person and photo (shared by every header on the page). */
 const profiles = new Map<string, Promise<HeaderProfile | null>>();
 
+const PROFILE_CHANGED = "jotno:profile-changed";
+
+/**
+ * Call after saving a new name or photo (account settings, vet profile): every
+ * avatar on the page reloads it without a page reload.
+ */
+export function profileChanged(): void {
+  profiles.clear();
+  window.dispatchEvent(new Event(PROFILE_CHANGED));
+}
+
 function loadProfile(key: string): Promise<HeaderProfile | null> {
   let p = profiles.get(key);
   if (!p) {
@@ -38,6 +49,8 @@ export function useAuthUser(): AuthUser | null | undefined {
   const [user, setUser] = useState<AuthUser | null | undefined>(undefined);
   useEffect(() => {
     let alive = true;
+    // Reloads the name and photo from the database for the current person.
+    let merge: (() => void) | null = null;
     const { data } = supabaseBrowser().auth.onAuthStateChange(
       (_event: AuthChangeEvent, session: Session | null) => {
         const u = session?.user;
@@ -68,19 +81,24 @@ export function useAuthUser(): AuthUser | null | undefined {
           role: role === "vet" || role === "admin" ? role : "owner",
         };
         setUser(next);
-        void loadProfile(`${u.id}:${avatarPath}`).then((p) => {
-          if (!alive || !p) return;
-          setUser((cur) =>
-            cur && cur.id === next.id
-              ? { ...cur, name: p.name ?? cur.name, avatarUrl: p.avatarUrl ?? cur.avatarUrl }
-              : cur,
-          );
-        });
+        merge = () =>
+          void loadProfile(`${u.id}:${avatarPath}`).then((p) => {
+            if (!alive || !p) return;
+            setUser((cur) =>
+              cur && cur.id === next.id
+                ? { ...cur, name: p.name ?? cur.name, avatarUrl: p.avatarUrl ?? cur.avatarUrl }
+                : cur,
+            );
+          });
+        merge();
       },
     );
+    const onChanged = () => merge?.();
+    window.addEventListener(PROFILE_CHANGED, onChanged);
     return () => {
       alive = false;
       data.subscription.unsubscribe();
+      window.removeEventListener(PROFILE_CHANGED, onChanged);
     };
   }, []);
   return user;

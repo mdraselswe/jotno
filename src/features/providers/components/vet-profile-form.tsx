@@ -23,6 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { business } from "@/config";
 import { SPECIES } from "@/content/geo";
+import { profileChanged } from "@/features/auth";
 import { ImageUpload } from "@/features/uploads";
 import { useFormatter, useLocale, useT } from "@/i18n/client";
 import { locate as findPosition, type LocateError } from "@/lib/geo";
@@ -181,6 +182,8 @@ export function VetProfileForm({ initial, providerId }: { initial: VetProfileVal
         ? await adminSaveVetProfile(locale, providerId, input)
         : await saveVetProfile(locale, input);
       if (r.ok) {
+        // The vet's own photo also shows in the header and menus.
+        if (!providerId && snapshot.photoPath !== saved.photoPath) profileChanged();
         setSaved(snapshot);
         toast.success(t("common.saved"));
       } else toast.error(t(r.error));

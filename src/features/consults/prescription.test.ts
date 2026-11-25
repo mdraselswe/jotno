@@ -3,6 +3,7 @@ import {
   canWriteRx,
   emptyRxItem,
   followUpDay,
+  rxErrors,
   rxSchema,
   withoutBlankRows,
   RX_MAX_ITEMS,
@@ -86,5 +87,17 @@ describe("followUpDay", () => {
   it("adds days", () => {
     expect(followUpDay(new Date("2026-01-30T10:00:00Z"), 5)).toBe("2026-02-04");
     expect(followUpDay(new Date("2026-01-30T10:00:00Z"), null)).toBeNull();
+  });
+});
+
+describe("rxErrors", () => {
+  it("is null when the form can be saved (blank rows ignored)", () => {
+    expect(rxErrors({ diagnosis: "Mild gastritis", items: [item, emptyRxItem()] })).toBeNull();
+  });
+
+  it("marks a short diagnosis and the missing fields of half-filled rows", () => {
+    expect(
+      rxErrors({ diagnosis: "x", items: [emptyRxItem(), { ...emptyRxItem(), name: "Meloxicam" }] }),
+    ).toEqual({ diagnosis: true, items: { 1: ["dose", "frequency"] } });
   });
 });

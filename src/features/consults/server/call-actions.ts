@@ -1,6 +1,6 @@
 "use server";
 
-import { and, desc, eq, gt, ne, or } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, ne, or } from "drizzle-orm";
 import { after } from "next/server";
 import { z } from "zod";
 import { business, site } from "@/config";
@@ -87,6 +87,11 @@ export async function answerCall(callId: string): Promise<{ ok: true; ice: IceSe
     .where(and(eq(K.id, callId), eq(K.status, "ringing")))
     .returning({ id: K.id });
   if (!done) return { ok: false, error: "call.over" };
+  // Talking on a call is the vet's reply: no "vet didn't reply" refund after this.
+  await db()
+    .update(schema.consults)
+    .set({ firstReplyAt: now })
+    .where(and(eq(schema.consults.id, found.call.consultId), isNull(schema.consults.firstReplyAt)));
   // Other tabs and devices of this person stop ringing.
   after(() =>
     signalUser(viewer.id, { state: "over", callId, consultId: found.call.consultId, status: "active" }),

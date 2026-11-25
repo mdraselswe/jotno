@@ -87,7 +87,7 @@ async function Chat({ params }: { params: Promise<{ id: string }> }) {
       today={today}
       other={
         isVet
-          ? { name: c.ownerName ?? "—", photoUrl: null, href: null }
+          ? { name: c.ownerName ?? "—", photoUrl: c.ownerPhotoUrl, href: null }
           : {
               name: c.vet.displayName,
               photoUrl: c.vet.photoUrl,

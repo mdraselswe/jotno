@@ -79,6 +79,7 @@ const SYSTEM_TEXT = {
   "system:opened": { key: "consult.sysOpened", icon: CircleCheck, tone: "text-success" },
   "system:closed": { key: "consult.sysClosed", icon: Lock, tone: "text-muted-foreground" },
   "system:refunded": { key: "consult.sysRefunded", icon: RotateCcw, tone: "text-info" },
+  "system:refunded:admin": { key: "consult.sysRefundedAdmin", icon: RotateCcw, tone: "text-info" },
 } as const;
 
 /** Lines the app writes: consult opened/closed, prescriptions, calls. */
