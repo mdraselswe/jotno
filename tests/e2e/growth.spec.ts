@@ -94,10 +94,15 @@ test.describe("invites and quick help", () => {
     await expect(page.getByText("You're on duty now")).toBeVisible();
     const card = page.locator("main li").filter({ hasText: SUMMARY });
     await expect(card).toBeVisible();
-    await card
-      .getByLabel("Your answer")
-      .fill("Hold food for 6 hours, offer small sips of water, and see a vet today if it continues.");
-    await card.getByRole("button", { name: "Answer" }).click();
+    // A fill before hydration is reset by the controlled textarea: fill until the button wakes up.
+    const answer = card.getByRole("button", { name: "Answer" });
+    await expect(async () => {
+      await card
+        .getByLabel("Your answer")
+        .fill("Hold food for 6 hours, offer small sips of water, and see a vet today if it continues.");
+      await expect(answer).toBeEnabled({ timeout: 1_000 });
+    }).toPass({ timeout: 15_000 });
+    await answer.click();
 
     await expect(page).toHaveURL(/\/chat\/[0-9a-f-]{36}\/$/, { timeout: 20_000 });
     await expect(page.getByText("Quick help chat")).toBeVisible();
