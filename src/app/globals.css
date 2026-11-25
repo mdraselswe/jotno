@@ -93,7 +93,8 @@
   /* One step darker than the stock red: small red text on a red tint (badges, "Don't") still passes 4.5:1. */
   --destructive: oklch(0.505 0.213 27.518);
   /* Status colours: badges, alerts, toasts. Text on them uses the -foreground token. */
-  --success: oklch(0.52 0.14 150);
+  /* Dark enough for small green text on a green tint ("Online now" badges) to pass 4.5:1. */
+  --success: oklch(0.47 0.13 150);
   --success-foreground: oklch(0.985 var(--nc, 0) var(--nh, 0));
   --warning: oklch(0.8 0.16 80);
   --warning-foreground: oklch(0.25 0.05 70);

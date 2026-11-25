@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 import { features, site } from "../../src/config/index.ts";
 import { DEFAULT_LOCALE, localePath, PREFIXED_LOCALES } from "../../src/config/locale.ts";
 import { CATALOGUE } from "../../src/i18n/messages/index.ts";
@@ -14,6 +14,18 @@ const text = (locale: string) => {
   if (!messages) throw new Error(`No messages for ${locale}`);
   return messages;
 };
+
+/**
+ * Clicks the system → light → dark toggle until it shows `label`. Clicks made
+ * before hydration are replayed by React afterwards, so the toggle can move
+ * more than one step per click: keep clicking until it settles on the mode.
+ */
+async function cycleThemeTo(button: Locator, label: string) {
+  await expect(async () => {
+    if ((await button.getAttribute("aria-label")) !== label) await button.click();
+    await expect(button).toHaveAttribute("aria-label", label, { timeout: 1000 });
+  }).toPass();
+}
 
 // Public pages (CI runs them against a local Supabase with the demo seed).
 const ROUTES = [
@@ -88,12 +100,7 @@ test.describe("smoke", () => {
     const messages = text(DEFAULT_LOCALE);
     const theme = new RegExp(messages["theme.system"].split(":")[0] ?? "Theme");
     const button = page.getByRole("button", { name: theme });
-    // A click before hydration is lost, so click again until the app reacts.
-    await expect(async () => {
-      if ((await button.getAttribute("aria-label")) === messages["theme.system"]) await button.click();
-      await expect(button).toHaveAttribute("aria-label", messages["theme.light"], { timeout: 1000 });
-    }).toPass(); // system → light
-    await button.click(); // light → dark
+    await cycleThemeTo(button, messages["theme.dark"]);
     await expect(html).toHaveClass(/\bdark\b/);
     await page.getByRole("link", { name: new RegExp(text(DEFAULT_LOCALE)["locale.switch"]) }).click();
     await expect(page).toHaveURL(new RegExp(`/${other}/about/$`));
@@ -127,12 +134,9 @@ test.describe("smoke", () => {
     } else {
       const theme = new RegExp(messages["theme.system"].split(":")[0] ?? "Theme");
       const button = page.getByRole("button", { name: theme });
-      await expect(async () => {
-        if ((await button.getAttribute("aria-label")) === messages["theme.system"]) await button.click();
-        await expect(button).toHaveAttribute("aria-label", messages["theme.light"], { timeout: 1000 });
-      }).toPass(); // system → light
+      await cycleThemeTo(button, messages["theme.light"]);
       await expect(html).not.toHaveClass(/\bdark\b/);
-      await button.click(); // light → dark
+      await cycleThemeTo(button, messages["theme.dark"]);
       await expect(html).toHaveClass(/\bdark\b/);
     }
     await page.reload();
