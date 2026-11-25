@@ -1,17 +1,17 @@
-import Link from "next/link";
+import { BookOpen, PenLine } from "lucide-react";
+import type { Route } from "next";
 import { Suspense } from "react";
-import { Spot } from "@/components/illustrations/spots";
+import { EmptyState, FilterPills } from "@/components/layout/app-ui";
 import { PageTransition } from "@/components/motion/page-transition";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { articlePath, ROUTES } from "@/config/routes";
+import { ROUTES } from "@/config/routes";
 import { SPECIES } from "@/content/geo";
-import { speciesName } from "@/content/places";
+import { ArticleCard, ArticleCardSkeleton, ArticleFeature } from "@/features/articles";
 import { ARTICLES_PAGE, listArticles } from "@/features/articles/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { pageMetadata } from "@/lib/metadata";
-import { cn } from "@/lib/utils";
 
 export async function generateMetadata() {
   const t = await getT();
@@ -29,63 +29,70 @@ async function List({ searchParams }: { searchParams: Promise<Search> }) {
   const species = SPECIES.find((s) => s.slug === one(sp.species)) ?? null;
   const page = Math.max(1, Number(one(sp.page)) || 1);
   const { items, total } = await listArticles({ speciesId: species?.id ?? null, page });
-  const base = localeHref(locale, ROUTES.articles);
+  const base = `${localeHref(locale, ROUTES.articles)}/`;
   const href = (speciesSlug: string | null, p?: number) => {
     const qs = new URLSearchParams();
     if (speciesSlug) qs.set("species", speciesSlug);
     if (p && p > 1) qs.set("page", String(p));
     const s = qs.toString();
-    return (s ? `${base}/?${s}` : base) as never;
+    return (s ? `${base}?${s}` : base) as Route;
   };
-  const chip = (active: boolean) =>
-    cn(
-      "shrink-0 rounded-full bg-card px-3 py-1 text-sm shadow-(--shadow-control) transition-colors",
-      active ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted",
-    );
+  // The newest guide leads, but only on the unfiltered first view (a filter is a search, not a front page).
+  const [first, ...rest] = items;
+  const lead = !species && first ? first : null;
+  const grid = lead ? rest : items;
+
   return (
-    <div className="grid gap-6">
-      <nav aria-label={t("common.species")} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-        <Link href={href(null)} className={chip(!species)}>
-          {t("common.all")}
-        </Link>
-        {SPECIES.map((s) => (
-          <Link key={s.id} href={href(s.slug)} className={chip(species?.id === s.id)}>
-            {locale === "bn" ? s.bn : s.en}
-          </Link>
-        ))}
-      </nav>
+    <div className="grid min-w-0 grid-cols-1 gap-6">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <FilterPills
+          label={t("common.species")}
+          items={[
+            { href: href(null), label: t("common.all"), active: !species },
+            ...SPECIES.map((s) => ({
+              href: href(s.slug),
+              label: locale === "bn" ? s.bn : s.en,
+              active: species?.id === s.id,
+            })),
+          ]}
+        />
+        <p className="text-sm text-muted-foreground" aria-live="polite">
+          {t("pubui.art.count", { n: fmt.number(total) })}
+        </p>
+      </div>
       {items.length === 0 ? (
-        <div className="grid justify-items-center gap-4 rounded-(--radius-xl) border-(length:--border-w) border-dashed p-10 text-center">
-          <Spot name="empty" className="w-36" />
-          <p className="text-muted-foreground">{t("art.empty")}</p>
-        </div>
+        <EmptyState
+          icon={BookOpen}
+          title={t("art.empty")}
+          action={
+            species ? (
+              <ButtonLink href={href(null)} variant="brand">
+                {t("common.seeAll")}
+              </ButtonLink>
+            ) : (
+              <ButtonLink href={localeHref(locale, ROUTES.ask)} variant="outline">
+                {t("account.quickAsk")}
+              </ButtonLink>
+            )
+          }
+        />
       ) : (
-        <ul className="grid gap-4 md:grid-cols-2">
-          {items.map((a) => (
-            <li key={a.id}>
-              <Link
-                href={localeHref(locale, articlePath(a.slug))}
-                className="glow-border relative grid h-full gap-2 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-colors hover:bg-muted/40"
-              >
-                {a.speciesId ? (
-                  <span className="text-xs font-medium text-primary">{speciesName(a.speciesId, locale)}</span>
-                ) : null}
-                <span className="font-heading text-lg leading-snug font-semibold">{a.title}</span>
-                {a.excerpt ? (
-                  <span className="line-clamp-3 text-sm text-muted-foreground">{a.excerpt}</span>
-                ) : null}
-                <span className="mt-auto text-xs text-muted-foreground">
-                  {a.vetName}
-                  {a.publishedAt ? ` · ${fmt.date(a.publishedAt)}` : ""}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <>
+          {lead ? <ArticleFeature a={lead} t={t} fmt={fmt} locale={locale} /> : null}
+          {grid.length > 0 ? (
+            <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {grid.map((a) => (
+                <li key={a.id}>
+                  <ArticleCard a={a} t={t} fmt={fmt} locale={locale} />
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </>
       )}
       {page * ARTICLES_PAGE < total ? (
-        <div className="flex justify-center">
-          <ButtonLink href={href(species?.slug ?? null, page + 1)} variant="outline" scroll={false}>
+        <div className="flex justify-center pt-2">
+          <ButtonLink href={href(species?.slug ?? null, page + 1)} variant="outline" size="lg" scroll={false}>
             {t("common.loadMore")}
           </ButtonLink>
         </div>
@@ -94,24 +101,44 @@ async function List({ searchParams }: { searchParams: Promise<Search> }) {
   );
 }
 
+function ListSkeleton() {
+  return (
+    <div role="status" className="grid gap-6">
+      <div className="flex gap-1.5 overflow-hidden">
+        {Array.from({ length: 9 }, (_, i) => (
+          <Skeleton key={i} className="h-9 w-16 shrink-0 rounded-full" />
+        ))}
+      </div>
+      <Skeleton className="h-96 rounded-(--radius-2xl) md:h-80" />
+      <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 3 }, (_, i) => (
+          <li key={i}>
+            <ArticleCardSkeleton />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default async function ArticlesPage({ searchParams }: PageProps<"/[locale]/articles">) {
   const t = await getT();
   return (
     <PageTransition>
-      <div className="container-page grid gap-8 py-8 md:py-12">
-        <header className="grid max-w-2xl gap-2">
-          <h1 className="font-heading text-3xl font-semibold tracking-tight md:text-4xl">{t("art.title")}</h1>
-          <p className="text-pretty text-muted-foreground">{t("art.sub")}</p>
-        </header>
-        <Suspense
-          fallback={
-            <div role="status" className="grid gap-4 md:grid-cols-2">
-              {Array.from({ length: 4 }, (_, i) => (
-                <Skeleton key={i} className="h-40 rounded-(--radius-xl)" />
-              ))}
-            </div>
-          }
-        >
+      <section data-no-reveal className="relative surface-warm dots">
+        <div className="container-page grid gap-4 py-10 md:py-16">
+          <p className="inline-flex items-center gap-2 justify-self-start rounded-full bg-card px-3 py-1.5 text-sm font-semibold text-primary shadow-(--shadow-control)">
+            <PenLine aria-hidden="true" className="size-4" />
+            {t("pubui.art.eyebrow")}
+          </p>
+          <h1 className="max-w-3xl font-heading text-[2.15rem] leading-[1.05] font-extrabold tracking-tight text-balance sm:text-5xl md:text-6xl">
+            {t("art.title")}
+          </h1>
+          <p className="max-w-2xl text-lg text-pretty text-foreground/75">{t("art.sub")}</p>
+        </div>
+      </section>
+      <div className="container-page py-8 md:py-12">
+        <Suspense fallback={<ListSkeleton />}>
           <List searchParams={searchParams} />
         </Suspense>
       </div>

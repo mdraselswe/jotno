@@ -39,7 +39,13 @@ export function VetContactButtons({
   return (
     <div className="flex flex-wrap gap-2">
       {phone ? (
-        <ButtonAnchor variant="outline" href={`tel:${phone}`} onClick={() => void recordCallTap(providerId)}>
+        <ButtonAnchor
+          variant="outline"
+          size="sm"
+          className="bg-card"
+          href={`tel:${phone}`}
+          onClick={() => void recordCallTap(providerId)}
+        >
           <Phone aria-hidden="true" />
           {t("vets.callNow")}
         </ButtonAnchor>
@@ -47,6 +53,8 @@ export function VetContactButtons({
       {lat !== null && lon !== null ? (
         <ButtonAnchor
           variant="outline"
+          size="sm"
+          className="bg-card"
           href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`}
           target="_blank"
           rel="noopener noreferrer"
@@ -55,7 +63,7 @@ export function VetContactButtons({
           {t("vets.directions")}
         </ButtonAnchor>
       ) : null}
-      <Button variant="ghost" onClick={share}>
+      <Button variant="ghost" size="sm" onClick={share}>
         <Share2 aria-hidden="true" />
         {t("vets.share")}
       </Button>

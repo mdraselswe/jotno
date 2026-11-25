@@ -92,11 +92,11 @@ export function EarningsCalc({
         </label>
         <p className="text-xs text-pretty text-muted-foreground">{labels.note}</p>
       </div>
-      <div className="grid justify-items-center gap-1 rounded-(--radius-2xl) bg-foreground px-8 py-7 text-center text-background md:min-w-64">
+      <div className="grid min-w-0 justify-items-center gap-1 rounded-(--radius-2xl) bg-foreground px-5 py-7 text-center text-background sm:px-8 md:min-w-64">
         <span className="text-sm opacity-75">{labels.monthly}</span>
         <output
           aria-live="polite"
-          className="font-heading text-5xl font-extrabold tracking-tight tabular-nums"
+          className="max-w-full font-heading text-4xl font-extrabold tracking-tight break-all tabular-nums sm:text-5xl"
         >
           {taka(monthly)}
         </output>

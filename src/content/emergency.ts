@@ -13,12 +13,22 @@ export interface FirstAidCard {
 export interface EmergencyContent {
   intro: string;
   cards: readonly FirstAidCard[];
+  /** What to have ready when you call or chat with a vet. */
+  tellTitle: string;
+  tell: readonly string[];
 }
 
 export const emergencyContent: Record<string, EmergencyContent> = {
   en: {
     intro:
       "Stay calm, keep the animal still and warm, and call a vet on the way. These steps buy time; they don't replace a vet.",
+    tellTitle: "What to tell the vet",
+    tell: [
+      "Which animal, its age and rough weight",
+      "What happened, and when",
+      "What it ate or touched (keep the packet)",
+      "Is it breathing normally, bleeding, able to stand?",
+    ],
     cards: [
       {
         id: "poison",
@@ -81,6 +91,13 @@ export const emergencyContent: Record<string, EmergencyContent> = {
   bn: {
     intro:
       "শান্ত থাকুন, প্রাণীটাকে স্থির আর গরম রাখুন, আর যেতে যেতে ভেটকে কল করুন। এই ধাপগুলো সময় দেয়; ভেটের বিকল্প নয়।",
+    tellTitle: "ভেটকে যা বলবেন",
+    tell: [
+      "কোন প্রাণী, বয়স আর আনুমানিক ওজন",
+      "কী হয়েছে, আর কখন",
+      "কী খেয়েছে বা ছুঁয়েছে (প্যাকেটটা রেখে দিন)",
+      "স্বাভাবিকভাবে শ্বাস নিচ্ছে কি না, রক্ত পড়ছে কি না, দাঁড়াতে পারছে কি না",
+    ],
     cards: [
       {
         id: "poison",

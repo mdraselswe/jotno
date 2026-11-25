@@ -43,7 +43,11 @@ export interface ProviderCard {
   lon: number | null;
   featured: boolean;
   isDemo: boolean;
+  /** Has weekly clinic hours, so a visit can be booked. */
+  hasSchedule: boolean;
 }
+
+const hasScheduleSql = sql<boolean>`exists (select 1 from ${schema.availability} av where av.provider_id = "providers"."id")`;
 
 const cardColumns = {
   id: p.id,
@@ -73,6 +77,7 @@ const cardColumns = {
   lat: sql<number | null>`extensions.st_y(${p.location})`,
   lon: sql<number | null>`extensions.st_x(${p.location})`,
   isDemo: p.isDemo,
+  hasSchedule: hasScheduleSql,
 };
 
 function toCard(row: Record<string, unknown>, distanceKm: number | null, featured: boolean): ProviderCard {
@@ -100,6 +105,7 @@ function toCard(row: Record<string, unknown>, distanceKm: number | null, feature
     lat: number | null;
     lon: number | null;
     isDemo: boolean;
+    hasSchedule: boolean;
   };
   return {
     id: r.id,
@@ -127,6 +133,7 @@ function toCard(row: Record<string, unknown>, distanceKm: number | null, feature
     lon: r.lon === null ? null : Number(r.lon),
     featured,
     isDemo: r.isDemo,
+    hasSchedule: Boolean(r.hasSchedule),
   };
 }
 
@@ -269,7 +276,6 @@ export interface ProviderPublic extends ProviderCard {
   verifiedAt: Date | null;
   consultCount: number;
   reviews: { id: string; rating: number; body: string | null; createdAt: Date; ownerName: string | null }[];
-  hasSchedule: boolean;
 }
 
 /** A verified vet's public profile, or null. */
@@ -283,7 +289,6 @@ export async function getProviderBySlug(slug: string): Promise<ProviderPublic | 
       registrationBody: p.registrationBody,
       address: p.address,
       verifiedAt: p.verifiedAt,
-      hasSchedule: sql<boolean>`exists (select 1 from ${schema.availability} av where av.provider_id = "providers"."id")`,
       featured: sql<boolean>`exists (select 1 from ${schema.featuredSlots} f where f.provider_id = "providers"."id" and f.starts_at <= now() and f.ends_at > now())`,
     })
     .from(p)
@@ -316,7 +321,6 @@ export async function getProviderBySlug(slug: string): Promise<ProviderPublic | 
     address: row.address,
     verifiedAt: row.verifiedAt,
     consultCount: row.consultCount,
-    hasSchedule: Boolean(row.hasSchedule),
     reviews: reviews.map((r) => ({
       ...r,
       ownerName: r.ownerName ? (r.ownerName.split(" ")[0] ?? null) : null,

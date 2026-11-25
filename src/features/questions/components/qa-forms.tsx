@@ -1,7 +1,7 @@
 "use client";
 
-import { Flag, ThumbsUp } from "lucide-react";
-import { useState, useTransition, type FormEvent } from "react";
+import { Check, Eye, Flag, Lightbulb, LoaderCircle, Send, Siren, ThumbsUp } from "lucide-react";
+import { useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,21 +15,97 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { SPECIES } from "@/content/geo";
 import { ImageUpload } from "@/features/uploads";
-import { useLocale, useT } from "@/i18n/client";
+import { useFormatter, useLocale, useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 import { answerQuestion, askQuestion, reportContent, toggleHelpful } from "../server/actions";
 
-/** Owner: ask a free question. */
+const TITLE_MIN = 10;
+const TITLE_MAX = 140;
+const BODY_MIN = 20;
+const BODY_MAX = 3000;
+
+/** One numbered step of the ask form. */
+function Step({
+  n,
+  title,
+  sub,
+  htmlFor,
+  optional,
+  children,
+}: {
+  n: number;
+  title: string;
+  sub?: string;
+  /** The field the title labels (steps with one field). */
+  htmlFor?: string;
+  optional?: boolean;
+  children: ReactNode;
+}) {
+  const t = useT();
+  const fmt = useFormatter();
+  const heading = (
+    <>
+      {title}
+      {optional ? (
+        <span className="ms-2 text-sm font-normal text-muted-foreground">({t("common.optional")})</span>
+      ) : null}
+    </>
+  );
+  const cls = "font-heading text-lg leading-snug font-semibold";
+  return (
+    <section className="grid gap-4 rounded-(--radius-2xl) bg-card p-5 shadow-(--shadow-card) ring-1 ring-foreground/6 sm:p-6">
+      <div className="flex gap-3.5">
+        <span
+          aria-hidden="true"
+          className="grid size-8 shrink-0 place-items-center rounded-full bg-primary font-heading text-sm font-bold text-primary-foreground tabular-nums"
+        >
+          {fmt.number(n)}
+        </span>
+        <div className="grid gap-0.5">
+          {htmlFor ? (
+            <Label htmlFor={htmlFor} className={cls}>
+              {heading}
+            </Label>
+          ) : (
+            <h2 className={cls}>{heading}</h2>
+          )}
+          {sub ? <p className="text-sm text-pretty text-muted-foreground">{sub}</p> : null}
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** "12/140" under a field, with the minimum that turns green once reached. */
+function Counter({ id, value, min, max }: { id: string; value: string; min: number; max: number }) {
+  const t = useT();
+  const fmt = useFormatter();
+  const n = value.trim().length;
+  const ok = n >= min;
+  return (
+    <p id={id} className="flex items-center justify-between gap-3 text-xs">
+      <span className={cn("inline-flex items-center gap-1", ok ? "text-success" : "text-muted-foreground")}>
+        {ok ? <Check aria-hidden="true" className="size-3.5" /> : null}
+        {t("pubui.ask.min", { n: fmt.number(min) })}
+      </span>
+      <span className="text-muted-foreground tabular-nums">
+        {t("pubui.ask.count", { n: fmt.number(n), max: fmt.number(max) })}
+      </span>
+    </p>
+  );
+}
+
+/** Owner: ask a free question, in four short guided steps. */
 export function AskForm() {
   const t = useT();
   const locale = useLocale();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [speciesId, setSpeciesId] = useState("");
+  const [speciesId, setSpeciesId] = useState<number | null>(null);
   const [photoPath, setPhotoPath] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -38,69 +114,122 @@ export function AskForm() {
     e.preventDefault();
     setError(null);
     start(async () => {
-      const res = await askQuestion(locale, {
-        title,
-        body,
-        speciesId: speciesId ? Number(speciesId) : null,
-        photoPath,
-      });
+      const res = await askQuestion(locale, { title, body, speciesId, photoPath });
       if (!res.ok) setError(t(res.error));
     });
   };
 
   return (
-    <form onSubmit={submit} className="grid gap-5">
-      <div className="grid gap-1">
-        <Label htmlFor="ask-species">{t("common.species")}</Label>
-        <NativeSelect id="ask-species" value={speciesId} onChange={(e) => setSpeciesId(e.target.value)}>
-          <option value="">{t("common.chooseSpecies")}</option>
-          {SPECIES.map((s) => (
-            <option key={s.id} value={s.id}>
-              {locale === "bn" ? s.bn : s.en}
-            </option>
-          ))}
-        </NativeSelect>
-      </div>
-      <div className="grid gap-1">
-        <Label htmlFor="ask-title">{t("qa.titleField")}</Label>
-        <Input
-          id="ask-title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          minLength={10}
-          maxLength={140}
-          placeholder={t("qa.titleHint")}
-          required
+    <form onSubmit={submit} className="grid gap-4" aria-busy={pending}>
+      <Step n={1} title={t("pubui.ask.step1")} sub={t("pubui.ask.step1Sub")}>
+        <div role="group" aria-label={t("common.species")} className="flex flex-wrap gap-2">
+          {SPECIES.map((s) => {
+            const on = speciesId === s.id;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setSpeciesId(on ? null : s.id)}
+                className={cn(
+                  "inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-medium ring-1 transition-colors duration-(--motion-fast) focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                  on
+                    ? "bg-primary text-primary-foreground ring-primary"
+                    : "bg-card text-foreground/80 ring-foreground/12 hover:bg-muted",
+                )}
+              >
+                {on ? <Check aria-hidden="true" className="size-4" /> : null}
+                {locale === "bn" ? s.bn : s.en}
+              </button>
+            );
+          })}
+        </div>
+      </Step>
+
+      <Step n={2} title={t("pubui.ask.step2")} sub={t("pubui.ask.step2Sub")} htmlFor="ask-title">
+        <div className="grid gap-1.5">
+          <Input
+            id="ask-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            minLength={TITLE_MIN}
+            maxLength={TITLE_MAX}
+            placeholder={t("qa.titleHint")}
+            aria-describedby="ask-title-count"
+            className="h-(--control-h-lg) text-base"
+            required
+          />
+          <Counter id="ask-title-count" value={title} min={TITLE_MIN} max={TITLE_MAX} />
+        </div>
+      </Step>
+
+      <Step n={3} title={t("pubui.ask.step3")} sub={t("qa.askSub")} htmlFor="ask-body">
+        <div className="grid gap-1.5">
+          <Textarea
+            id="ask-body"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            minLength={BODY_MIN}
+            maxLength={BODY_MAX}
+            rows={6}
+            placeholder={t("qa.bodyHint")}
+            aria-describedby="ask-body-count ask-tips"
+            className="text-base"
+            required
+          />
+          <Counter id="ask-body-count" value={body} min={BODY_MIN} max={BODY_MAX} />
+        </div>
+        <div id="ask-tips" className="grid gap-2 rounded-(--radius-xl) bg-muted/60 p-4 text-sm">
+          <p className="flex items-center gap-2 font-semibold">
+            <Lightbulb aria-hidden="true" className="size-4 text-primary" />
+            {t("pubui.ask.tipsTitle")}
+          </p>
+          <ul className="grid list-disc gap-1 ps-6 text-muted-foreground">
+            <li>{t("pubui.ask.tip1")}</li>
+            <li>{t("pubui.ask.tip2")}</li>
+            <li>{t("pubui.ask.tip3")}</li>
+          </ul>
+        </div>
+      </Step>
+
+      <Step n={4} title={t("pubui.ask.step4")} sub={t("pubui.ask.step4Sub")} optional>
+        <ImageUpload
+          kind="question"
+          value={photoPath}
+          onChange={setPhotoPath}
+          label={t("common.uploadPhoto")}
         />
+      </Step>
+
+      <div className="grid gap-2 text-sm">
+        <p className="flex gap-2 rounded-(--radius-xl) bg-warning/15 px-4 py-3 text-pretty">
+          <Siren aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-destructive" />
+          {t("qa.emergencyNote")}
+        </p>
+        <p className="flex gap-2 px-1 text-pretty text-muted-foreground">
+          <Eye aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          {t("pubui.ask.public")}
+        </p>
       </div>
-      <div className="grid gap-1">
-        <Label htmlFor="ask-body">{t("qa.bodyField")}</Label>
-        <Textarea
-          id="ask-body"
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          minLength={20}
-          maxLength={3000}
-          rows={6}
-          placeholder={t("qa.bodyHint")}
-          required
-        />
-      </div>
-      <ImageUpload
-        kind="question"
-        value={photoPath}
-        onChange={setPhotoPath}
-        label={t("common.uploadPhoto")}
-      />
-      <p className="rounded-(--control-radius) bg-warning/10 px-3 py-2 text-sm">{t("qa.emergencyNote")}</p>
       {error ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p
+          role="alert"
+          className="rounded-(--radius-lg) bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
           {error}
         </p>
       ) : null}
-      <Button type="submit" size="lg" disabled={pending} className="justify-self-start">
-        {pending ? t("common.saving") : t("qa.post")}
-      </Button>
+      {/* Phones: the submit button stays in reach above the tab bar */}
+      <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 -mx-4 border-t bg-background/92 px-4 py-3 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+        <Button type="submit" variant="brand" size="lg" disabled={pending} className="w-full md:w-auto">
+          {pending ? (
+            <LoaderCircle aria-hidden="true" className="animate-spin" />
+          ) : (
+            <Send aria-hidden="true" />
+          )}
+          {pending ? t("pubui.ask.posting") : t("qa.post")}
+        </Button>
+      </div>
     </form>
   );
 }
@@ -135,10 +264,14 @@ export function AnswerForm({ questionId }: { questionId: string }) {
         rows={6}
         minLength={30}
         maxLength={4000}
+        aria-describedby="ans-body-hint ans-body-count"
         required
       />
-      <p className="text-xs text-muted-foreground">{t("qa.answerHint")}</p>
-      <Button type="submit" disabled={pending} className="justify-self-start">
+      <Counter id="ans-body-count" value={body} min={30} max={4000} />
+      <p id="ans-body-hint" className="text-xs text-muted-foreground">
+        {t("qa.answerHint")}
+      </p>
+      <Button type="submit" variant="brand" disabled={pending} className="justify-self-start">
         {pending ? t("common.saving") : t("qa.postAnswer")}
       </Button>
     </form>
@@ -158,6 +291,7 @@ export function HelpfulButton({
   canVote: boolean;
 }) {
   const t = useT();
+  const fmt = useFormatter();
   const [state, setState] = useState({ count, voted });
   const [pending, start] = useTransition();
   return (
@@ -175,7 +309,7 @@ export function HelpfulButton({
       className={cn(state.voted && "text-primary")}
     >
       <ThumbsUp aria-hidden="true" />
-      {t("qa.helpful")} · <span className="tabular-nums">{state.count}</span>
+      {t("qa.helpful")} · <span className="tabular-nums">{fmt.number(state.count)}</span>
     </Button>
   );
 }
