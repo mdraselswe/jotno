@@ -1,19 +1,37 @@
-import { AlertTriangle, Download, Search } from "lucide-react";
+import {
+  AlertTriangle,
+  Clock,
+  Download,
+  PackageCheck,
+  PhoneCall,
+  Search,
+  ShoppingBag,
+  Truck,
+} from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
+import {
+  DataTable,
+  EmptyState,
+  FilterPills,
+  SectionCard,
+  StatCard,
+  StatGrid,
+  type Column,
+} from "@/components/layout/app-ui";
 import { Private, PrivateHeading } from "@/components/layout/private-page";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ButtonAnchor, ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
 import { adminOrderPath, adminProductPath, ROUTES } from "@/config/routes";
 import { districtName } from "@/content/places";
 import { requireRole } from "@/features/auth/server";
-import { ORDER_STATUS, ORDER_STATUSES, type OrderStatus } from "@/features/shop";
+import { WalletMark } from "@/features/payments";
+import { ORDER_STATUS, ORDER_STATUSES, OrderStatusBadge, type OrderStatus } from "@/features/shop";
 import { ADMIN_ORDERS_PAGE, adminOrders, lowStockProducts, orderCounts } from "@/features/shop/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
-import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Admin · Orders", robots: { index: false } };
 
@@ -64,11 +82,80 @@ async function Orders({
     { key: "all", label: t("shopAdmin.all") },
   ];
   const pages = Math.max(1, Math.ceil(total / ADMIN_ORDERS_PAGE));
+  type Row = (typeof items)[number];
+  const columns: Column<Row>[] = [
+    {
+      key: "number",
+      header: t("shopAdmin.order"),
+      mobile: "title",
+      cell: (o) => (
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="font-heading font-bold">#{o.number}</span>
+          <span className="md:hidden">
+            <OrderStatusBadge status={o.status} t={t} />
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: "customer",
+      header: t("shopAdmin.customer"),
+      cell: (o) => (
+        <span className="grid min-w-0 md:max-w-56">
+          <span className="truncate font-medium">{o.name}</span>
+          <span className="truncate text-xs text-muted-foreground tabular-nums">
+            {o.phone} · {districtName(o.districtId, locale) ?? ""}
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: "items",
+      header: t("shopAdmin.items"),
+      mobile: "hide",
+      cell: (o) => (
+        <span className="line-clamp-2 max-w-64 text-xs text-muted-foreground">
+          {o.items.map((i) => `${i.name} × ${fmt.number(i.qty)}`).join(", ")}
+        </span>
+      ),
+    },
+    {
+      key: "total",
+      header: t("shopAdmin.total"),
+      className: "text-end",
+      cell: (o) => <span className="font-semibold tabular-nums">{taka(fmt, o.total)}</span>,
+    },
+    {
+      key: "method",
+      header: t("admin.method"),
+      cell: (o) =>
+        o.paymentMethod === "bkash" || o.paymentMethod === "nagad" || o.paymentMethod === "cod" ? (
+          <WalletMark method={o.paymentMethod} label={t(`pay.method.${o.paymentMethod}`)} />
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
+    {
+      key: "status",
+      header: t("shopui.admin.status"),
+      mobile: "hide",
+      cell: (o) => <OrderStatusBadge status={o.status} t={t} />,
+    },
+    {
+      key: "when",
+      header: t("admin.when"),
+      cell: (o) => (
+        <span className="text-xs whitespace-nowrap text-muted-foreground">{fmt.dateTime(o.createdAt)}</span>
+      ),
+    },
+  ];
 
   return (
     <div className="grid gap-6">
       <PrivateHeading
         title={t("shopAdmin.orders")}
+        sub={t("shopui.admin.ordersSub")}
+        icon={ShoppingBag}
         action={
           <ButtonAnchor href="/api/admin/orders-csv" variant="outline" size="sm" download>
             <Download aria-hidden="true" />
@@ -77,116 +164,141 @@ async function Orders({
         }
       />
 
-      {low.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-(--radius-xl) bg-warning/15 p-3 text-sm">
-          <AlertTriangle aria-hidden="true" className="size-4 text-warning" />
-          <strong>{t("shopAdmin.lowStock")}:</strong>
-          {low.slice(0, 6).map((p) => (
-            <Link
-              key={p.id}
-              href={localeHref(locale, adminProductPath(p.id))}
-              className="rounded-full bg-card px-2.5 py-0.5 hover:underline"
-            >
-              {locale === "bn" ? p.nameBn : p.nameEn} · {p.stock}
-            </Link>
-          ))}
-        </div>
-      ) : null}
+      <StatGrid className="xl:grid-cols-4">
+        <StatCard
+          label={t("shopui.admin.toCall")}
+          value={fmt.number(counts.placed)}
+          hint={t("shopui.admin.toCallHint")}
+          icon={PhoneCall}
+          tone={counts.placed > 0 ? "warning" : "default"}
+          href={href({ status: "placed" })}
+        />
+        <StatCard
+          label={t("shopui.admin.toPack")}
+          value={fmt.number(counts.paid + counts.processing)}
+          hint={t("shopui.admin.toPackHint")}
+          icon={PackageCheck}
+          tone={counts.paid > 0 ? "primary" : "default"}
+          href={href({ status: "paid" })}
+        />
+        <StatCard
+          label={t(ORDER_STATUS.shipped)}
+          value={fmt.number(counts.shipped)}
+          icon={Truck}
+          href={href({ status: "shipped" })}
+        />
+        <StatCard
+          label={t(ORDER_STATUS.pending_payment)}
+          value={fmt.number(counts.pending_payment)}
+          hint={t("shopui.admin.unpaidHint")}
+          icon={Clock}
+          href={href({ status: "pending_payment" })}
+        />
+      </StatGrid>
 
-      <div className="grid gap-3">
-        <div className="-mx-1 overflow-x-auto">
-          <ul className="flex w-max gap-1.5 px-1">
-            {tabs.map((tab) => (
-              <li key={tab.key}>
+      {low.length > 0 ? (
+        <SectionCard
+          title={t("shopAdmin.lowStock")}
+          description={t("shopui.admin.lowSub", { n: fmt.number(low.length) })}
+          icon={AlertTriangle}
+          className="ring-warning/40"
+          actions={
+            <ButtonLink href={localeHref(locale, ROUTES.adminProducts)} variant="ghost" size="sm">
+              {t("shopui.seeAll")}
+            </ButtonLink>
+          }
+        >
+          <ul className="flex flex-wrap gap-2">
+            {low.slice(0, 8).map((p) => (
+              <li key={p.id}>
                 <Link
-                  href={href({ status: tab.key, page: 1 })}
-                  aria-current={status === tab.key ? "page" : undefined}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors",
-                    status === tab.key
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card text-muted-foreground shadow-(--shadow-card) hover:text-foreground",
-                  )}
+                  href={localeHref(locale, adminProductPath(p.id))}
+                  className="inline-flex h-8 items-center gap-2 rounded-full bg-muted px-3 text-sm transition-colors duration-(--motion-fast) hover:bg-foreground/10"
                 >
-                  {tab.label}
-                  {tab.n ? (
-                    <span className="rounded-full bg-background/30 px-1.5 text-xs tabular-nums">{tab.n}</span>
-                  ) : null}
+                  <span className="max-w-48 truncate">{locale === "bn" ? p.nameBn : p.nameEn}</span>
+                  <span
+                    className={
+                      p.stock <= 0
+                        ? "rounded-full bg-destructive/15 px-1.5 text-xs font-bold text-destructive tabular-nums"
+                        : "rounded-full bg-warning/30 px-1.5 text-xs font-bold tabular-nums"
+                    }
+                  >
+                    {fmt.number(p.stock)}
+                  </span>
                 </Link>
               </li>
             ))}
           </ul>
-        </div>
-        <form action={base} className="relative max-w-md" role="search">
+        </SectionCard>
+      ) : null}
+
+      <div className="grid gap-3">
+        <FilterPills
+          label={t("shopui.admin.byStatus")}
+          items={tabs.map((tab) => ({
+            href: href({ status: tab.key, page: 1 }),
+            label: tab.label,
+            active: status === tab.key,
+            count: tab.n ? tab.n : undefined,
+          }))}
+        />
+        <form action={base} className="flex max-w-md gap-2" role="search">
           {status !== "open" ? <input type="hidden" name="status" value={status} /> : null}
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            name="q"
-            defaultValue={q}
-            placeholder={t("shopAdmin.search")}
-            aria-label={t("shopAdmin.search")}
-            className="pl-9"
-          />
+          <div className="relative min-w-0 flex-1">
+            <Search
+              aria-hidden="true"
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              name="q"
+              type="search"
+              defaultValue={q}
+              placeholder={t("shopAdmin.search")}
+              aria-label={t("shopAdmin.search")}
+              className="ps-9"
+            />
+          </div>
+          <Button type="submit" variant="outline">
+            {t("shop.f.go")}
+          </Button>
         </form>
       </div>
 
-      {items.length === 0 ? (
-        <p className="text-muted-foreground">{t("shopAdmin.noOrders")}</p>
-      ) : (
-        <ul className="grid gap-3">
-          {items.map((o) => (
-            <li key={o.id}>
-              <Link
-                href={localeHref(locale, adminOrderPath(o.id))}
-                className="grid gap-2 rounded-(--radius-xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-transform duration-(--motion-fast)"
-              >
-                <span className="flex flex-wrap items-center gap-3">
-                  <span className="font-heading font-semibold">#{o.number}</span>
-                  <span className="font-medium">{o.name}</span>
-                  <span className="text-sm text-muted-foreground">{o.phone}</span>
-                  <Badge variant={o.status === "placed" ? "default" : "secondary"} className="ml-auto">
-                    {t(ORDER_STATUS[o.status])}
-                  </Badge>
-                </span>
-                <span className="truncate text-sm text-muted-foreground">
-                  {o.items.map((i) => `${i.name} × ${i.qty}`).join(", ")}
-                </span>
-                <span className="flex flex-wrap items-center gap-3 text-sm">
-                  <strong className="tabular-nums">{taka(fmt, o.total)}</strong>
-                  {o.paymentMethod ? (
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
-                      {o.paymentMethod === "bkash" || o.paymentMethod === "nagad" || o.paymentMethod === "cod"
-                        ? t(`pay.method.${o.paymentMethod}`)
-                        : o.paymentMethod}
-                    </span>
-                  ) : null}
-                  <span className="text-xs text-muted-foreground">
-                    {districtName(o.districtId, locale) ?? ""}
-                  </span>
-                  <span className="ml-auto text-xs text-muted-foreground">{fmt.dateTime(o.createdAt)}</span>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+      <DataTable
+        rows={items}
+        columns={columns}
+        rowKey={(o) => o.id}
+        rowHref={(o) => localeHref(locale, adminOrderPath(o.id))}
+        caption={t("shopAdmin.orders")}
+        empty={
+          <EmptyState
+            icon={ShoppingBag}
+            title={t("shopAdmin.noOrders")}
+            body={q ? t("shopui.admin.noOrdersSearch") : t("shopui.admin.noOrdersSub")}
+            action={
+              q || status !== "open" ? (
+                <ButtonLink href={`${base}/` as Route} variant="outline">
+                  {t("shop.f.clear")}
+                </ButtonLink>
+              ) : null
+            }
+          />
+        }
+      />
 
       {pages > 1 ? (
-        <nav className="flex items-center justify-center gap-3 text-sm" aria-label="Pages">
+        <nav className="flex items-center justify-center gap-3 text-sm" aria-label={t("shop.f.pages")}>
           {page > 1 ? (
             <ButtonLink href={href({ page: page - 1 })} variant="outline" size="sm">
-              {t("common.back")}
+              {t("shop.f.prev")}
             </ButtonLink>
           ) : null}
-          <span className="tabular-nums">
-            {page} / {pages}
+          <span className="text-muted-foreground tabular-nums">
+            {t("shop.f.page", { n: fmt.number(page), total: fmt.number(pages) })}
           </span>
           {page < pages ? (
             <ButtonLink href={href({ page: page + 1 })} variant="outline" size="sm">
-              {t("common.next")}
+              {t("shop.f.next")}
             </ButtonLink>
           ) : null}
         </nav>

@@ -17,6 +17,11 @@ const WAIT_MINUTES: Record<Purpose, number> = {
   featured: 2 * 24 * 60,
 };
 
+/** When an unpaid payment expires (the clock restarts when an admin sends a TrxID back). */
+export function payDeadline(p: { purpose: Purpose; createdAt: Date; reviewedAt: Date | null }): Date {
+  return new Date((p.reviewedAt ?? p.createdAt).getTime() + WAIT_MINUTES[p.purpose] * 60_000);
+}
+
 /** Every few minutes: cancel abandoned payments and free their slot, chat or stock. */
 export async function expireUnpaid(): Promise<{ expired: number }> {
   let expired = 0;

@@ -1,4 +1,4 @@
-export { AddToCartButton, CartLink } from "./components/add-to-cart";
+export { AddToCartButton, CartLink, ProductBuyBox, QtyStepper } from "./components/add-to-cart";
 export {
   CouponForm,
   DeleteProductButton,
@@ -13,9 +13,15 @@ export {
   type ProductFormValues,
 } from "./components/admin-shop";
 export { CancelMyOrder } from "./components/my-order";
-export { OrderTimeline } from "./components/order-parts";
-export { CartView, type Buyer } from "./components/cart-view";
-export { productArt, ProductArt, ProductTile } from "./components/product-tile";
+export { CheckoutSteps, ORDER_TONE, OrderStatusBadge, OrderTimeline } from "./components/order-parts";
+export { CartSkeleton, CartView, type Buyer } from "./components/cart-view";
+export {
+  productArt,
+  ProductArt,
+  ProductThumb,
+  ProductTile,
+  ProductTileSkeleton,
+} from "./components/product-tile";
 export { ProductGallery } from "./components/product-gallery";
 export { CategoryForm, type CategoryRow } from "./components/admin-categories";
 export { useCart } from "./components/cart-store";
@@ -23,7 +29,9 @@ export {
   clampQty,
   deliveryFee,
   MAX_QTY,
+  maxAddable,
   normalizeCart,
+  percentOff,
   stockProblems,
   subtotal,
   type CartLine,
@@ -55,4 +63,11 @@ export {
   type ShopFilters,
   type ShopSort,
 } from "./catalog";
-export { FilterPanel, SHOP_FORM_ID, ShopFilterForm, SortSelect } from "./components/shop-filters";
+export {
+  FilterButton,
+  FilterDrawer,
+  FilterPanel,
+  SHOP_FORM_ID,
+  ShopFilterForm,
+  SortSelect,
+} from "./components/shop-filters";

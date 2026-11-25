@@ -1,12 +1,12 @@
-import { ChevronRight, Package } from "lucide-react";
+import { ChevronRight, Package, ShoppingBag, Wallet } from "lucide-react";
 import Link from "next/link";
+import { EmptyState } from "@/components/layout/app-ui";
 import { Private, PrivateHeading } from "@/components/layout/private-page";
-import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button-link";
 import { orderPath, ROUTES } from "@/config/routes";
 import { requireViewer } from "@/features/auth/server";
-import { ORDER_STATUS } from "@/features/shop";
-import { myOrders } from "@/features/shop/server";
+import { OrderStatusBadge, ProductThumb } from "@/features/shop";
+import { myOrders, productsByIds } from "@/features/shop/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
@@ -19,46 +19,102 @@ async function Orders() {
   const fmt = await getFormatter();
   const viewer = await requireViewer(locale, localeHref(locale, ROUTES.orders));
   const orders = await myOrders(viewer.id);
+  // Photos for the first items of each order (products still in the shop).
+  const firstIds = [
+    ...new Set(orders.flatMap((o) => o.items.slice(0, 3).flatMap((i) => (i.productId ? [i.productId] : [])))),
+  ];
+  const products = await productsByIds(firstIds, locale);
+  const photo = (id: string | null) => (id ? products.find((p) => p.id === id) : undefined);
+
   return (
     <div className="grid gap-6">
-      <PrivateHeading title={t("account.orders")} />
+      <PrivateHeading
+        title={t("account.orders")}
+        sub={t("shopui.ordersSub")}
+        icon={Package}
+        action={
+          orders.length > 0 ? (
+            <ButtonLink href={localeHref(locale, ROUTES.shop)} variant="outline" size="sm">
+              <ShoppingBag aria-hidden="true" />
+              {t("shop.browse")}
+            </ButtonLink>
+          ) : null
+        }
+      />
       {orders.length === 0 ? (
-        <div className="grid justify-items-start gap-3">
-          <p className="text-muted-foreground">{t("shop.noOrders")}</p>
-          <ButtonLink href={localeHref(locale, ROUTES.shop)}>{t("shop.browse")}</ButtonLink>
-        </div>
+        <EmptyState
+          icon={Package}
+          title={t("shop.noOrders")}
+          body={t("shopui.noOrdersSub")}
+          action={
+            <ButtonLink href={localeHref(locale, ROUTES.shop)} variant="brand">
+              <ShoppingBag aria-hidden="true" />
+              {t("shop.browse")}
+            </ButtonLink>
+          }
+        />
       ) : (
         <ul className="grid gap-3">
           {orders.map((o) => {
             const count = o.items.reduce((n, i) => n + i.qty, 0);
+            const first = o.items[0];
+            const more = o.items.length - 1;
+            const toPay = o.status === "pending_payment";
             return (
               <li key={o.id}>
                 <Link
                   href={localeHref(locale, orderPath(o.id))}
-                  className="group flex items-center gap-4 rounded-(--radius-xl) bg-card p-(--card-pad) shadow-(--shadow-card) transition-transform duration-(--motion-fast) ease-(--ease-out)"
+                  className="group grid gap-3 rounded-(--radius-2xl) bg-card p-4 shadow-(--shadow-card) ring-1 ring-foreground/6 transition-[box-shadow,translate] duration-(--motion-base) ease-(--ease-ui) hover:-translate-y-0.5 hover:shadow-(--shadow-card-hover) focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:hover:translate-y-0 sm:p-5"
                 >
-                  <span className="grid size-12 shrink-0 place-items-center rounded-full bg-highlight/25 text-primary">
-                    <Package aria-hidden="true" className="size-5" />
-                  </span>
-                  <span className="grid min-w-0 flex-1 gap-0.5">
-                    <span className="flex flex-wrap items-center gap-2">
-                      <span className="font-heading font-semibold">{t("shop.orderNo", { n: o.number })}</span>
-                      <Badge variant={o.status === "delivered" ? "default" : "secondary"}>
-                        {t(ORDER_STATUS[o.status])}
-                      </Badge>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="font-heading text-base font-bold">
+                      {t("shop.orderNo", { n: o.number })}
                     </span>
-                    <span className="truncate text-sm text-muted-foreground">
-                      {fmt.date(o.createdAt)} · {o.items.map((i) => i.name).join(", ")}
+                    <OrderStatusBadge status={o.status} t={t} />
+                    <span className="ms-auto text-xs text-muted-foreground">{fmt.date(o.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="flex shrink-0 -space-x-3">
+                      {o.items.slice(0, 3).map((i) => {
+                        const p = photo(i.productId);
+                        return (
+                          <ProductThumb
+                            key={i.id}
+                            imageUrl={p?.imageUrl ?? null}
+                            category={p?.category ?? ""}
+                            className="size-12 rounded-(--radius-lg) ring-2 ring-card"
+                          />
+                        );
+                      })}
                     </span>
-                    <span className="text-xs text-muted-foreground">
-                      {t("shopAdmin.items")}: {count}
+                    <span className="grid min-w-0 flex-1 gap-0.5">
+                      <span className="truncate text-sm font-medium">
+                        {first?.name}
+                        {more > 0 ? (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            {t("shopui.andMore", { n: fmt.number(more) })}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {t("shopui.itemsCount", { n: fmt.number(count) })}
+                      </span>
                     </span>
-                  </span>
-                  <span className="font-semibold tabular-nums">{taka(fmt, o.total)}</span>
-                  <ChevronRight
-                    aria-hidden="true"
-                    className="size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-                  />
+                    <span className="grid justify-items-end gap-0.5">
+                      <span className="font-heading font-bold tabular-nums">{taka(fmt, o.total)}</span>
+                      {toPay ? (
+                        <span className="flex items-center gap-1 text-xs font-semibold text-primary">
+                          <Wallet aria-hidden="true" className="size-3.5" />
+                          {t("shop.payNow")}
+                        </span>
+                      ) : null}
+                    </span>
+                    <ChevronRight
+                      aria-hidden="true"
+                      className="size-5 shrink-0 text-muted-foreground transition-transform duration-(--motion-fast) group-hover:translate-x-0.5"
+                    />
+                  </div>
                 </Link>
               </li>
             );

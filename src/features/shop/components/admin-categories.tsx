@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Save, Trash2 } from "lucide-react";
+import { Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -33,6 +33,13 @@ export function CategoryForm({ row, nextSort }: { row: CategoryRow | null; nextS
     active: row?.active ?? true,
   });
   const key = row?.slug ?? "new";
+  const ready = v.slug.length >= 2 && v.nameEn.trim().length >= 2 && v.nameBn.trim().length >= 2;
+  const changed =
+    row === null ||
+    v.nameEn !== row.en ||
+    v.nameBn !== row.bn ||
+    v.sort !== String(row.sort) ||
+    v.active !== row.active;
   const run = (fn: () => Promise<ShopResult>, done?: () => void) =>
     start(async () => {
       const r = await fn();
@@ -45,7 +52,7 @@ export function CategoryForm({ row, nextSort }: { row: CategoryRow | null; nextS
 
   return (
     <form
-      className="grid gap-3 sm:grid-cols-[8rem_1fr_1fr_5rem_auto] sm:items-end"
+      className="grid gap-3 sm:grid-cols-[8rem_1fr_1fr_5rem] sm:items-end lg:grid-cols-[8rem_1fr_1fr_5rem_auto]"
       onSubmit={(e) => {
         e.preventDefault();
         run(
@@ -71,6 +78,8 @@ export function CategoryForm({ row, nextSort }: { row: CategoryRow | null; nextS
           value={v.slug}
           disabled={row !== null}
           placeholder="treats"
+          maxLength={30}
+          className="font-mono"
           onChange={(e) => setV({ ...v, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
         />
       </div>
@@ -96,26 +105,42 @@ export function CategoryForm({ row, nextSort }: { row: CategoryRow | null; nextS
           id={`cat-sort-${key}`}
           inputMode="numeric"
           value={v.sort}
-          onChange={(e) => setV({ ...v, sort: e.target.value })}
+          onChange={(e) => setV({ ...v, sort: e.target.value.replace(/[^\d-]/g, "") })}
         />
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2 sm:col-span-4 lg:col-span-1">
+        <label className="flex h-(--control-h) items-center gap-2 text-sm">
           <Switch checked={v.active} onCheckedChange={(active) => setV({ ...v, active })} />
           {t("shop.active")}
         </label>
-        <Button type="submit" size="sm" disabled={pending}>
-          {row ? <Save aria-hidden="true" /> : <Plus aria-hidden="true" />}
+        <Button
+          type="submit"
+          size="sm"
+          variant={row ? "outline" : "brand"}
+          disabled={pending || !ready || !changed}
+          className="max-sm:ms-auto"
+        >
+          {pending ? (
+            <Loader2 aria-hidden="true" className="animate-spin" />
+          ) : row ? (
+            <Save aria-hidden="true" />
+          ) : (
+            <Plus aria-hidden="true" />
+          )}
           {row ? t("common.save") : t("shopAdmin.addCategory")}
         </Button>
         {row && row.products === 0 ? (
           <Button
             type="button"
-            size="sm"
+            size="icon-sm"
             variant="ghost"
             disabled={pending}
+            className="text-muted-foreground hover:text-destructive"
             aria-label={t("shopAdmin.deleteCategory", { name: row.en })}
-            onClick={() => run(() => deleteCategory(row.slug))}
+            onClick={() => {
+              if (window.confirm(t("shopui.admin.deleteCategoryConfirm", { name: row.en })))
+                run(() => deleteCategory(row.slug));
+            }}
           >
             <Trash2 aria-hidden="true" />
           </Button>

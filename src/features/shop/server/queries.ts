@@ -225,7 +225,8 @@ export async function adminOrder(id: string) {
 }
 
 export async function adminProducts() {
-  return db().select().from(PR).orderBy(PR.category, PR.nameEn).limit(500);
+  const rows = await db().select().from(PR).orderBy(PR.category, PR.nameEn).limit(500);
+  return rows.map((p) => ({ ...p, imageUrl: mediaUrl(p.imagePath) }));
 }
 
 export async function adminProduct(id: string) {

@@ -23,6 +23,7 @@ import {
   normalizeCart,
   stockProblems,
   subtotal,
+  type CouponRule,
   type PricedLine,
 } from "../cart";
 import { customerCanCancel, orderActions, type OrderAction, type OrderStatus } from "../status";
@@ -49,7 +50,8 @@ export async function priceCart(locale: string, lines: z.input<typeof lineSchema
   );
 }
 
-export type CouponCheck = { ok: true; code: string; discount: number } | { ok: false; error: MessageKey };
+export type CouponCheck =
+  { ok: true; code: string; discount: number; rule: CouponRule } | { ok: false; error: MessageKey };
 
 /** Cart preview: what a coupon takes off this subtotal. The server checks again at checkout. */
 export async function checkCoupon(code: string, sub: number): Promise<CouponCheck> {
@@ -63,7 +65,13 @@ export async function checkCoupon(code: string, sub: number): Promise<CouponChec
   if (!c) return { ok: false, error: "shop.couponInvalid" };
   const discount = couponDiscount(Math.max(0, Math.floor(sub)), c);
   if (discount <= 0) return { ok: false, error: "shop.couponMin" };
-  return { ok: true, code: c.code, discount };
+  // The rule goes back too, so the cart can re-work the discount when quantities change.
+  return {
+    ok: true,
+    code: c.code,
+    discount,
+    rule: { kind: c.kind, value: c.value, minSubtotal: c.minSubtotal, maxDiscount: c.maxDiscount },
+  };
 }
 
 const checkoutSchema = z.object({

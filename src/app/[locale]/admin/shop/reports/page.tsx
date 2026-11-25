@@ -1,13 +1,31 @@
+import {
+  Ban,
+  Banknote,
+  ChartColumn,
+  Receipt,
+  ShoppingBag,
+  TicketPercent,
+  Trophy,
+  Wallet,
+} from "lucide-react";
 import type { Route } from "next";
-import Link from "next/link";
+import {
+  DataTable,
+  EmptyState,
+  FilterPills,
+  SectionCard,
+  StatCard,
+  StatGrid,
+  type Column,
+} from "@/components/layout/app-ui";
 import { Private, PrivateHeading } from "@/components/layout/private-page";
 import { ROUTES } from "@/config/routes";
 import { requireRole } from "@/features/auth/server";
+import { WalletMark } from "@/features/payments";
 import { shopReport } from "@/features/shop/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
-import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Admin · Sales", robots: { index: false } };
 
@@ -28,105 +46,147 @@ async function Reports({
   const r = await shopReport(days);
   const max = Math.max(1, ...r.daily.map((d) => d.revenue));
   const base = localeHref(locale, ROUTES.adminShopReports);
-  const method = (g: string | null) =>
-    g === "bkash" || g === "nagad" || g === "cod" ? t(`pay.method.${g}`) : (g ?? "—");
-
-  const stats = [
-    { label: t("shopAdmin.revenue"), value: taka(fmt, r.revenue) },
-    { label: t("shopAdmin.orderCount"), value: fmt.number(r.orders) },
+  const dayLabel = (day: string) =>
+    fmt.date(new Date(`${day}T12:00:00+06:00`), { day: "numeric", month: "short" });
+  type Top = (typeof r.top)[number];
+  const topCols: Column<Top>[] = [
     {
-      label: t("shopAdmin.avgOrder"),
-      value: taka(fmt, r.orders ? Math.round(r.revenue / r.orders / 100) * 100 : 0),
+      key: "name",
+      header: t("shopui.admin.product"),
+      mobile: "title",
+      cell: (p) => <span className="line-clamp-2">{p.name}</span>,
     },
-    { label: t("shopAdmin.discounts"), value: taka(fmt, r.discount) },
-    { label: t("shopAdmin.cancelled"), value: fmt.number(r.cancelled) },
+    {
+      key: "qty",
+      header: t("shopAdmin.qty"),
+      className: "text-end",
+      cell: (p) => <span className="tabular-nums">{fmt.number(p.qty)}</span>,
+    },
+    {
+      key: "revenue",
+      header: t("shopAdmin.revenue"),
+      className: "text-end",
+      cell: (p) => <span className="font-semibold tabular-nums">{taka(fmt, p.revenue)}</span>,
+    },
   ];
 
   return (
     <div className="grid gap-6">
-      <PrivateHeading
-        title={t("shopAdmin.reports")}
-        action={
-          <div className="flex gap-1 rounded-full bg-muted/70 p-1">
-            {RANGES.map((n) => (
-              <Link
-                key={n}
-                href={`${base}/?days=${n}` as Route}
-                aria-current={n === days ? "page" : undefined}
-                className={cn(
-                  "rounded-full px-3 py-1 text-sm",
-                  n === days ? "bg-card shadow-(--shadow-card)" : "text-muted-foreground",
-                )}
-              >
-                {t("shopAdmin.days", { n })}
-              </Link>
-            ))}
-          </div>
-        }
+      <PrivateHeading title={t("shopAdmin.reports")} sub={t("shopui.admin.reportsSub")} icon={ChartColumn} />
+      <FilterPills
+        label={t("shopui.admin.range")}
+        items={RANGES.map((n) => ({
+          href: `${base}/?days=${n}` as Route,
+          label: t("shopAdmin.days", { n: fmt.number(n) }),
+          active: n === days,
+        }))}
       />
 
-      <ul className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        {stats.map((s) => (
-          <li key={s.label} className="grid gap-1 rounded-(--radius-xl) bg-card p-4 shadow-(--shadow-card)">
-            <span className="text-xs text-muted-foreground">{s.label}</span>
-            <span className="font-heading text-2xl font-semibold tabular-nums">{s.value}</span>
-          </li>
-        ))}
-      </ul>
+      <StatGrid className="xl:grid-cols-5">
+        <StatCard label={t("shopAdmin.revenue")} value={taka(fmt, r.revenue)} icon={Wallet} tone="primary" />
+        <StatCard label={t("shopAdmin.orderCount")} value={fmt.number(r.orders)} icon={ShoppingBag} />
+        <StatCard
+          label={t("shopAdmin.avgOrder")}
+          value={taka(fmt, r.orders ? Math.round(r.revenue / r.orders / 100) * 100 : 0)}
+          icon={Receipt}
+        />
+        <StatCard label={t("shopAdmin.discounts")} value={taka(fmt, r.discount)} icon={TicketPercent} />
+        <StatCard
+          label={t("shopAdmin.cancelled")}
+          value={fmt.number(r.cancelled)}
+          icon={Ban}
+          tone={r.cancelled > 0 ? "danger" : "default"}
+        />
+      </StatGrid>
 
-      <section className="grid gap-3 rounded-(--radius-xl) bg-card p-(--card-pad) shadow-(--shadow-card)">
-        <h2 className="font-heading text-lg font-semibold">{t("shopAdmin.daily")}</h2>
+      <SectionCard title={t("shopAdmin.daily")} icon={ChartColumn}>
         {r.daily.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("admin.empty")}</p>
+          <EmptyState
+            icon={ChartColumn}
+            title={t("shopui.admin.noSales")}
+            body={t("shopui.admin.noSalesSub")}
+            className="border-0 py-8"
+          />
         ) : (
-          <ul className="flex h-40 items-end gap-1" aria-label={t("shopAdmin.daily")}>
-            {r.daily.map((d) => (
-              <li key={d.day} className="group relative flex h-full flex-1 items-end">
-                <span
-                  className="w-full rounded-t-md bg-primary/80 transition-colors group-hover:bg-primary"
-                  style={{ height: `${Math.max(4, (d.revenue / max) * 100)}%` }}
-                />
-                <span className="sr-only">
-                  {d.day}: {taka(fmt, d.revenue)}, {d.orders}
-                </span>
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 rounded-md bg-foreground px-2 py-1 text-xs whitespace-nowrap text-background group-hover:block"
-                >
-                  {d.day} · {taka(fmt, d.revenue)} · {d.orders}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <div className="grid gap-2">
+            <ul className="flex h-44 items-end gap-0.5 sm:gap-1" aria-label={t("shopAdmin.daily")}>
+              {r.daily.map((d) => (
+                <li key={d.day} className="group relative flex h-full min-w-0 flex-1 items-end">
+                  <span
+                    className="w-full origin-bottom rounded-t-(--radius-sm) bg-primary/75 transition-colors duration-(--motion-fast) group-hover:bg-primary"
+                    style={{ height: `${Math.max(3, (d.revenue / max) * 100)}%` }}
+                  />
+                  <span className="sr-only">
+                    {dayLabel(d.day)}: {taka(fmt, d.revenue)},{" "}
+                    {t("shopui.admin.ordersN", { n: fmt.number(d.orders) })}
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 rounded-(--radius-md) bg-foreground px-2 py-1 text-xs whitespace-nowrap text-background shadow-(--shadow-overlay) group-hover:block"
+                  >
+                    {dayLabel(d.day)} · {taka(fmt, d.revenue)} ·{" "}
+                    {t("shopui.admin.ordersN", { n: fmt.number(d.orders) })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div aria-hidden="true" className="flex justify-between text-xs text-muted-foreground">
+              <span>{r.daily[0] ? dayLabel(r.daily[0].day) : ""}</span>
+              <span>{r.daily.at(-1) ? dayLabel(r.daily.at(-1)?.day ?? "") : ""}</span>
+            </div>
+          </div>
         )}
-      </section>
+      </SectionCard>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <section className="grid gap-3 rounded-(--radius-xl) bg-card p-(--card-pad) shadow-(--shadow-card)">
-          <h2 className="font-heading text-lg font-semibold">{t("shopAdmin.byMethod")}</h2>
-          <ul className="grid gap-2 text-sm">
-            {r.byMethod.map((m) => (
-              <li key={m.method ?? "none"} className="flex justify-between gap-3">
-                <span>{method(m.method)}</span>
-                <span className="tabular-nums">
-                  {m.orders} · {taka(fmt, m.revenue)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-        <section className="grid gap-3 rounded-(--radius-xl) bg-card p-(--card-pad) shadow-(--shadow-card)">
-          <h2 className="font-heading text-lg font-semibold">{t("shopAdmin.topProducts")}</h2>
-          <ol className="grid gap-2 text-sm">
-            {r.top.map((p) => (
-              <li key={p.name} className="flex justify-between gap-3">
-                <span className="truncate">{p.name}</span>
-                <span className="tabular-nums">
-                  {p.qty} · {taka(fmt, p.revenue)}
-                </span>
-              </li>
-            ))}
-          </ol>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SectionCard title={t("shopAdmin.byMethod")} icon={Banknote}>
+          {r.byMethod.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("shopui.admin.noSales")}</p>
+          ) : (
+            <ul className="grid gap-3 text-sm">
+              {r.byMethod.map((m) => {
+                const share = r.revenue > 0 ? (m.revenue ?? 0) / r.revenue : 0;
+                return (
+                  <li key={m.method ?? "none"} className="grid gap-1.5">
+                    <span className="flex items-center justify-between gap-3">
+                      {m.method === "bkash" || m.method === "nagad" || m.method === "cod" ? (
+                        <WalletMark method={m.method} label={t(`pay.method.${m.method}`)} />
+                      ) : (
+                        <span className="text-muted-foreground">{m.method ?? "—"}</span>
+                      )}
+                      <span className="tabular-nums">
+                        {t("shopui.admin.ordersN", { n: fmt.number(m.orders) })} ·{" "}
+                        <strong>{taka(fmt, m.revenue ?? 0)}</strong>
+                      </span>
+                    </span>
+                    <span className="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+                      <span
+                        className="block h-full origin-left rounded-full bg-primary"
+                        style={{ transform: `scaleX(${share})` }}
+                      />
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </SectionCard>
+        <section className="grid content-start gap-3" aria-labelledby="top-products">
+          <h2 id="top-products" className="flex items-center gap-2.5 font-heading text-base font-semibold">
+            <Trophy aria-hidden="true" className="size-4.5 text-primary" />
+            {t("shopAdmin.topProducts")}
+          </h2>
+          <DataTable
+            rows={r.top}
+            columns={topCols}
+            rowKey={(p) => p.name}
+            caption={t("shopAdmin.topProducts")}
+            empty={
+              <p className="rounded-(--radius-2xl) bg-card p-5 text-sm text-muted-foreground shadow-(--shadow-card) ring-1 ring-foreground/6">
+                {t("shopui.admin.noSales")}
+              </p>
+            }
+          />
         </section>
       </div>
     </div>

@@ -38,6 +38,17 @@ export function deliveryFee(sub: number, districtId: number | null, rule: Delive
   return districtId === rule.homeDistrictId ? rule.inside : rule.outside;
 }
 
+/** How many more of a product can go in the cart (stock and the per-line cap). */
+export function maxAddable(stock: number, inCart: number): number {
+  return Math.max(0, Math.min(Math.max(stock, 0), MAX_QTY) - Math.max(inCart, 0));
+}
+
+/** Whole percent off for a sale price (0 when there is no older, higher price). */
+export function percentOff(price: number, compareAt: number | null): number {
+  if (compareAt === null || compareAt <= price || compareAt <= 0) return 0;
+  return Math.round((1 - price / compareAt) * 100);
+}
+
 /** Problems that block checkout: out of stock or more than available. */
 export function stockProblems(lines: PricedLine[]): string[] {
   return lines.filter((l) => l.stock <= 0 || l.qty > l.stock).map((l) => l.productId);

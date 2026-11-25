@@ -1,10 +1,13 @@
+import { ShoppingCart } from "lucide-react";
 import { Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/layout/app-ui";
+import { ButtonLink } from "@/components/ui/button-link";
 import { business } from "@/config";
 import { ROUTES } from "@/config/routes";
 import { getViewer } from "@/features/auth/server";
+import { availableMethods } from "@/features/settings";
 import { getSettings } from "@/features/settings/server";
-import { CartView } from "@/features/shop";
+import { CartSkeleton, CartView } from "@/features/shop";
 import { getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 
@@ -27,17 +30,27 @@ async function Cart() {
           ? { name: viewer.fullName ?? "", phone: viewer.phone ?? "", districtId: viewer.homeDistrictId }
           : null
       }
+      methods={availableMethods(settings, "order", 0)}
       signInHref={`${localeHref(locale, ROUTES.login)}/?next=${encodeURIComponent(here)}`}
     />
   );
 }
 
 export default async function CartPage() {
-  const t = await getT();
+  const [t, locale] = await Promise.all([getT(), getLocale()]);
   return (
-    <div className="container-page grid gap-6 py-8 md:py-12">
-      <h1 className="font-heading text-3xl font-semibold tracking-tight">{t("shop.cart")}</h1>
-      <Suspense fallback={<Skeleton className="h-64" />}>
+    <div className="container-page grid gap-6 py-6 md:py-10">
+      <PageHeader
+        title={t("shop.cart")}
+        sub={t("shopui.cartSub")}
+        icon={ShoppingCart}
+        actions={
+          <ButtonLink href={localeHref(locale, ROUTES.shop)} variant="ghost" size="sm">
+            {t("shopui.keepShopping")}
+          </ButtonLink>
+        }
+      />
+      <Suspense fallback={<CartSkeleton />}>
         <Cart />
       </Suspense>
     </div>

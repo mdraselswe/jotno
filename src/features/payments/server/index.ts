@@ -18,6 +18,6 @@ export {
   type PayTarget,
   type QueuedPayment,
 } from "./manual-queries";
-export { expireUnpaid } from "./jobs";
+export { expireUnpaid, payDeadline } from "./jobs";
 export { vetLedger, platformSummary } from "./reports";
 export { afterPaymentPath } from "./target";

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Send, X } from "lucide-react";
+import { Check, Loader2, Send, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,28 +24,48 @@ function useRun() {
   return { t, pending, run };
 }
 
+const Spin = () => <Loader2 aria-hidden="true" className="animate-spin" />;
+
 /** Admin: approve a TrxID found in the wallet, or send it back with a reason. */
 export function ReviewPayment({ id }: { id: string }) {
   const { t, pending, run } = useRun();
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
   return (
-    <div className="grid gap-2">
+    <div className="grid gap-3">
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" disabled={pending} onClick={() => run((l) => approvePayment(l, id))}>
-          <Check aria-hidden="true" />
+        <Button
+          variant="brand"
+          disabled={pending}
+          className="max-sm:flex-1"
+          onClick={() => {
+            setBusy("approve");
+            run((l) => approvePayment(l, id));
+          }}
+        >
+          {pending && busy === "approve" ? <Spin /> : <Check aria-hidden="true" />}
           {t("payAdmin.approve")}
         </Button>
-        <Button size="sm" variant="outline" disabled={pending} onClick={() => setRejecting((v) => !v)}>
+        <Button
+          variant="outline"
+          disabled={pending}
+          aria-expanded={rejecting}
+          aria-controls={`rj-form-${id}`}
+          className="max-sm:flex-1"
+          onClick={() => setRejecting((v) => !v)}
+        >
           <X aria-hidden="true" />
           {t("payAdmin.reject")}
         </Button>
       </div>
       {rejecting ? (
         <form
-          className="grid gap-2"
+          id={`rj-form-${id}`}
+          className="grid gap-2 rounded-(--radius-xl) bg-destructive/6 p-3 ring-1 ring-destructive/15"
           onSubmit={(e) => {
             e.preventDefault();
+            setBusy("reject");
             run((l) => rejectPayment(l, id, reason));
           }}
         >
@@ -55,15 +75,12 @@ export function ReviewPayment({ id }: { id: string }) {
               id={`rj-${id}`}
               className="min-w-0 flex-1"
               value={reason}
+              maxLength={200}
               placeholder={t("payAdmin.rejectHint")}
               onChange={(e) => setReason(e.target.value)}
             />
-            <Button
-              type="submit"
-              size="sm"
-              variant="destructive"
-              disabled={pending || reason.trim().length < 3}
-            >
+            <Button type="submit" variant="destructive" disabled={pending || reason.trim().length < 3}>
+              {pending && busy === "reject" ? <Spin /> : <X aria-hidden="true" />}
               {t("payAdmin.reject")}
             </Button>
           </div>
@@ -85,19 +102,20 @@ export function RefundSent({ id }: { id: string }) {
         run((l) => markRefundSent(l, id, ref));
       }}
     >
-      <div className="grid min-w-0 flex-1 gap-1">
+      <div className="grid min-w-0 flex-1 basis-48 gap-1.5">
         <Label htmlFor={`rf-${id}`} className="text-xs">
           {t("payAdmin.refundRef")}
         </Label>
         <Input
           id={`rf-${id}`}
           className="font-mono uppercase"
+          maxLength={40}
           value={ref}
           onChange={(e) => setRef(e.target.value.toUpperCase())}
         />
       </div>
-      <Button type="submit" size="sm" disabled={pending || ref.trim().length < 4}>
-        <Send aria-hidden="true" />
+      <Button type="submit" variant="brand" disabled={pending || ref.trim().length < 4}>
+        {pending ? <Spin /> : <Send aria-hidden="true" />}
         {t("payAdmin.refundSent")}
       </Button>
     </form>

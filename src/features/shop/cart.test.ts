@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { clampQty, deliveryFee, normalizeCart, stockProblems, subtotal } from "./cart";
+import {
+  clampQty,
+  couponDiscount,
+  deliveryFee,
+  maxAddable,
+  normalizeCart,
+  percentOff,
+  stockProblems,
+  subtotal,
+} from "./cart";
 
 const rule = { inside: 6_000, outside: 12_000, freeFrom: 200_000, homeDistrictId: 47 };
 
@@ -38,5 +47,27 @@ describe("cart", () => {
     expect(clampQty(50, 100)).toBe(20);
     expect(clampQty(5, 3)).toBe(3);
     expect(clampQty(Number.NaN, 3)).toBe(1);
+  });
+
+  it("limits how many more can be added", () => {
+    expect(maxAddable(5, 0)).toBe(5);
+    expect(maxAddable(5, 3)).toBe(2);
+    expect(maxAddable(5, 7)).toBe(0);
+    expect(maxAddable(0, 0)).toBe(0);
+    expect(maxAddable(100, 0)).toBe(20);
+    expect(maxAddable(-3, 0)).toBe(0);
+  });
+
+  it("works out the percent off", () => {
+    expect(percentOff(80_00, 100_00)).toBe(20);
+    expect(percentOff(100_00, 100_00)).toBe(0);
+    expect(percentOff(100_00, null)).toBe(0);
+    expect(percentOff(120_00, 100_00)).toBe(0);
+  });
+
+  it("drops a coupon below its minimum (the cart must not send it)", () => {
+    const c = { kind: "flat" as const, value: 10_000, minSubtotal: 50_000, maxDiscount: null };
+    expect(couponDiscount(60_000, c)).toBe(10_000);
+    expect(couponDiscount(40_000, c)).toBe(0);
   });
 });

@@ -36,7 +36,7 @@ export function MockCheckout() {
     action: string | null,
     status: string,
     label: string,
-    variant: "default" | "outline" | "ghost",
+    variant: "brand" | "outline" | "ghost",
   ) =>
     action ? (
       <form method="post" action={action}>
@@ -51,20 +51,22 @@ export function MockCheckout() {
     ) : null;
 
   return (
-    <div className="glow-border relative mx-auto grid w-full max-w-sm gap-6 rounded-(--radius-2xl) bg-card p-6 shadow-(--shadow-card)">
-      <div className="flex items-center gap-2 rounded-(--control-radius) bg-highlight/20 px-3 py-2 text-sm text-highlight-foreground">
+    <div className="mx-auto grid w-full max-w-sm gap-5 rounded-(--radius-2xl) bg-card p-5 shadow-(--shadow-card) ring-1 ring-foreground/6 sm:p-6">
+      <div className="flex items-center gap-2 rounded-(--radius-lg) bg-highlight/20 px-3 py-2 text-sm text-highlight-foreground">
         <FlaskConical aria-hidden="true" className="size-4 shrink-0" />
         {t("pay.mockNote")}
       </div>
       <div className="grid justify-items-center gap-2 text-center">
-        <CreditCard aria-hidden="true" className="size-10 text-primary" />
-        <p className="text-muted-foreground">{product}</p>
-        <p className="font-heading text-4xl font-semibold tabular-nums">
+        <span className="grid size-14 place-items-center rounded-full bg-primary/10 text-primary">
+          <CreditCard aria-hidden="true" className="size-7" />
+        </span>
+        {product ? <p className="text-sm text-muted-foreground">{product}</p> : null}
+        <p className="font-heading text-4xl font-bold tabular-nums">
           {fmt.money(amount / 100, { maximumFractionDigits: 0 })}
         </p>
       </div>
       <div className="grid gap-2">
-        {post(success, "VALID", t("pay.mockPay"), "default")}
+        {post(success, "VALID", t("pay.mockPay"), "brand")}
         {post(fail, "FAILED", t("pay.mockFail"), "outline")}
         {post(cancel, "CANCELLED", t("pay.mockCancel"), "ghost")}
       </div>

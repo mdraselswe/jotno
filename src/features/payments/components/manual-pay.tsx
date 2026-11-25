@@ -1,9 +1,21 @@
 "use client";
 
-import { Check, Copy, Info, ShieldCheck, Truck, Wallet as WalletIcon } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  CheckCircle2,
+  Clock,
+  Copy,
+  Info,
+  Loader2,
+  Lock,
+  Receipt,
+  ShieldCheck,
+  Truck,
+} from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +24,7 @@ import type { PayMethod, Wallet } from "@/features/settings";
 import { useFormatter, useLocale, useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 import { chooseCashOnDelivery, submitManualPayment } from "../server/manual";
+import { WalletMark } from "./wallet-mark";
 
 export interface WalletOption {
   method: Wallet;
@@ -21,33 +34,76 @@ export interface WalletOption {
   fee: number;
 }
 
-const BRAND: Record<PayMethod, string> = {
-  bkash: "bg-bkash text-white",
-  nagad: "bg-nagad text-white",
-  cod: "bg-primary text-primary-foreground",
-};
+// The same rules the server checks (server/manual.ts, settings trxIdSchema).
+const PHONE = /^01[3-9]\d{8}$/;
+const TRX = /^[A-Z0-9]{8,12}$/;
+const FORM_ID = "manual-pay-form";
 
-function CopyButton({ value, done }: { value: string; done: string }) {
+function CopyButton({ value, done, label }: { value: string; done: string; label: string }) {
   const t = useT();
   const [copied, setCopied] = useState(false);
   return (
     <Button
       type="button"
       size="sm"
-      variant="secondary"
+      variant={copied ? "secondary" : "outline"}
+      aria-label={label}
       onClick={() => {
-        void navigator.clipboard?.writeText(value).then(() => {
-          setCopied(true);
-          toast.success(done);
-          setTimeout(() => setCopied(false), 1600);
-        });
+        void navigator.clipboard
+          ?.writeText(value)
+          .then(() => {
+            setCopied(true);
+            toast.success(done);
+            setTimeout(() => setCopied(false), 1600);
+          })
+          .catch(() => toast.error(t("payui.copyFailed")));
       }}
+      className="shrink-0"
     >
-      {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
-      {t("pay.copy")}
+      {copied ? <Check aria-hidden="true" className="text-success" /> : <Copy aria-hidden="true" />}
+      {copied ? t("payui.copied") : t("pay.copy")}
     </Button>
   );
 }
+
+function Step({
+  n,
+  title,
+  last = false,
+  children,
+}: {
+  n: number;
+  title: ReactNode;
+  last?: boolean;
+  children?: ReactNode;
+}) {
+  const fmt = useFormatter();
+  return (
+    <li className={cn("relative flex gap-3", !last && "pb-5")}>
+      {last ? null : (
+        <span aria-hidden="true" className="absolute top-8 bottom-1 left-3.5 w-px bg-foreground/10" />
+      )}
+      <span className="relative grid size-7 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+        {fmt.number(n)}
+      </span>
+      <div className="grid min-w-0 flex-1 gap-2 pt-0.5">
+        <p className="text-sm font-medium text-pretty">{title}</p>
+        {children}
+      </div>
+    </li>
+  );
+}
+
+function FieldError({ id, msg }: { id: string; msg: string | null }) {
+  return msg ? (
+    <p id={id} className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+      <AlertTriangle aria-hidden="true" className="size-3.5 shrink-0" />
+      {msg}
+    </p>
+  ) : null;
+}
+
+const card = "rounded-(--radius-2xl) bg-card shadow-(--shadow-card) ring-1 ring-foreground/6";
 
 /**
  * Paying by bKash/Nagad send money: pick the wallet, send amount + charge to
@@ -60,6 +116,9 @@ export function ManualPay({
   wallets,
   cod,
   note,
+  title,
+  detail,
+  deadline,
 }: {
   paymentId: string;
   amount: number;
@@ -67,6 +126,11 @@ export function ManualPay({
   cod: boolean;
   /** Why the last TrxID was rejected. */
   note: string | null;
+  /** What is being paid for ("Order #1042", a vet's name). */
+  title: string;
+  detail: string | null;
+  /** "Pay by …" (already formatted), or null. */
+  deadline: string | null;
 }) {
   const t = useT();
   const fmt = useFormatter();
@@ -77,179 +141,281 @@ export function ManualPay({
   const [method, setMethod] = useState<PayMethod | undefined>(methods[0]);
   const [phone, setPhone] = useState("");
   const [trx, setTrx] = useState("");
+  const [touched, setTouched] = useState({ phone: false, trx: false });
+  const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const phoneRef = useRef<HTMLInputElement>(null);
+  const trxRef = useRef<HTMLInputElement>(null);
   const money = (p: number) =>
     fmt.money(p / 100, { minimumFractionDigits: p % 100 ? 2 : 0, maximumFractionDigits: 2 });
 
-  if (!method) return <p className="text-muted-foreground">{t("pay.noMethods")}</p>;
+  if (!method)
+    return (
+      <div className={cn(card, "grid justify-items-center gap-3 p-8 text-center")}>
+        <Clock aria-hidden="true" className="size-8 text-muted-foreground" />
+        <p className="text-pretty text-muted-foreground">{t("pay.noMethods")}</p>
+      </div>
+    );
   const wallet = wallets.find((w) => w.method === method);
   const walletName = t(`pay.method.${method}`);
-  const total = amount + (wallet?.fee ?? 0);
+  const fee = wallet?.fee ?? 0;
+  const total = amount + fee;
+  const problems = {
+    phone: PHONE.test(phone) ? null : t("payui.err.phone", { wallet: walletName }),
+    trx: TRX.test(trx) ? null : t("payui.err.trx"),
+  };
+  const show = (f: "phone" | "trx") => (touched[f] ? problems[f] : null);
 
-  const submit = () =>
+  const submit = () => {
+    if (pending || !wallet) return;
+    setError(null);
+    if (problems.phone || problems.trx) {
+      setTouched({ phone: true, trx: true });
+      (problems.phone ? phoneRef : trxRef).current?.focus();
+      return;
+    }
     start(async () => {
-      if (!wallet) return;
       const r = await submitManualPayment(locale, paymentId, {
         method: wallet.method,
         payerPhone: phone,
         trxId: trx,
       });
-      if (r.ok) router.refresh();
-      else toast.error(t(r.error));
+      if (r.ok) {
+        toast.success(t("payui.sentToast"));
+        router.refresh();
+      } else setError(t(r.error));
     });
+  };
 
   const placeCod = () =>
     start(async () => {
+      setError(null);
       const r = await chooseCashOnDelivery(locale, paymentId);
       if (r.ok) {
         toast.success(t("pay.codPlaced"));
         router.refresh();
-      } else toast.error(t(r.error));
+      } else setError(t(r.error));
     });
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-4">
+      {/* What you are paying for */}
+      <section aria-label={t("payui.summary")} className={cn(card, "grid gap-4 p-4 sm:p-6")}>
+        <div className="flex items-start gap-3">
+          <span className="grid size-11 shrink-0 place-items-center rounded-(--radius-lg) bg-primary/10 text-primary">
+            <Receipt aria-hidden="true" className="size-5" />
+          </span>
+          <div className="grid min-w-0 flex-1 gap-0.5">
+            <p className="text-xs font-medium text-muted-foreground">{t("pay.for")}</p>
+            <h1 className="font-heading text-lg leading-tight font-bold text-balance">{title}</h1>
+            {detail ? <p className="text-sm text-muted-foreground">{detail}</p> : null}
+          </div>
+          <span className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-success/12 px-2 text-xs font-semibold text-success dark:text-[color-mix(in_oklch,var(--success),white_35%)]">
+            <Lock aria-hidden="true" className="size-3" />
+            <span className="max-[380px]:sr-only">{t("payui.secure")}</span>
+          </span>
+        </div>
+        <dl className="grid gap-2 rounded-(--radius-xl) bg-muted/50 p-4 text-sm">
+          <div className="flex justify-between gap-3">
+            <dt className="text-muted-foreground">{t("pay.amount")}</dt>
+            <dd className="tabular-nums">{money(amount)}</dd>
+          </div>
+          {wallet ? (
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">{t("pay.charge", { wallet: walletName })}</dt>
+              <dd className="tabular-nums">{fee > 0 ? money(fee) : t("shop.free")}</dd>
+            </div>
+          ) : null}
+          <div className="flex items-baseline justify-between gap-3 border-t pt-3">
+            <dt className="font-semibold">{wallet ? t("pay.sendTotal") : t("shop.total")}</dt>
+            <dd className="font-heading text-3xl leading-none font-bold tabular-nums">{money(total)}</dd>
+          </div>
+        </dl>
+        {deadline ? (
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Clock aria-hidden="true" className="size-4 shrink-0 text-primary" />
+            {deadline}
+          </p>
+        ) : null}
+      </section>
+
       {note ? (
         <p
           role="alert"
-          className="rounded-(--radius-lg) bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          className="flex gap-2.5 rounded-(--radius-xl) bg-destructive/8 px-4 py-3 text-sm text-destructive ring-1 ring-destructive/20"
         >
+          <AlertTriangle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
           {t("pay.rejected", { reason: note })}
         </p>
       ) : null}
 
-      <fieldset className="grid gap-2">
-        <legend className="mb-2 text-sm font-medium">{t("pay.choose")}</legend>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-2">
-          {methods.map((m) => (
-            <label
-              key={m}
-              className={cn(
-                "relative flex cursor-pointer flex-col items-center gap-2 rounded-(--radius-lg) bg-card px-3 py-4 text-center text-sm font-medium shadow-(--shadow-card) transition-[transform,box-shadow] duration-(--motion-fast) ease-(--ease-out) active:scale-[0.97] has-focus-visible:ring-2 has-focus-visible:ring-ring",
-                method === m && "ring-2 ring-primary",
-              )}
-            >
-              <input
-                type="radio"
-                name="pay-method"
-                value={m}
-                checked={method === m}
-                onChange={() => setMethod(m)}
-                className="sr-only"
-              />
-              <span className={cn("grid size-10 place-items-center rounded-full", BRAND[m])}>
-                {m === "cod" ? (
-                  <Truck aria-hidden="true" className="size-5" />
-                ) : (
-                  <WalletIcon aria-hidden="true" className="size-5" />
+      {/* How to pay */}
+      <fieldset className={cn(card, "grid gap-3 p-4 sm:p-6")}>
+        <legend className="float-left mb-1 w-full font-heading text-base font-bold">{t("pay.choose")}</legend>
+        <div
+          className={cn(
+            "grid gap-2.5",
+            methods.length > 1 && "sm:grid-cols-2",
+            methods.length > 2 && "sm:grid-cols-3",
+          )}
+        >
+          {methods.map((m) => {
+            const w = wallets.find((x) => x.method === m);
+            const on = method === m;
+            return (
+              <label
+                key={m}
+                className={cn(
+                  "relative flex cursor-pointer items-center gap-3 rounded-(--radius-xl) bg-card p-3 ring-1 transition-[box-shadow,scale] duration-(--motion-fast) ease-(--ease-press) active:scale-[0.98] has-focus-visible:ring-3 has-focus-visible:ring-ring/50 sm:flex-col sm:items-start sm:p-4",
+                  on
+                    ? "shadow-(--shadow-card) ring-2 ring-primary"
+                    : "ring-foreground/12 hover:ring-foreground/25",
                 )}
-              </span>
-              {t(`pay.method.${m}`)}
-            </label>
-          ))}
+              >
+                <input
+                  type="radio"
+                  name="pay-method"
+                  value={m}
+                  checked={on}
+                  onChange={() => {
+                    setMethod(m);
+                    setError(null);
+                  }}
+                  className="sr-only"
+                />
+                <WalletMark method={m} label={t(`pay.method.${m}`)} variant="tile" />
+                <span className="grid min-w-0 flex-1 gap-0.5">
+                  <span className="font-heading font-bold">{t(`pay.method.${m}`)}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {w
+                      ? w.fee > 0
+                        ? t("payui.chargeIs", { amount: money(w.fee) })
+                        : t("payui.noCharge")
+                      : t("payui.codShort")}
+                  </span>
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "grid size-5 shrink-0 place-items-center rounded-full ring-2 transition-colors sm:absolute sm:top-3 sm:right-3",
+                    on ? "bg-primary text-primary-foreground ring-primary" : "ring-foreground/20",
+                  )}
+                >
+                  {on ? <Check className="size-3.5" /> : null}
+                </span>
+              </label>
+            );
+          })}
         </div>
       </fieldset>
 
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={method}
-          initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.98 }}
-          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-          className="grid gap-5"
+          initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
+          transition={{ type: "spring", stiffness: 380, damping: 32 }}
+          className="grid gap-4"
         >
           {wallet ? (
             <>
-              <dl className="grid gap-2 rounded-(--radius-xl) bg-muted/60 p-4 text-sm">
-                <div className="flex justify-between gap-3">
-                  <dt className="text-muted-foreground">{t("pay.amount")}</dt>
-                  <dd className="tabular-nums">{money(amount)}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-muted-foreground">{t("pay.charge", { wallet: walletName })}</dt>
-                  <dd className="tabular-nums">{money(wallet.fee)}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-3 border-t border-border pt-2">
-                  <dt className="font-semibold">{t("pay.sendTotal")}</dt>
-                  <dd className="flex items-center gap-2">
-                    <span className="font-heading text-2xl font-semibold tabular-nums">{money(total)}</span>
-                    <CopyButton value={String(total / 100)} done={t("pay.copiedAmount")} />
-                  </dd>
-                </div>
-              </dl>
-
-              <ol className="grid gap-3 text-sm">
-                <li className="flex gap-3">
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-                    1
-                  </span>
-                  {t(wallet.accountType === "merchant" ? "pay.step1Merchant" : "pay.step1", {
-                    wallet: walletName,
-                  })}
-                </li>
-                <li className="grid gap-2">
-                  <span className="flex gap-3">
-                    <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-                      2
-                    </span>
-                    {t("pay.step2", { amount: money(total), number: wallet.number })}
-                  </span>
-                  <span className="ml-9 flex flex-wrap items-center gap-2 rounded-(--radius-lg) bg-card px-3 py-2 shadow-(--shadow-card)">
-                    <span
-                      className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", BRAND[wallet.method])}
-                    >
-                      {walletName} · {t(`pay.account.${wallet.accountType}`)}
-                    </span>
-                    <span className="font-mono text-lg font-semibold tracking-wider">{wallet.number}</span>
-                    <span className="ml-auto">
-                      <CopyButton value={wallet.number} done={t("pay.copiedNumber")} />
-                    </span>
-                  </span>
-                  {wallet.accountType === "personal" ? (
-                    <span className="ml-9 flex gap-2 text-xs text-muted-foreground">
-                      <Info aria-hidden="true" className="size-4 shrink-0" />
-                      {t("pay.personalNote", { wallet: walletName })}
-                    </span>
-                  ) : null}
-                </li>
-                <li className="flex gap-3">
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-                    3
-                  </span>
-                  {t("pay.step3")}
-                </li>
-              </ol>
+              <section className={cn(card, "grid gap-4 p-4 sm:p-6")} aria-labelledby="pay-steps">
+                <h2 id="pay-steps" className="flex items-center gap-2 font-heading text-base font-bold">
+                  <WalletMark method={wallet.method} label={walletName} />
+                  {t("payui.howTo", { wallet: walletName })}
+                </h2>
+                <ol>
+                  <Step
+                    n={1}
+                    title={t(wallet.accountType === "merchant" ? "pay.step1Merchant" : "pay.step1", {
+                      wallet: walletName,
+                    })}
+                  />
+                  <Step n={2} title={t("payui.stepNumber")}>
+                    <div className="flex flex-wrap items-center gap-2 rounded-(--radius-xl) bg-muted/50 p-3">
+                      <span className="grid min-w-0 flex-1">
+                        <span className="font-mono text-xl font-bold tracking-wider tabular-nums select-all">
+                          {wallet.number}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {walletName} · {t(`pay.account.${wallet.accountType}`)}
+                        </span>
+                      </span>
+                      <CopyButton
+                        value={wallet.number}
+                        done={t("pay.copiedNumber")}
+                        label={t("payui.copyNumber")}
+                      />
+                    </div>
+                    {wallet.accountType === "personal" ? (
+                      <p className="flex gap-2 text-xs text-muted-foreground">
+                        <Info aria-hidden="true" className="size-4 shrink-0 text-primary" />
+                        {t("pay.personalNote", { wallet: walletName })}
+                      </p>
+                    ) : null}
+                  </Step>
+                  <Step n={3} title={t("payui.stepAmount")}>
+                    <div className="flex flex-wrap items-center gap-2 rounded-(--radius-xl) bg-muted/50 p-3">
+                      <span className="grid min-w-0 flex-1">
+                        <span className="font-heading text-xl font-bold tabular-nums">{money(total)}</span>
+                        {fee > 0 ? (
+                          <span className="text-xs text-muted-foreground">
+                            {t("payui.inclCharge", { amount: money(amount), fee: money(fee) })}
+                          </span>
+                        ) : null}
+                      </span>
+                      <CopyButton
+                        value={String(total / 100)}
+                        done={t("pay.copiedAmount")}
+                        label={t("payui.copyAmount")}
+                      />
+                    </div>
+                  </Step>
+                  <Step n={4} title={t("pay.step3")} last />
+                </ol>
+              </section>
 
               <form
-                className="grid gap-4"
+                id={FORM_ID}
+                noValidate
+                className={cn(card, "grid gap-4 p-4 sm:p-6")}
                 onSubmit={(e) => {
                   e.preventDefault();
                   submit();
                 }}
               >
-                <div className="grid gap-2">
+                <h2 className="font-heading text-base font-bold">{t("payui.confirmTitle")}</h2>
+                <div className="grid gap-1.5">
                   <Label htmlFor="pay-phone">{t("pay.sendFrom", { wallet: walletName })}</Label>
                   <Input
+                    ref={phoneRef}
                     id="pay-phone"
-                    inputMode="tel"
+                    type="tel"
+                    inputMode="numeric"
                     autoComplete="tel-national"
                     placeholder="01XXXXXXXXX"
+                    className="font-mono text-base tracking-wider"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, "").slice(0, 11))}
-                    required
+                    onBlur={() => setTouched((x) => ({ ...x, phone: true }))}
+                    aria-invalid={show("phone") ? true : undefined}
+                    aria-describedby={show("phone") ? "pay-phone-err" : undefined}
                   />
+                  <FieldError id="pay-phone-err" msg={show("phone")} />
                 </div>
-                <div className="grid gap-2">
+                <div className="grid gap-1.5">
                   <Label htmlFor="pay-trx">{t("pay.trxId")}</Label>
                   <Input
+                    ref={trxRef}
                     id="pay-trx"
                     autoCapitalize="characters"
                     autoComplete="off"
                     spellCheck={false}
-                    className="font-mono tracking-wider uppercase"
+                    className="font-mono text-base tracking-wider uppercase"
                     placeholder="9BK7XA2MLQ"
-                    aria-describedby="pay-trx-hint"
+                    aria-invalid={show("trx") ? true : undefined}
+                    aria-describedby={show("trx") ? "pay-trx-err" : "pay-trx-hint"}
                     value={trx}
                     onChange={(e) =>
                       setTrx(
@@ -259,42 +425,86 @@ export function ManualPay({
                           .slice(0, 12),
                       )
                     }
-                    required
+                    onBlur={() => setTouched((x) => ({ ...x, trx: true }))}
                   />
-                  <p id="pay-trx-hint" className="text-xs text-muted-foreground">
-                    {t("pay.trxHint")}
-                  </p>
+                  {show("trx") ? (
+                    <FieldError id="pay-trx-err" msg={show("trx")} />
+                  ) : (
+                    <p id="pay-trx-hint" className="text-xs text-muted-foreground">
+                      {t("pay.trxHint")}
+                    </p>
+                  )}
                 </div>
-                <Button
-                  type="submit"
-                  size="lg"
-                  disabled={pending || !/^01[3-9]\d{8}$/.test(phone) || trx.length < 8}
-                >
-                  <Check aria-hidden="true" />
-                  {t("pay.submit")}
-                </Button>
+                {error ? (
+                  <p
+                    role="alert"
+                    className="rounded-(--radius-md) bg-destructive/8 px-3 py-2 text-sm text-destructive"
+                  >
+                    {error}
+                  </p>
+                ) : null}
               </form>
             </>
           ) : (
-            <div className="grid gap-4">
-              <p className="text-pretty text-muted-foreground">{t("pay.codSub")}</p>
-              <p className="flex items-center justify-between rounded-(--radius-xl) bg-muted/60 p-4">
-                <span className="font-semibold">{t("shop.total")}</span>
-                <span className="font-heading text-2xl font-semibold tabular-nums">{money(amount)}</span>
-              </p>
-              <Button size="lg" disabled={pending} onClick={placeCod}>
-                <Truck aria-hidden="true" />
-                {t("pay.codConfirm")}
-              </Button>
-            </div>
+            <section className={cn(card, "grid gap-4 p-4 sm:p-6")} aria-labelledby="pay-cod">
+              <div className="flex items-start gap-3">
+                <WalletMark method="cod" label={walletName} variant="tile" />
+                <div className="grid gap-1">
+                  <h2 id="pay-cod" className="font-heading text-base font-bold">
+                    {t("pay.method.cod")}
+                  </h2>
+                  <p className="text-sm text-pretty text-muted-foreground">{t("pay.codSub")}</p>
+                </div>
+              </div>
+              <ul className="grid gap-2 text-sm">
+                <li className="flex gap-2">
+                  <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-success" />
+                  {t("payui.codPoint1")}
+                </li>
+                <li className="flex gap-2">
+                  <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-success" />
+                  {t("payui.codPoint2", { amount: money(amount) })}
+                </li>
+              </ul>
+              {error ? (
+                <p
+                  role="alert"
+                  className="rounded-(--radius-md) bg-destructive/8 px-3 py-2 text-sm text-destructive"
+                >
+                  {error}
+                </p>
+              ) : null}
+            </section>
           )}
         </motion.div>
       </AnimatePresence>
 
-      <p className="flex gap-2 text-xs text-muted-foreground">
+      <p className="flex gap-2.5 rounded-(--radius-xl) bg-primary/6 px-4 py-3 text-xs text-pretty text-foreground/80 ring-1 ring-primary/15">
         <ShieldCheck aria-hidden="true" className="size-4 shrink-0 text-primary" />
         {t("pay.safe")}
       </p>
+
+      {/* The main button: sticky above the tab bar on phones, in the flow from sm. */}
+      <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 -mx-4 border-t bg-background/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+        {wallet ? (
+          <Button
+            type="submit"
+            form={FORM_ID}
+            variant="brand"
+            size="lg"
+            className="w-full"
+            disabled={pending}
+          >
+            {pending ? <Loader2 aria-hidden="true" className="animate-spin" /> : <Check aria-hidden="true" />}
+            {pending ? t("payui.sending") : t("pay.submit")}
+          </Button>
+        ) : (
+          <Button variant="brand" size="lg" className="w-full" disabled={pending} onClick={placeCod}>
+            {pending ? <Loader2 aria-hidden="true" className="animate-spin" /> : <Truck aria-hidden="true" />}
+            {t("pay.codConfirm")}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

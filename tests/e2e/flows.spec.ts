@@ -70,6 +70,9 @@ test.describe("public flows", () => {
     if (await show.isVisible()) await show.click();
     await page.getByRole("checkbox", { name: /^Food/ }).check();
     await expect(page).toHaveURL(/category=food/);
+    // The phone filter sheet closes with its "Show N products" button.
+    const done = page.getByRole("button", { name: /^Show \d+ products/ });
+    if (await done.isVisible()) await done.click();
     await page.getByRole("searchbox").fill("cat");
     await page.getByRole("searchbox").press("Enter");
     await expect(page).toHaveURL(/q=cat/);
