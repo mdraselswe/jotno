@@ -68,6 +68,9 @@ export const viewport: Viewport = {
         ]
       : background[site.theme.defaultMode],
   viewportFit: "cover",
+  // Android Chrome shrinks the page for the keyboard (the chat composer stays
+  // right above it instead of the page panning under the header).
+  interactiveWidget: "resizes-content",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/[locale]">) {

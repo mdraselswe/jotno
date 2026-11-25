@@ -2,7 +2,6 @@
 
 import { useGSAP } from "@gsap/react";
 import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowLeft, ArrowRight, BadgeCheck, Pause, Play, Search } from "lucide-react";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
@@ -10,7 +9,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-gsap.registerPlugin(useGSAP, ScrollTrigger);
+gsap.registerPlugin(useGSAP);
 
 const BlobField = dynamic(() => import("./blob-field"), { ssr: false });
 
@@ -25,8 +24,13 @@ export interface OrbitPetItem {
 
 const AUTOPLAY_MS = 4800;
 
-/** WebGL only where it is cheap enough: not on data saver or very small CPUs. */
+/**
+ * WebGL only where it is cheap enough: a large screen with a mouse (phones
+ * keep the CSS poster blob, so scrolling stays light), no data saver, no
+ * small CPUs.
+ */
 function canAffordWebGL() {
+  if (!window.matchMedia("(min-width: 1024px) and (pointer: fine)").matches) return false;
   const nav = navigator as Navigator & { connection?: { saveData?: boolean }; deviceMemory?: number };
   if (nav.connection?.saveData) return false;
   if ((nav.hardwareConcurrency ?? 4) < 4) return false;
@@ -122,14 +126,6 @@ export function HeroOrbit({
     () => {
       const mm = gsap.matchMedia();
       mm.add("(prefers-reduced-motion: no-preference)", () => {
-        // The stage eases up and back as the hero scrolls away (no spin, so the
-        // plates stay clear of the badges).
-        gsap.to("[data-orbit-stage]", {
-          yPercent: -6,
-          scale: 0.96,
-          ease: "none",
-          scrollTrigger: { trigger: root.current, start: "top top", end: "bottom top", scrub: 0.8 },
-        });
         // Entrance for the decoration around the (static) heading and photo.
         gsap.from("[data-orbit-plate]", {
           scale: 0.4,

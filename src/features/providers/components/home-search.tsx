@@ -54,7 +54,7 @@ export function HomeSearch() {
           </option>
         ))}
       </NativeSelect>
-      <Button type="submit" size="lg">
+      <Button type="submit" size="lg" variant="brand">
         <Search aria-hidden="true" />
         {t("home.findVet")}
       </Button>

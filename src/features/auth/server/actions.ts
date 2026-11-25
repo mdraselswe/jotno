@@ -11,7 +11,7 @@ import { ROUTES } from "@/config/routes";
 import { db, schema } from "@/infrastructure/db";
 import { clientIp, rateLimit } from "@/infrastructure/db/helpers";
 import { ownsUpload } from "@/features/uploads/server";
-import { storage } from "@/infrastructure/storage";
+import { mediaUrl, storage } from "@/infrastructure/storage";
 import { supabaseAdmin, supabaseServer } from "@/infrastructure/supabase/server";
 import type { MessageKey } from "@/i18n";
 import { localeHref } from "@/lib/locale-href";
@@ -203,4 +203,36 @@ export async function updateProfile(input: z.input<typeof profileSchema>): Promi
     if (viewer.avatarPath) await storage.remove("media", [viewer.avatarPath]).catch(() => undefined);
   }
   return { ok: true };
+}
+
+export interface HeaderProfile {
+  name: string | null;
+  avatarUrl: string | null;
+}
+
+/**
+ * The header's picture of the signed-in person, read from the database so it
+ * is the real photo even when the session token has none: the photo uploaded
+ * on Jotno, else the vet profile photo, else the Google one.
+ */
+export async function headerProfile(): Promise<HeaderProfile | null> {
+  const viewer = await getViewer();
+  if (!viewer) return null;
+  let path = viewer.avatarPath;
+  if (!path && viewer.role !== "owner") {
+    const [vet] = await db()
+      .select({ photo: schema.providers.photoPath })
+      .from(schema.providers)
+      .where(eq(schema.providers.profileId, viewer.id))
+      .limit(1);
+    path = vet?.photo ?? null;
+  }
+  let avatarUrl = mediaUrl(path);
+  if (!avatarUrl) {
+    const { data } = await (await supabaseServer()).auth.getUser();
+    const meta = (data.user?.user_metadata ?? {}) as Record<string, unknown>;
+    const google = meta.avatar_url ?? meta.picture;
+    avatarUrl = typeof google === "string" && google.startsWith("https://") ? google : null;
+  }
+  return { name: viewer.fullName, avatarUrl };
 }

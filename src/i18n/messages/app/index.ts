@@ -13,6 +13,13 @@ import { pages } from "./pages";
 import { pay } from "./pay";
 import { store } from "./store";
 import { work } from "./work";
+import { ui } from "./ui";
+import { chatui } from "./chatui";
+import { ownerui } from "./ownerui";
+import { pubui } from "./pubui";
+import { vetui } from "./vetui";
+import { adminui } from "./adminui";
+import { shopui } from "./shopui";
 
 /**
  * Jotno's UI text, one pack per area (both languages side by side).
@@ -34,6 +41,13 @@ const PACKS = [
   store,
   pages,
   pay,
+  ui,
+  chatui,
+  ownerui,
+  vetui,
+  pubui,
+  adminui,
+  shopui,
 ] as const;
 
 type Merge<T extends readonly { en: object }[]> = T extends readonly [infer H, ...infer R]

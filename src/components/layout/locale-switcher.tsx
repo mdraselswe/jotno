@@ -82,3 +82,50 @@ function Switcher({ path }: { path: string }) {
     </DropdownMenu>
   );
 }
+
+/**
+ * Every language as one big segmented control (the mobile menu): the current
+ * one is marked, each other one links to this same page in that language.
+ */
+export function LocaleSegment({ onPick }: { onPick?: () => void }) {
+  return (
+    <Suspense fallback={<Segment path="/" onPick={onPick} />}>
+      <CurrentSegment onPick={onPick} />
+    </Suspense>
+  );
+}
+
+function CurrentSegment({ onPick }: { onPick?: () => void }) {
+  return <Segment path={splitLocale(usePathname()).path} onPick={onPick} />;
+}
+
+function Segment({ path, onPick }: { path: string; onPick?: () => void }) {
+  const locale = useLocale();
+  const t = useT();
+  if (LOCALES.length < 2) return null;
+  return (
+    <div role="group" aria-label={t("locale.label")} className="grid auto-cols-fr grid-flow-col gap-1">
+      {LOCALES.map((l) => {
+        const current = l === locale;
+        return (
+          <Link
+            key={l}
+            href={localePath(l, path) as Route}
+            hrefLang={l}
+            lang={l}
+            onClick={onPick}
+            aria-current={current ? "true" : undefined}
+            className={cn(
+              "grid h-10 place-items-center rounded-(--radius-lg) text-sm font-semibold transition-[background-color,color,box-shadow] duration-(--motion-fast)",
+              current
+                ? "bg-card text-foreground shadow-(--shadow-control) ring-1 ring-foreground/8"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {localeName(l)}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}

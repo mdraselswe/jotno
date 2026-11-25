@@ -195,7 +195,7 @@ export default async function DevPage() {
             {[0, 1, 2].map((n) => (
               <li
                 key={n}
-                className="reveal rounded-xl border bg-muted p-6 text-sm"
+                className="rounded-xl border bg-muted p-6 text-sm reveal"
                 style={{ "--i": n } as CSSProperties}
               >
                 reveal · --i: {n}

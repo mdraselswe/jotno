@@ -1,6 +1,8 @@
-export { LoginForm } from "./components/login-form";
+export { LoginForm, LoginFormSkeleton } from "./components/login-form";
 export { OnboardingForm } from "./components/onboarding-form";
-export { UserMenu } from "./components/user-menu";
+export { ROLE_LABEL, UserMenu, useSignOut } from "./components/user-menu";
+export { UserAvatar } from "./components/user-avatar";
+export { useAuthUser, type AuthUser } from "./components/use-auth-user";
 export { safeNext } from "./next-path";
 export { isBdMobile, normalizePhone, phoneSchema } from "./phone";
-export { ProfileForm, type ProfileValues } from "./components/profile-form";
+export { ProfileForm, SignOutButton, type ProfileValues } from "./components/profile-form";

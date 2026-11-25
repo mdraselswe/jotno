@@ -1,20 +1,20 @@
 "use client";
 
-import { Menu, Siren } from "lucide-react";
+import { Siren } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
-import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { features, site } from "@/config";
-import { FOOTER_LINKS, NAV_LINKS } from "@/config/navigation";
+import { NAV_LINKS } from "@/config/navigation";
 import { ROUTES } from "@/config/routes";
 import { UserMenu } from "@/features/auth";
+import { CartLink } from "@/features/shop";
 import { useLocale, useT } from "@/i18n/client";
 import { localeHref } from "@/lib/locale-href";
 import { cn } from "@/lib/utils";
 import { ActiveLink } from "./active-link";
 import { LocaleSwitcher } from "./locale-switcher";
+import { MobileMenu } from "./mobile-menu";
 import { ThemeToggle } from "./theme-toggle";
 
 export function SiteHeader() {
@@ -22,8 +22,8 @@ export function SiteHeader() {
   const t = useT();
   const home = localeHref(locale, ROUTES.home);
 
-  const links = (className: string, list = NAV_LINKS) =>
-    list.map((link) => {
+  const links = (className: string) =>
+    NAV_LINKS.map((link) => {
       const href = localeHref(locale, link.href);
       return (
         <ActiveLink
@@ -53,7 +53,7 @@ export function SiteHeader() {
             "rounded-(--control-radius) px-3 py-1.5 transition-[color,background-color] duration-(--motion-fast) hover:bg-foreground/5 aria-[current=page]:bg-foreground aria-[current=page]:text-background",
           )}
         </nav>
-        <div className="ms-auto flex min-w-0 items-center gap-1.5">
+        <div className="ms-auto flex min-w-0 items-center gap-1 sm:gap-1.5">
           <ButtonLink
             href={localeHref(locale, ROUTES.emergency)}
             size="sm"
@@ -67,30 +67,9 @@ export function SiteHeader() {
             <LocaleSwitcher />
             {features.themeToggle ? <ThemeToggle /> : null}
           </div>
+          <CartLink />
           <UserMenu />
-          <Sheet>
-            <SheetTrigger
-              render={
-                <Button variant="ghost" size="icon" className="md:hidden" aria-label={t("nav.menu")}>
-                  <Menu aria-hidden="true" />
-                </Button>
-              }
-            />
-            <SheetContent side="right" className="w-72">
-              <SheetTitle className="px-4 pt-4">
-                <Logo locale={locale} />
-              </SheetTitle>
-              <nav aria-label={t("nav.mobile")} className="grid gap-1 p-4">
-                {links("rounded-md px-3 py-2 text-base font-medium")}
-                <hr className="my-2" />
-                {links("rounded-md px-3 py-2 text-sm", FOOTER_LINKS)}
-              </nav>
-              <div className="flex items-center gap-1 px-4">
-                <LocaleSwitcher />
-                {features.themeToggle ? <ThemeToggle /> : null}
-              </div>
-            </SheetContent>
-          </Sheet>
+          <MobileMenu />
         </div>
       </div>
     </header>

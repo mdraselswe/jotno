@@ -7,7 +7,6 @@ import { PeekingPet, RollingBall } from "@/components/illustrations/pets";
 import { Spot, type SpotName } from "@/components/illustrations/spots";
 import { HeroOrbit, type OrbitPetItem } from "@/components/marketing/hero-orbit";
 import { Marquee } from "@/components/marketing/marquee";
-import { SmoothScroll } from "@/components/marketing/smooth-scroll";
 import { SquishyPricing, type PricingCard } from "@/components/marketing/squishy-pricing";
 import { NumberTicker } from "@/components/motion/number-ticker";
 import { PageTransition } from "@/components/motion/page-transition";
@@ -195,7 +194,6 @@ export default async function HomePage() {
 
   return (
     <PageTransition>
-      <SmoothScroll />
       <HeroOrbit
         pets={pets}
         label={c.orbit.label}
@@ -354,19 +352,41 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Emergency */}
+      {/* Emergency: a stacked card on phones (icon + title, text, full-width
+          actions), one row from md up. */}
       <section className="container-page py-14">
-        <div className="flex flex-wrap items-center gap-5 rounded-(--radius-2xl) border border-destructive/20 bg-destructive/6 p-6 sm:p-8">
-          <span className="grid size-16 shrink-0 sos-breathe place-items-center rounded-full bg-destructive text-background">
-            <Siren aria-hidden="true" className="size-8" />
-          </span>
-          <div className="grid flex-1 gap-1">
-            <h2 className="font-heading text-2xl font-bold tracking-tight">{c.emergency.title}</h2>
-            <p className="text-pretty text-muted-foreground">{c.emergency.body}</p>
+        <div className="relative grid gap-5 overflow-hidden rounded-(--radius-3xl) bg-destructive/8 p-5 ring-1 ring-destructive/20 sm:p-8 md:grid-cols-[auto_1fr_auto] md:items-center md:gap-8">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-16 -right-16 size-48 rounded-full bg-destructive/8"
+          />
+          <div className="flex items-center gap-4 md:contents">
+            <span className="sos-breathe grid size-14 shrink-0 place-items-center rounded-full bg-destructive text-white shadow-(--shadow-control) md:size-16">
+              <Siren aria-hidden="true" className="size-7 md:size-8" />
+            </span>
+            <h2 className="font-heading text-2xl font-bold tracking-tight md:hidden">{c.emergency.title}</h2>
           </div>
-          <ButtonLink href={localeHref(locale, ROUTES.emergency)} variant="destructive" size="lg">
-            {c.emergency.button}
-          </ButtonLink>
+          <div className="relative grid gap-1">
+            <h2 className="font-heading text-2xl font-bold tracking-tight max-md:hidden">
+              {c.emergency.title}
+            </h2>
+            <p className="text-pretty text-foreground/80">{c.emergency.body}</p>
+          </div>
+          <div className="relative grid gap-2 sm:flex sm:flex-wrap md:grid md:justify-items-stretch">
+            <ButtonLink
+              href={localeHref(locale, ROUTES.emergency)}
+              variant="destructive"
+              size="lg"
+              className="w-full sm:w-auto md:w-full"
+            >
+              <Siren aria-hidden="true" />
+              {c.emergency.button}
+            </ButtonLink>
+            <ButtonLink href={vets} variant="outline" size="lg" className="w-full sm:w-auto md:w-full">
+              {t("nav.vets")}
+              <ArrowRight aria-hidden="true" />
+            </ButtonLink>
+          </div>
         </div>
       </section>
 

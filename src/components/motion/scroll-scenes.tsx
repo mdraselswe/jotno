@@ -4,132 +4,95 @@ import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 /**
- * App-wide scroll scenes (GSAP ScrollTrigger), mounted once in the layout.
- * Inside <main> sections and the footer:
- *   - section headings wipe up,
- *   - cards (.glow-border, [data-animate]) rise in batches with a slight tilt,
- *   - photos unmask and rise (no scale: a hidden, scaled photo would widen the page).
- * Every scene plays both ways: in from below while scrolling down, away
- * upwards as it leaves the top, back in from above while scrolling up, away
- * downwards as it leaves the bottom.
+ * App-wide scroll reveals, mounted once in the layout. Light on purpose: one
+ * IntersectionObserver pair and a CSS keyframe on `translate`/`opacity` (both
+ * composited), no scroll listeners or GSAP.
  *
- * Skips: the hero and anything under [data-no-reveal], elements using the CSS
- * `reveal` utility, and everything when the user prefers reduced motion.
- * GSAP is loaded on demand. New nodes (streamed Suspense content, client
- * navigation) are picked up by a MutationObserver.
+ * Inside <main> sections and the footer, section headings, cards
+ * (.glow-border, [data-animate]), photos and `.reveal` elements rise in.
+ * One way only: they play while scrolling DOWN (entering from the bottom of
+ * the screen). Scrolling back up shows everything as it is, with no reverse
+ * animation. Once an element has gone back below the screen it is re-armed,
+ * so the next scroll down plays it again (every visit, every time).
+ *
+ * Never hides what is already on screen (or above it) when the page loads, so
+ * the hero and LCP stay put. Skips [data-no-reveal], elements that run their
+ * own CSS animation, and everything with reduced motion.
  */
 const SCOPE = "main section, main [data-reveal], body footer";
-const SKIP = "[data-no-reveal], .reveal";
+const TARGETS = "h2, .glow-border, [data-animate], img, .reveal";
+const SKIP = "[data-no-reveal]";
+const MAX_STAGGER = 6;
 
 export function ScrollScenes() {
   const pathname = usePathname();
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    let disposed = false;
-    let cleanup = () => {};
+    if (!("IntersectionObserver" in window)) return;
+    const seen = new WeakSet<Element>();
+    const vh = () => window.innerHeight || document.documentElement.clientHeight;
 
-    void (async () => {
-      const [{ gsap }, { ScrollTrigger }] = await Promise.all([import("gsap"), import("gsap/ScrollTrigger")]);
-      if (disposed) return;
-      gsap.registerPlugin(ScrollTrigger);
-      const ctx = gsap.context(() => {});
-      const seen = new WeakSet<Element>();
+    // Plays when an armed element crosses into the lower part of the screen.
+    const play = new IntersectionObserver(
+      (entries) => {
+        let i = 0;
+        for (const e of entries) {
+          const el = e.target as HTMLElement;
+          if (!e.isIntersecting || el.dataset.sr !== "wait") continue;
+          if (e.boundingClientRect.top < 0) {
+            // Came in from the top (scrolling up past a jump): just show it.
+            delete el.dataset.sr;
+            continue;
+          }
+          el.style.setProperty("--sr-i", String(Math.min(i++, MAX_STAGGER)));
+          el.dataset.sr = "in";
+        }
+      },
+      { rootMargin: "0px 0px -8% 0px" },
+    );
+    // Re-arms an element once it has left through the bottom of the screen.
+    const rearm = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting && e.boundingClientRect.top >= vh() - 1) {
+          (e.target as HTMLElement).dataset.sr = "wait";
+        }
+      }
+    });
 
-      const fresh = (selector: string) =>
-        Array.from(document.querySelectorAll<HTMLElement>(selector)).filter((el) => {
-          if (seen.has(el) || !el.closest(SCOPE) || el.closest(SKIP)) return false;
-          if (el.parentElement?.closest(".glow-border, [data-animate]")) return false; // the outer card animates
-          seen.add(el);
-          return true;
-        });
+    const scan = () => {
+      const fold = vh();
+      for (const el of document.querySelectorAll<HTMLElement>(TARGETS)) {
+        if (seen.has(el) || !el.closest(SCOPE) || el.closest(SKIP)) continue;
+        // The outer card animates; its heading, photo or inner card ride along.
+        if (el.parentElement?.closest(".glow-border, [data-animate], .reveal")) continue;
+        seen.add(el);
+        if (getComputedStyle(el).animationName !== "none") continue;
+        if (el.getBoundingClientRect().top >= fold) el.dataset.sr = "wait";
+        play.observe(el);
+        rearm.observe(el);
+      }
+    };
 
-      const twoWay = (
-        els: HTMLElement[],
-        hidden: gsap.TweenVars,
-        shown: gsap.TweenVars,
-        opts: { start?: string; stagger?: number } = {},
-      ) => {
-        if (els.length === 0) return;
-        const away = (dir: 1 | -1) => ({ ...hidden, y: dir * Math.abs(Number(hidden.y ?? 40)) * 0.6 });
-        ctx.add(() => {
-          gsap.set(els, hidden);
-          ScrollTrigger.batch(els, {
-            start: opts.start ?? "top 88%",
-            end: "bottom 8%",
-            onEnter: (b) =>
-              gsap.fromTo(b, hidden, { ...shown, stagger: opts.stagger ?? 0.08, overwrite: true }),
-            onLeave: (b) => gsap.to(b, { ...away(-1), duration: 0.5, ease: "power2.in", overwrite: true }),
-            onEnterBack: (b) =>
-              gsap.fromTo(
-                b,
-                { ...hidden, y: -Math.abs(Number(hidden.y ?? 40)) },
-                { ...shown, stagger: opts.stagger ?? 0.08, overwrite: true },
-              ),
-            onLeaveBack: (b) => gsap.to(b, { ...away(1), duration: 0.5, ease: "power2.in", overwrite: true }),
-          });
-        });
-      };
-
-      const scan = () => {
-        twoWay(
-          fresh("h2"),
-          { autoAlpha: 0, y: 44, clipPath: "inset(0% 0% 100% 0%)" },
-          { autoAlpha: 1, y: 0, clipPath: "inset(0% 0% -20% 0%)", duration: 1, ease: "expo.out" },
-        );
-        twoWay(
-          fresh(".glow-border, [data-animate]"),
-          { autoAlpha: 0, y: 64, scale: 0.95, rotateX: 8, transformPerspective: 900 },
-          { autoAlpha: 1, y: 0, scale: 1, rotateX: 0, duration: 0.95, ease: "power3.out" },
-          { start: "top 92%", stagger: 0.09 },
-        );
-        twoWay(
-          fresh("img"),
-          { autoAlpha: 0, y: 40, clipPath: "inset(14% 10% 14% 10% round 24px)" },
-          {
-            autoAlpha: 1,
-            y: 0,
-            clipPath: "inset(0% 0% 0% 0% round 0px)",
-            duration: 1.2,
-            ease: "expo.out",
-            clearProps: "clipPath",
-          },
-        );
-        ScrollTrigger.refresh();
-      };
-
-      let timer = 0;
-      const observer = new MutationObserver(() => {
-        window.clearTimeout(timer);
-        timer = window.setTimeout(scan, 150);
-      });
-      // Start once the page has loaded and gone idle, so streamed sections have
-      // hydrated before GSAP writes inline styles onto them.
-      const begin = () => {
-        if (disposed) return;
-        scan();
-        const main = document.querySelector("main");
-        if (main) observer.observe(main, { childList: true, subtree: true });
-      };
-      const idle = () => {
-        if (typeof window.requestIdleCallback === "function")
-          window.requestIdleCallback(begin, { timeout: 800 });
-        else setTimeout(begin, 200); // Safari
-      };
-      if (document.readyState === "complete") idle();
-      else window.addEventListener("load", idle, { once: true });
-
-      cleanup = () => {
-        window.removeEventListener("load", idle);
-        observer.disconnect();
-        window.clearTimeout(timer);
-        ctx.revert();
-      };
-    })();
+    let timer = 0;
+    const mutations = new MutationObserver(() => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(scan, 120);
+    });
+    const begin = () => {
+      scan();
+      const main = document.querySelector("main");
+      if (main) mutations.observe(main, { childList: true, subtree: true });
+    };
+    const raf = window.requestAnimationFrame(begin);
 
     return () => {
-      disposed = true;
-      cleanup();
+      window.cancelAnimationFrame(raf);
+      window.clearTimeout(timer);
+      mutations.disconnect();
+      play.disconnect();
+      rearm.disconnect();
+      for (const el of document.querySelectorAll<HTMLElement>("[data-sr]")) delete el.dataset.sr;
     };
   }, [pathname]);
 

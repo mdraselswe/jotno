@@ -42,11 +42,6 @@ function Card({ plan, index }: { plan: PricingCard; index: number }) {
 
   return (
     <motion.article
-      data-no-reveal
-      initial={reduce ? false : { opacity: 0, y: 60, scale: 0.92 }}
-      whileInView={{ opacity: 1, y: 0, scale: 1 }}
-      viewport={{ once: false, margin: "-80px" }}
-      transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: index * 0.08 }}
       whileTap={reduce ? undefined : { scaleX: 1.04, scaleY: 0.95 }}
       onPointerMove={move}
       onPointerLeave={reset}
