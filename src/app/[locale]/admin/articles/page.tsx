@@ -1,8 +1,17 @@
+import { Newspaper } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
-import { Private, PrivateHeading } from "@/components/layout/private-page";
-import { Badge } from "@/components/ui/badge";
+import {
+  DataTable,
+  EmptyState,
+  FilterPills,
+  PageHeader,
+  StatusBadge,
+  type Column,
+} from "@/components/layout/app-ui";
+import { SuspenseReveal } from "@/components/motion/suspense-reveal";
 import { articlePath, ROUTES } from "@/config/routes";
-import { ArticleControls, FilterChips } from "@/features/admin";
+import { AdminListSkeleton, ArticleControls, articleTone, listHref } from "@/features/admin";
 import { listArticles } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
@@ -21,57 +30,82 @@ async function Articles({ searchParams }: { searchParams: Promise<SP> }) {
   const status: Filter = (FILTERS as readonly string[]).includes(raw ?? "") ? (raw as Filter) : "all";
   const rows = await listArticles(status);
   const base = localeHref(locale, ROUTES.adminArticles);
+
+  type Row = (typeof rows)[number];
+  const columns: Column<Row>[] = [
+    {
+      key: "title",
+      header: t("adminui.articles.title"),
+      mobile: "title",
+      cell: (a) => (
+        <span className="grid min-w-0 gap-0.5">
+          {a.status === "published" ? (
+            <Link href={localeHref(locale, articlePath(a.slug))} className="line-clamp-2 hover:underline">
+              {a.title}
+            </Link>
+          ) : (
+            <span className="line-clamp-2">{a.title}</span>
+          )}
+          {a.isDemo ? (
+            <span className="text-xs font-normal text-muted-foreground">{t("common.demo")}</span>
+          ) : null}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: t("common.status"),
+      cell: (a) => <StatusBadge tone={articleTone(a.status)}>{t(`manage.article.${a.status}`)}</StatusBadge>,
+    },
+    { key: "vet", header: t("adminui.articles.author"), cell: (a) => a.vet },
+    {
+      key: "date",
+      header: t("common.date"),
+      className: "whitespace-nowrap text-muted-foreground",
+      cell: (a) => fmt.date(a.publishedAt ?? a.updatedAt),
+    },
+    {
+      key: "actions",
+      header: <span className="sr-only">{t("common.actions")}</span>,
+      className: "text-end",
+      cell: (a) => <ArticleControls id={a.id} published={a.status === "published"} title={a.title} />,
+    },
+  ];
+
   return (
     <div className="grid gap-6">
-      <PrivateHeading title={t("manage.articles")} sub={t("manage.articlesSub")} />
-      <FilterChips
-        label={t("manage.status")}
+      <PageHeader title={t("manage.articles")} sub={t("manage.articlesSub")} icon={Newspaper} />
+      <FilterPills
+        label={t("common.status")}
         items={FILTERS.map((f) => ({
-          href: f === "all" ? base : `${base}/?status=${f}`,
+          href: listHref(base, { status: f }, { status: "all" }) as Route,
           label: f === "all" ? t("common.all") : t(`manage.article.${f}`),
           active: f === status,
         }))}
       />
-      {rows.length === 0 ? (
-        <p className="text-muted-foreground">{t("admin.empty")}</p>
-      ) : (
-        <ul className="grid gap-2">
-          {rows.map((a) => (
-            <li
-              key={a.id}
-              className="flex flex-wrap items-center gap-3 rounded-(--control-radius) bg-card px-4 py-3 shadow-(--shadow-card)"
-            >
-              <span className="grid min-w-0 flex-1 gap-0.5">
-                <span className="flex flex-wrap items-center gap-2 font-medium">
-                  {a.status === "published" ? (
-                    <Link href={localeHref(locale, articlePath(a.slug))} className="hover:underline">
-                      {a.title}
-                    </Link>
-                  ) : (
-                    a.title
-                  )}
-                  <Badge variant={a.status === "published" ? "default" : "secondary"}>
-                    {t(`manage.article.${a.status}`)}
-                  </Badge>
-                  {a.isDemo ? <span className="text-xs text-muted-foreground">(demo)</span> : null}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {a.vet} · {fmt.date(a.publishedAt ?? a.updatedAt)}
-                </span>
-              </span>
-              <ArticleControls id={a.id} published={a.status === "published"} />
-            </li>
-          ))}
-        </ul>
-      )}
+      <DataTable
+        rows={rows}
+        columns={columns}
+        rowKey={(a) => a.id}
+        caption={t("manage.articles")}
+        empty={
+          <EmptyState
+            icon={Newspaper}
+            title={t("adminui.articles.empty")}
+            body={t("adminui.articles.emptyBody")}
+          />
+        }
+      />
+      {rows.length === 200 ? <p className="text-sm text-muted-foreground">{t("adminui.first200")}</p> : null}
     </div>
   );
 }
 
-export default function AdminArticlesPage({ searchParams }: PageProps<"/[locale]/admin/articles">) {
+export default async function AdminArticlesPage({ searchParams }: PageProps<"/[locale]/admin/articles">) {
+  const t = await getT();
   return (
-    <Private rows={6}>
+    <SuspenseReveal fallback={<AdminListSkeleton label={t("loading.label")} search={false} rows={6} />}>
       <Articles searchParams={searchParams} />
-    </Private>
+    </SuspenseReveal>
   );
 }

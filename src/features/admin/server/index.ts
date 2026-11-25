@@ -16,10 +16,12 @@ export {
 export {
   activeFeatured,
   adminCounts,
+  AUDIT_PAGE,
   auditEntries,
   listAppointments,
   listArticles,
   listUsers,
+  USERS_PAGE,
   openReports,
   payoutQueue,
   providerForReview,

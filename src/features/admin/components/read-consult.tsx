@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye } from "lucide-react";
+import { Eye, ShieldAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -12,6 +12,8 @@ import { useLocale, useT } from "@/i18n/client";
 import { localeHref } from "@/lib/locale-href";
 import { openConsultTranscript } from "../server/actions";
 
+const MIN = 10;
+
 /** Admin: give a reason (logged), then open the consult's chat read-only. */
 export function ReadConsultForm({ consultId, minutes }: { consultId: string; minutes: number }) {
   const t = useT();
@@ -19,6 +21,7 @@ export function ReadConsultForm({ consultId, minutes }: { consultId: string; min
   const router = useRouter();
   const [reason, setReason] = useState("");
   const [pending, start] = useTransition();
+  const left = Math.max(0, MIN - reason.trim().length);
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -33,31 +36,27 @@ export function ReadConsultForm({ consultId, minutes }: { consultId: string; min
   }
 
   return (
-    <form
-      onSubmit={submit}
-      className="grid gap-3 rounded-(--radius-2xl) bg-card p-(--card-pad) shadow-(--shadow-card)"
-      aria-labelledby="read-title"
-    >
-      <h2 id="read-title" className="font-heading text-lg font-semibold">
-        {t("monitor.read")}
-      </h2>
-      <p className="text-sm text-muted-foreground">{t("monitor.readSub", { n: minutes })}</p>
+    <form onSubmit={submit} className="grid gap-3" aria-label={t("monitor.read")}>
+      <p className="flex gap-2 rounded-(--radius-lg) bg-warning/15 px-3 py-2 text-sm text-pretty">
+        <ShieldAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+        {t("monitor.readSub", { n: minutes })}
+      </p>
       <div className="grid gap-2">
         <Label htmlFor="read-reason">{t("monitor.reason")}</Label>
         <Textarea
           id="read-reason"
-          rows={2}
+          rows={3}
           maxLength={300}
           value={reason}
+          placeholder={t("adminui.consult.reasonHint")}
+          aria-describedby="read-reason-min"
           onChange={(e) => setReason(e.target.value)}
         />
+        <p id="read-reason-min" className="text-xs text-muted-foreground" aria-live="polite">
+          {left > 0 ? t("adminui.reasonLeft", { n: left }) : t("adminui.reasonOk")}
+        </p>
       </div>
-      <Button
-        type="submit"
-        variant="outline"
-        className="justify-self-start"
-        disabled={pending || reason.trim().length < 10}
-      >
+      <Button type="submit" variant="outline" className="w-full" disabled={pending || left > 0}>
         <Eye aria-hidden="true" />
         {t("monitor.openChat")}
       </Button>

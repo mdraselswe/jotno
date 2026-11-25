@@ -20,6 +20,8 @@ export async function adminCounts() {
       openQuestions: sql<number>`(select count(*)::int from ${schema.questions} where status = 'open')`,
       openReports: sql<number>`(select count(*)::int from ${schema.reports} where resolved_at is null)`,
       paidOrders: sql<number>`(select count(*)::int from ${schema.orders} where status = 'paid')`,
+      paymentsReview: sql<number>`(select count(*)::int from ${schema.payments} where status = 'review')`,
+      refundsDue: sql<number>`(select count(*)::int from ${schema.payments} where status = 'refund_due')`,
     })
     .from(sql`(select 1) as one`);
   return Object.fromEntries(Object.entries(row ?? {}).map(([k, v]) => [k, Number(v)])) as Record<
@@ -32,12 +34,17 @@ export async function adminCounts() {
     | "refunded30"
     | "openQuestions"
     | "openReports"
-    | "paidOrders",
+    | "paidOrders"
+    | "paymentsReview"
+    | "refundsDue",
     number
   >;
 }
 
-export async function providersByStatus(status: (typeof P.$inferSelect)["status"] | "all") {
+/** Vets by status (200 newest), optionally by name, email or BVC number. */
+export async function providersByStatus(status: (typeof P.$inferSelect)["status"] | "all", q = "") {
+  const term = q.trim().slice(0, 60);
+  const like = `%${term.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
   return db()
     .select({
       id: P.id,
@@ -53,7 +60,14 @@ export async function providersByStatus(status: (typeof P.$inferSelect)["status"
     .from(P)
     .innerJoin(schema.profiles, eq(schema.profiles.id, P.profileId))
     .leftJoin(schema.districts, eq(schema.districts.id, P.districtId))
-    .where(status === "all" ? undefined : eq(P.status, status))
+    .where(
+      and(
+        status === "all" ? undefined : eq(P.status, status),
+        term
+          ? or(ilike(P.displayName, like), ilike(schema.profiles.email, like), ilike(P.registrationNo, like))
+          : undefined,
+      ),
+    )
     .orderBy(desc(P.submittedAt), desc(P.createdAt))
     .limit(200);
 }
@@ -193,21 +207,49 @@ export async function openReports() {
     .limit(100);
 }
 
-export async function auditEntries(limit = 200) {
+export const AUDIT_PAGE = 50;
+
+/**
+ * The audit log, newest first: optionally only some action groups
+ * (`["user."]`), a search over who, what and which id, and a page (50 a page;
+ * one extra row tells the page there is a next one).
+ */
+export async function auditEntries({
+  prefixes = [],
+  q = "",
+  page = 1,
+}: { prefixes?: readonly string[]; q?: string; page?: number } = {}) {
+  const A = schema.auditLog;
+  const term = q.trim().slice(0, 60);
+  const like = `%${term.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
   return db()
     .select({
-      id: schema.auditLog.id,
-      action: schema.auditLog.action,
-      entity: schema.auditLog.entity,
-      entityId: schema.auditLog.entityId,
-      meta: schema.auditLog.meta,
-      createdAt: schema.auditLog.createdAt,
+      id: A.id,
+      action: A.action,
+      entity: A.entity,
+      entityId: A.entityId,
+      meta: A.meta,
+      createdAt: A.createdAt,
       actor: schema.profiles.email,
     })
-    .from(schema.auditLog)
-    .leftJoin(schema.profiles, eq(schema.profiles.id, schema.auditLog.actorId))
-    .orderBy(desc(schema.auditLog.createdAt))
-    .limit(limit);
+    .from(A)
+    .leftJoin(schema.profiles, eq(schema.profiles.id, A.actorId))
+    .where(
+      and(
+        prefixes.length > 0 ? or(...prefixes.map((p) => ilike(A.action, `${p}%`))) : undefined,
+        term
+          ? or(
+              ilike(A.action, like),
+              ilike(A.entity, like),
+              ilike(A.entityId, like),
+              ilike(schema.profiles.email, like),
+            )
+          : undefined,
+      ),
+    )
+    .orderBy(desc(A.createdAt))
+    .limit(AUDIT_PAGE + 1)
+    .offset((Math.max(1, page) - 1) * AUDIT_PAGE);
 }
 
 export async function recentRefundable() {
@@ -228,8 +270,10 @@ export async function recentRefundable() {
 
 export type UserRoleFilter = "owner" | "vet" | "admin" | "all";
 
-/** Admin: people, newest first, by name/email/phone and role. */
-export async function listUsers(q: string, role: UserRoleFilter) {
+export const USERS_PAGE = 50;
+
+/** Admin: people, newest first, by name/email/phone and role (50 a page, plus one to tell if there's more). */
+export async function listUsers(q: string, role: UserRoleFilter, page = 1) {
   const PF = schema.profiles;
   const term = q.trim().slice(0, 60);
   const like = `%${term.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
@@ -255,7 +299,8 @@ export async function listUsers(q: string, role: UserRoleFilter) {
       ),
     )
     .orderBy(desc(PF.createdAt))
-    .limit(100);
+    .limit(USERS_PAGE + 1)
+    .offset((Math.max(1, page) - 1) * USERS_PAGE);
 }
 
 /** Admin: every article (drafts too), newest first. */
