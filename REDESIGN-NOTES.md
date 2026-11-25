@@ -1,6 +1,6 @@
 # Jotno redesign — hand-over note
 
-Branch: **`redesign/pro-ui`** (local only; push ba `main`-e merge kora hoyni — `main`-e push korlei jotnocare.com ar demo auto-deploy hoy).
+Branch: **`redesign/pro-ui`** — 2026-11-25-e `main`-e merge kore push kora hoyeche (`main`-e push korlei jotnocare.com ar demo auto-deploy hoy). Kono database migration nei.
 
 ## Locally kivabe chalaben
 
@@ -117,60 +117,74 @@ Prottek page 360px mobile, desktop, light ar dark — char bhabe dekhun.
 3. **Prescription form** — upore patient/owner/somossa, 3 ta numbered section (Diagnosis → Medicines → Advice ar follow-up), quick chip (দিনে ১/২/৩ বার, দরকার হলে; ৩/৫/৭/১০/১৪ দিন; খাবারের আগে/পরে; follow-up ৩/৭/১৪/৩০ দিন), field-er niche error, niche summary (কয়টা ওষুধ · follow-up).
 4. **Profile chobi shob jaygay** — owner-er chobi ekhon vet-er chat header/bubble/call screen/chat list-e, admin user list-e, account page-e (Google chobi fallback shoho); vet-er account chobi vet photo na thakle chat-e. Settings ba vet profile-e chobi save korle header/menu **reload chara** shathe shathe bodlay.
 
-## Open issues / apnar decision lagbe
+## Tritiyo dofa — 33 ta issue-er ki holo
 
-(Egulo bodlano hoyni — product decision lage ba app bhangte pare.)
+**Chat / call**
 
-**Chat**
-
-1. Inbox list-e last message/last time nei (query-te nei) — case summary + start date dekhay. Ashol last message dekhate `consults/server/queries.ts` bodlate hobe.
-2. Call-e flip camera / speaker button nei — `peer.ts` media code-e notun function lagbe.
-3. "Seen" shudhu amar shesh message-e.
+- **1.** **Inbox-e last message** — chat list-e ekhon ashol shesh message ("আপনি: …", "ছবি", call-er line) ar tar shomoy; list shesh activity onujayi shajano.
+- **2.** **Flip camera** — video call-e camera ghurano button (shamne/pichhone; phone-e 2 ta camera thakle dekhay). Speaker button web-e (bishesh kore iPhone-e) shombhob na — phone-er nijer volume/speaker use hoy.
+- **3.** "Seen" shudhu shesh message-e — Messenger-er moto, iccha kore emon rakha.
+- **33.** **Call = reply shudhu 30 second kotha holei** (`business.consult.call.replySeconds`, config-e bodlano jay). 2 second-er call ar reply na. Call cholakalin refund job chat refund kore na.
 
 **Shop / payment**
 
-4. Return policy ar delivery time (Dhaka 1–3 din, baire 2–5 din) text assumption — confirm korun.
-5. Server `checkout()` 0-taka coupon-eo `used` baray — server-e fix kora uchit (payment logic, chhoyini).
-6. COD order limit cart-e dekhay na, pay page-e giye dekhay.
-7. Puron order-e 50-er beshi product thakle kichu thumbnail category art dekhay.
+- **4.** Delivery/return din ekhon config-e (`business.shop.deliveryDays`, `returnDays`) — product page ar legal page dui jaygay shei number. Ashol din-gulo confirm kore config-e bosaben.
+- **5.** 0-taka coupon checkout-e bad pore, `used` bare na.
+- **6.** COD limit-er beshi hole cart-ei COD lukay, karon lekha thake.
+- **7.** Order list-e thumbnail ekhon shudhu oi order-er product theke (50-er limit nei).
 
 **Owner / auth**
 
-8. Photo upload chalakalin Save chapa jay → photo chara save hoy (`ImageUpload`-e busy state lagbe).
-9. `runHealthReminders` push job purono vaccine record-eo reminder pathay.
-10. Settings-e language bodlale `profiles.locale` (push-er bhasha) bodlay na.
+- **8.** Chobi upload cholakalin Save button bondho ("আপলোড হচ্ছে…") — pet, profile, vet profile, admin shop, question form.
+- **9.** Health reminder shudhu shesh (current) vaccine/deworm record theke.
+- **10.** Language bodlale `profiles.locale`-o bodlay, tai push shei bhashay ashe.
 
 **Public**
 
-11. `/vets`-e sort nei (query-te sort input lagbe).
-12. Area filter shudhu oi area-r vet upore ane, baki district-er vet-o dekhay — strict filter chan?
-13. Vet list 300 row cap + "load more" page×12 refetch.
-14. Admin (vet profile chara) answer form dekhe kintu submit fail hoy.
-15. "30 min-e reply na dile taka ferot" promise live kina confirm korun; emergency hotline number set nei; first-aid text vet-ke diye review korate hobe.
+- **11.** `/vets`-e sort (best match / rating / fee kom→beshi / experience).
+- **12.** Area dile age oi area-r vet, tarpor "জেলার অন্য ভেট" bhag kore baki district-er vet.
+- **13.** Sort/paging ekhon database-e, 300 cap nei; "আরো দেখুন" shudhu porer 12 ta ane.
+- **14.** Answer form shudhu verified vet profile ache emon user dekhe (admin-er form ar fail kore na).
+- **15.** Refund promise legal page-e config theke (`replyWindowMinutes`). Hotline number set na thakle button lukano (bhul number dekhay na). **Baki:** hotline number apni din (`business.emergencyHotline`); first-aid text ekjon vet-ke diye review korate hobe.
 
 **Vet dashboard**
 
-16. Schedule save korle `completeness` (search ranking) update hoy na — porer profile save porjonto.
-17. Availability bodlale public vet page-er dot cache expire na howa porjonto purono thakte pare.
-18. Vet-er payout account (bKash/Nagad/bank) deyar jayga nei — admin hate payout record kore.
-19. Poisha shoho fee profile abar save korle whole taka-y round hoy.
+- **16.** Schedule save korle completeness (search ranking) shathe shathe update.
+- **17.** Availability bodlale public page-gulo shathe shathe refresh.
+- **18.** Earnings page-e **payout account** card (bKash / Nagad / bank); admin payout page-e vet-er account dekhay. (Notun table na, `settings` table-e — migration lage na.)
+- **19.** Fee poisha shoho save hoy (step 0.01).
+- **32.** Vet offline thakle owner chat/booking page-e "ei vet ekhon offline, uttor dite deri hote pare" note; chat khola bondho kora hoyni.
 
 **Admin**
 
-20. `draft` vet-keo verify kora jay (shudhu warning dekhay) — server-e block korben?
-21. `suspendProvider` server-e reason chara-o hoy (UI-te required).
-22. Report "hide" answer/review permanently delete kore — soft-hide korben?
-23. Vet/consult/article/appointment list 100/200 row-e thame (paging nei).
-24. Overview-e COD (`placed`) order "to pack" hisebe gona hoy na.
-25. Payout push text shudhu English.
+- **20.** Shudhu `pending` / `suspended` vet verify kora jay (server-e block).
+- **21.** Suspend/reject-e reason lagbe (kompokkhe 3 okkhor) server-eo.
+- **22.** Report "hide" korle copy audit log-e thake; audit page-e **Restore** button diye ferot ana jay.
+- **23.** Admin list-e paging (আগের / পরের).
+- **24.** Overview-e COD (`placed`) order "to pack"-e gona hoy.
+- **25.** Payout, verify, reject, article remove, visit cancel — vet-er push tar nijer bhashay.
+- **28.** Audit log-e action-er Bangla/English label.
+- **30.** Admin tab title Bangla/English.
 
 **Onnanno**
 
-26. `lenis` package remove kora hoyeche (ar use hoy na).
-27. E2E (`pnpm test:e2e`) chalano hoyni — shop filter test-e phone sheet bondho korar step add kora hoyeche; dui project-ei chalan.
-28. Admin audit log-e action code (`consult.refund`, `payment.paid`) raw dekhay — admin-er jonno chole, chaile label map kora jay.
-29. Demo vet "Dr. Nusrat Jahan"-er profile photo nei, tai avatar-e initial dekhay — photo upload kore header/menu-te chobi check korun.
-30. Admin page-gulor browser tab title ekhono English ("Admin · Vets") — shudhu staff dekhe; chaile `generateMetadata` + `getT()` diye Bangla kora jay (owner/vet page-e kora hoyeche).
-31. **App-er baire vet-ke "jor kore" janano**: push shudhu tokhon kaj kore jokhon vet notification on koreche (Android Chrome-e browser bondho thakleo ashe; iPhone-e shudhu "Add to Home Screen" kora app-e). Push off ba phone-e internet nei emon vet-er jonno SMS (BD-r kono SMS provider, prottek SMS-e khoroch) ba auto voice call lagbe — provider ar khoroch apnar decision. Proposal: chat khulle + 15 min-e SMS.
-32. Vet "available now" off thakleo owner paid chat khulte pare kina — off vet-er kache chat na pathano (ba owner-ke "ei vet ekhon offline, uttor dite deri hote pare" dekhano) apnar decision.
-33. Call answer holei reply dhora hoy, call 2 second-e kete geleo. Chaile "minimum 30 second kotha" niyom kora jay.
+- **26.** `lenis` remove (info).
+- **27.** E2E local Supabase-e chalano hoyeche: desktop + mobile, 78 ta test pass (4 ta iccha kore skip). Purono design dhore lekha test (theme picker, chat bhetor "Active now", phone-e lukano hero button, filter chip) notun design-e update kora.
+- **29.** Demo vet-er photo nei — data-r bishoy, code na.
+- **31.** **SMS / voice call** — apnar decision baki: kon SMS provider (BD), account/key, ar khoroch. Ekhon: push (chat khulle, 10 ar 20 min-e) + app-er jekono page-e alert + 20 min-e admin-ke push.
+
+### Shob fix-er pore regression check-e paoa ar thik kora
+
+- Call shesh ar "reply" dhora ekshathe (ek transaction) — refund cron majhkhane dhukte pare na; refund hoye jaoa chat-e call "reply" hoy na.
+- Vet call-e thakle "owner wait korche" push/alert ar admin push jay na.
+- Camera flip: purono camera chhede tarpor notun ta khole (Android), mic abar chay na (iPhone-e mic mute hoy na); fail korle aager camera-y ferot.
+- Report-e ekmatro answer hide korle question abar "open"; restore korle abar "answered".
+- `/vets` area bhag ekhon vet-er area dekhe (position na); 20 page-er pore "আরো দেখুন" shudhu button.
+- Accessibility (axe): footer-er Facebook button-er neel ar lal (`destructive`) rong ek dhap garho — chhoto lekha 4.5:1 contrast pay; emergency page-er hero lekha puro rong-e.
+
+### Apnar kaj / decision baki
+
+- SMS provider (31) ar tar key.
+- Emergency hotline number (15).
+- First-aid text vet review (15).
+- Delivery/return din confirm (4).
