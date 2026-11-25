@@ -98,7 +98,8 @@
   --success-foreground: oklch(0.985 var(--nc, 0) var(--nh, 0));
   --warning: oklch(0.8 0.16 80);
   --warning-foreground: oklch(0.25 0.05 70);
-  --info: oklch(0.55 0.15 245);
+  /* Dark enough for small blue text on a blue tint (status and level badges) to pass 4.5:1. */
+  --info: oklch(0.48 0.14 245);
   --info-foreground: oklch(0.985 var(--nc, 0) var(--nh, 0));
   --border: oklch(0.885 0.01 80);
   --input: oklch(0.8 0.012 80);
