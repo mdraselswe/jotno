@@ -3,7 +3,7 @@
  *
  * Life of a consult:
  *   pending_payment ──paid──▶ active ──24h or vet closes──▶ closed
- *          │                    └──vet silent 30 min──▶ refunded (full, automatic)
+ *          │                    └──vet silent (window)─▶ refunded (full, automatic)
  *          └──payment fails / owner cancels──▶ cancelled
  */
 export type ConsultStatus = "pending_payment" | "active" | "closed" | "refunded" | "cancelled";

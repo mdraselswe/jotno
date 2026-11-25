@@ -37,7 +37,7 @@ async function Start({ params }: { params: Promise<{ slug: string }> }) {
     {
       icon: ShieldCheck,
       tone: "bg-success/12 text-success",
-      text: t("consult.rule1").replace("30", String(business.consult.replyWindowMinutes)),
+      text: t("consult.rule1", { n: fmt.number(business.consult.replyWindowMinutes) }),
     },
     { icon: Clock, tone: "bg-primary/10 text-primary", text: t("consult.rule2") },
     { icon: CircleAlert, tone: "bg-destructive/10 text-destructive", text: t("consult.rule3") },

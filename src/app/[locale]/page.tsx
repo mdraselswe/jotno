@@ -172,6 +172,8 @@ export default async function HomePage() {
     };
   });
 
+  // The vet-reply promise comes from config, so the copy can't drift from the refund rule.
+  const replyVars = { reply: fmt.number(business.consult.replyWindowMinutes) };
   const priceVars = {
     free: taka(fmt, 0),
     chat: taka(fmt, business.consult.minFee),
@@ -183,7 +185,7 @@ export default async function HomePage() {
     price: format(p.price, priceVars),
     unit: p.unit,
     body: p.body,
-    points: p.points,
+    points: p.points.map((x) => format(x, replyVars)),
     cta: p.cta,
     href: localeHref(locale, hrefFor[p.href]),
     featured: p.featured,
@@ -201,7 +203,7 @@ export default async function HomePage() {
         next={c.orbit.next}
         pause={c.orbit.pause}
         play={c.orbit.play}
-        badges={c.orbit.badges}
+        badges={c.orbit.badges.map((b) => format(b, replyVars))}
         footer={
           <Marquee
             items={c.marquee}
@@ -264,7 +266,7 @@ export default async function HomePage() {
                 className="-ms-3 w-36 transition-transform duration-(--motion-slow) ease-out-expo group-hover:scale-105"
               />
               <h3 className="font-heading text-2xl font-bold tracking-tight">{s.title}</h3>
-              <p className="text-muted-foreground">{s.body}</p>
+              <p className="text-muted-foreground">{format(s.body, replyVars)}</p>
             </li>
           ))}
         </ol>

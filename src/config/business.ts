@@ -4,12 +4,15 @@ import { businessSchema, type BusinessConfig } from "./schema.ts";
  * ✏️ Business rules: prices, commissions and time windows. Money is integer
  * poisha (৳1 = 100). Change here, not in code. See jotno-plan.md → Business model.
  */
+/** Minutes a vet has to answer a paid chat or quick help before the owner gets their money back. */
+const REPLY_MINUTES = 60;
+
 const business: BusinessConfig = {
   consult: {
     // Launch offer: 10% for the first months to bring vets in (plan: 15–20% later).
     commissionBps: 1_000,
     openHours: 24,
-    replyWindowMinutes: 30,
+    replyWindowMinutes: REPLY_MINUTES,
     intakePhotos: 3,
     minFee: 10_000,
     maxFee: 300_000,
@@ -33,12 +36,12 @@ const business: BusinessConfig = {
     deliveryDays: { inside: { min: 1, max: 3 }, outside: { min: 2, max: 5 } },
     returnDays: 3,
   },
-  // ৳99 quick help: the vet gets ৳70, Jotno ৳29. No answer in 60 min: free retry or money back.
+  // ৳99 quick help: the vet gets ৳70, Jotno ৳29. No answer in time: free retry or money back.
   quick: {
     enabled: true,
     fee: 9_900,
     vetShare: 7_000,
-    answerMinutes: 60,
+    answerMinutes: REPLY_MINUTES,
     openMinutes: 120,
     ownerMessages: 6,
     photos: 3,

@@ -68,7 +68,7 @@ export const homeContent: Record<string, HomeContent> = {
       {
         icon: "chat",
         title: "Chat or book",
-        body: "Pay a small fee for a 24-hour chat, or book a clinic visit. No reply in 30 minutes? Full refund.",
+        body: "Pay a small fee for a 24-hour chat, or book a clinic visit. No reply in {reply} minutes? Full refund.",
       },
       {
         icon: "heart",
@@ -108,7 +108,7 @@ export const homeContent: Record<string, HomeContent> = {
         chicken: "Flock health, Newcastle and feed",
       },
       find: "Find a {pet} vet",
-      badges: ["BVC verified", "Reply in 30 min", "Money-back promise"],
+      badges: ["BVC verified", "Reply in {reply} min", "Money-back promise"],
     },
     marquee: [
       "Verified vets",
@@ -147,7 +147,7 @@ export const homeContent: Record<string, HomeContent> = {
           unit: "per chat",
           body: "Private 24-hour chat with a verified vet, photos included.",
           points: [
-            "Vet replies within 30 minutes",
+            "Vet replies within {reply} minutes",
             "Full refund if they don't",
             "Prescription notes in the chat",
             "Pay by bKash or Nagad",
@@ -195,7 +195,7 @@ export const homeContent: Record<string, HomeContent> = {
       {
         icon: "chat",
         title: "চ্যাট বা বুক করুন",
-        body: "অল্প ফি দিয়ে ২৪ ঘণ্টার চ্যাট, বা চেম্বারে ভিজিট বুক করুন। ৩০ মিনিটে উত্তর না পেলে পুরো টাকা ফেরত।",
+        body: "অল্প ফি দিয়ে ২৪ ঘণ্টার চ্যাট, বা চেম্বারে ভিজিট বুক করুন। {reply} মিনিটে উত্তর না পেলে পুরো টাকা ফেরত।",
       },
       {
         icon: "heart",
@@ -235,7 +235,7 @@ export const homeContent: Record<string, HomeContent> = {
         chicken: "খামারের স্বাস্থ্য, রানীক্ষেত আর খাবার",
       },
       find: "{pet}র ভেট খুঁজুন",
-      badges: ["BVC যাচাইকৃত", "৩০ মিনিটে উত্তর", "না হলে টাকা ফেরত"],
+      badges: ["BVC যাচাইকৃত", "{reply} মিনিটে উত্তর", "না হলে টাকা ফেরত"],
     },
     marquee: [
       "যাচাইকৃত ভেট",
@@ -274,7 +274,7 @@ export const homeContent: Record<string, HomeContent> = {
           unit: "প্রতি চ্যাট",
           body: "যাচাইকৃত ভেটের সাথে ২৪ ঘণ্টার প্রাইভেট চ্যাট, ছবিসহ।",
           points: [
-            "৩০ মিনিটের মধ্যে ভেটের উত্তর",
+            "{reply} মিনিটের মধ্যে ভেটের উত্তর",
             "না দিলে পুরো টাকা ফেরত",
             "চ্যাটেই প্রেসক্রিপশন নোট",
             "বিকাশ বা নগদে পেমেন্ট",
