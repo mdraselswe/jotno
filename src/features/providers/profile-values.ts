@@ -1,6 +1,9 @@
 import type { VetProfileValues } from "./components/vet-profile-form";
 
-const taka = (poisha: number) => String(Math.round(poisha / 100));
+/** Poisha → the fee box's text, keeping poisha: 35000 → "350", 35050 → "350.50". */
+export function vetFeeInput(poisha: number): string {
+  return poisha % 100 === 0 ? String(poisha / 100) : (poisha / 100).toFixed(2);
+}
 
 interface StoredProfile {
   displayName: string;
@@ -24,7 +27,7 @@ interface StoredProfile {
   speciesIds: number[];
 }
 
-/** A stored vet profile as the form's starting values (fees in taka, blanks as ""). */
+/** A stored vet profile as the form's starting values (fees in taka with poisha, blanks as ""). */
 export function vetProfileValues(p: StoredProfile): VetProfileValues {
   return {
     displayName: p.displayName,
@@ -33,8 +36,8 @@ export function vetProfileValues(p: StoredProfile): VetProfileValues {
     qualifications: p.qualifications ?? "",
     registrationNo: p.registrationNo ?? "",
     experienceYears: p.experienceYears == null ? "" : String(p.experienceYears),
-    consultFeeTaka: taka(p.consultFee),
-    visitFeeTaka: taka(p.visitFee),
+    consultFeeTaka: vetFeeInput(p.consultFee),
+    visitFeeTaka: vetFeeInput(p.visitFee),
     clinicName: p.clinicName ?? "",
     address: p.address ?? "",
     districtId: p.districtId,

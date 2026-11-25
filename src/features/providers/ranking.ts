@@ -22,24 +22,58 @@ export interface RankInput {
   lastSeenAt: Date | null;
 }
 
+/**
+ * The points behind `rankScore`. The vet search computes the same score in SQL
+ * (server/queries.ts → `rankScoreSql`) from these numbers, so the two agree.
+ */
+export const RANK = {
+  /** Platform mean rating and how many "virtual reviews" it counts as. */
+  priorRating: 4.2,
+  priorWeight: 5,
+  ratingPoints: 40,
+  completenessPoints: 15,
+  /** log10(1 + consults) × this, capped at `consultMax`. */
+  consultFactor: 5,
+  consultMax: 10,
+  sameArea: 12,
+  /** Up to `nearMax` points, minus `nearPerKm` per km (0 after 8 km). */
+  nearMax: 12,
+  nearPerKm: 1.5,
+  speciesMatch: 6,
+  available: 8,
+  availableEmergency: 30,
+  emergency24x7: 15,
+  /** Seen within [days, points], first match wins. */
+  seen: [
+    [1, 5],
+    [7, 3],
+    [30, 1],
+  ],
+} as const;
+
 /** Bayesian average: few reviews pull toward the platform mean, so 1×5★ doesn't beat 40×4.8★. */
-export function bayesianRating(sum: number, count: number, prior = 4.2, weight = 5): number {
+export function bayesianRating(
+  sum: number,
+  count: number,
+  prior = RANK.priorRating,
+  weight = RANK.priorWeight,
+): number {
   return (sum + prior * weight) / (count + weight);
 }
 
 export function rankScore(p: RankInput, now: Date, emergency = false): number {
   let score = 0;
-  score += (bayesianRating(p.ratingSum, p.ratingCount) / 5) * 40; // up to 40
-  score += (Math.min(p.completeness, 100) / 100) * 15; // up to 15
-  score += Math.min(Math.log10(1 + p.consultCount) * 5, 10); // up to 10
-  if (p.sameArea) score += 12;
-  if (p.distanceKm !== null) score += Math.max(0, 12 - p.distanceKm * 1.5); // close is better, 0 after 8 km
-  if (p.speciesMatch) score += 6;
-  if (p.availableNow) score += emergency ? 30 : 8;
-  if (emergency && p.emergency24x7) score += 15;
+  score += (bayesianRating(p.ratingSum, p.ratingCount) / 5) * RANK.ratingPoints;
+  score += (Math.min(p.completeness, 100) / 100) * RANK.completenessPoints;
+  score += Math.min(Math.log10(1 + p.consultCount) * RANK.consultFactor, RANK.consultMax);
+  if (p.sameArea) score += RANK.sameArea;
+  if (p.distanceKm !== null) score += Math.max(0, RANK.nearMax - p.distanceKm * RANK.nearPerKm);
+  if (p.speciesMatch) score += RANK.speciesMatch;
+  if (p.availableNow) score += emergency ? RANK.availableEmergency : RANK.available;
+  if (emergency && p.emergency24x7) score += RANK.emergency24x7;
   if (p.lastSeenAt) {
     const days = (now.getTime() - p.lastSeenAt.getTime()) / 86_400_000;
-    score += days < 1 ? 5 : days < 7 ? 3 : days < 30 ? 1 : 0;
+    score += RANK.seen.find(([within]) => days < within)?.[1] ?? 0;
   }
   return Math.round(score * 100) / 100;
 }

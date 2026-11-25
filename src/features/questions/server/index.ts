@@ -2,6 +2,7 @@ import "server-only";
 
 export {
   answeredHighlights,
+  answeringVet,
   answeredQuestionIds,
   getQuestion,
   listQuestions,

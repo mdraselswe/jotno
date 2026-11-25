@@ -12,6 +12,7 @@ import type { MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
 import { audit, rateLimit } from "@/infrastructure/db/helpers";
 import { localeHref } from "@/lib/locale-href";
+import { answeringVet } from "./queries";
 
 const Q = schema.questions;
 const AN = schema.answers;
@@ -61,12 +62,8 @@ export async function answerQuestion(
   if (!viewer) return { ok: false, error: "common.notAllowed" };
   const parsed = answerSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "qa.answerShort" };
-  const [vet] = await db()
-    .select({ id: schema.providers.id, status: schema.providers.status, name: schema.providers.displayName })
-    .from(schema.providers)
-    .where(eq(schema.providers.profileId, viewer.id))
-    .limit(1);
-  if (!vet || vet.status !== "verified") return { ok: false, error: "qa.verifiedOnly" };
+  const vet = await answeringVet(viewer);
+  if (!vet) return { ok: false, error: "qa.verifiedOnly" };
   if (!(await rateLimit(`answer:${viewer.id}`, 40, 3600))) return { ok: false, error: "common.tooMany" };
 
   const [q] = await db()

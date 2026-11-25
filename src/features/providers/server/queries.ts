@@ -1,10 +1,11 @@
 import "server-only";
-import { and, asc, desc, eq, gt, ilike, isNull, lte, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ilike, isNull, lte, notInArray, or, sql, type SQL } from "drizzle-orm";
 import { business } from "@/config";
 import { db, schema } from "@/infrastructure/db";
 import { mediaUrl } from "@/infrastructure/storage";
 import { shortId, slugify } from "@/lib/slug";
-import { rankScore } from "../ranking";
+import { completeness, RANK } from "../ranking";
+import { DEFAULT_VET_SORT, type VetSort } from "../vet-sort";
 
 const p = schema.providers;
 const a = schema.areas;
@@ -28,6 +29,7 @@ export interface ProviderCard {
   areaEn: string | null;
   districtBn: string | null;
   districtEn: string | null;
+  areaId: number | null;
   consultFee: number;
   visitFee: number;
   rating: number | null;
@@ -92,6 +94,7 @@ function toCard(row: Record<string, unknown>, distanceKm: number | null, feature
     areaEn: string | null;
     districtBn: string | null;
     districtEn: string | null;
+    areaId: number | null;
     consultFee: number;
     visitFee: number;
     ratingSum: number;
@@ -118,6 +121,7 @@ function toCard(row: Record<string, unknown>, distanceKm: number | null, feature
     areaEn: r.areaEn,
     districtBn: r.districtBn,
     districtEn: r.districtEn,
+    areaId: r.areaId ?? null,
     consultFee: r.consultFee,
     visitFee: r.visitFee,
     rating: r.ratingCount > 0 ? Math.round((r.ratingSum / r.ratingCount) * 10) / 10 : null,
@@ -139,6 +143,7 @@ function toCard(row: Record<string, unknown>, distanceKm: number | null, feature
 
 export interface SearchInput {
   districtId?: number | null;
+  /** With `districtId`: this area's vets come first (`areaTotal` says how many). */
   areaId?: number | null;
   species?: string | null;
   emergency?: boolean;
@@ -148,19 +153,63 @@ export interface SearchInput {
   /** With `near`: only vets within this many km (their clinic location). */
   radiusKm?: number;
   q?: string | null;
+  sort?: VetSort;
+  /** Page `page` of `pageSize` (default: the first 12). */
   page?: number;
   pageSize?: number;
+  /** A row window instead of a page: skip `offset` vets, return up to `limit` (max 300). */
+  offset?: number;
+  limit?: number;
+}
+
+/** A number we wrote ourselves, inlined into SQL (never user input). */
+const num = (v: number) => sql.raw(String(v));
+
+/** Bayesian average rating in SQL (see `bayesianRating`). */
+const bayesSql = sql<number>`((${p.ratingSum} + ${num(RANK.priorRating)} * ${num(RANK.priorWeight)})::float8 / (${p.ratingCount} + ${num(RANK.priorWeight)}))`;
+
+/**
+ * `rankScore` (ranking.ts) as SQL, so the database can sort and page the
+ * whole result. Species match is left out: it is the same for every row of a
+ * species search, so it never changes the order.
+ */
+function rankScoreSql(o: { areaId: number | null; distanceKm: SQL | null; emergency: boolean }): SQL<number> {
+  const parts: SQL[] = [
+    sql`${bayesSql} / 5 * ${num(RANK.ratingPoints)}`,
+    sql`least(${p.completeness}, 100)::float8 / 100 * ${num(RANK.completenessPoints)}`,
+    sql`least(log((1 + ${p.consultCount})::float8) * ${num(RANK.consultFactor)}, ${num(RANK.consultMax)})`,
+    sql`case when ${availableSql} then ${num(o.emergency ? RANK.availableEmergency : RANK.available)} else 0 end`,
+    sql`case ${sql.join(
+      RANK.seen.map(
+        ([days, points]) =>
+          sql`when ${p.lastSeenAt} > now() - ${num(days)} * interval '1 day' then ${num(points)}`,
+      ),
+      sql` `,
+    )} else 0 end`,
+  ];
+  if (o.areaId) parts.push(sql`case when ${p.areaId} = ${o.areaId} then ${num(RANK.sameArea)} else 0 end`);
+  if (o.distanceKm)
+    parts.push(sql`greatest(0, ${num(RANK.nearMax)} - ${o.distanceKm} * ${num(RANK.nearPerKm)})`);
+  if (o.emergency) parts.push(sql`case when ${p.emergency24x7} then ${num(RANK.emergency24x7)} else 0 end`);
+  return sql<number>`round((${sql.join(parts, sql` + `)})::numeric, 2)`;
+}
+
+export interface SearchResult {
+  /** Sponsored vets (not counted in `total`, never repeated in `results`). */
+  featured: ProviderCard[];
+  results: ProviderCard[];
+  /** All matching organic vets. */
+  total: number;
+  /** With an area: how many of `total` are in it (they come first). Else null. */
+  areaTotal: number | null;
 }
 
 /**
  * Verified vets for a search: sponsored ones (max a few per district, clearly
- * labelled) and the organic list ranked by `rankScore`.
+ * labelled) and one page of the organic list, sorted and paged by the
+ * database ("recommended" is `rankScore`).
  */
-export async function searchProviders(input: SearchInput): Promise<{
-  featured: ProviderCard[];
-  results: ProviderCard[];
-  total: number;
-}> {
+export async function searchProviders(input: SearchInput): Promise<SearchResult> {
   const conds: SQL[] = [eq(p.status, "verified")];
   if (input.districtId) conds.push(eq(p.districtId, input.districtId));
   if (input.species) {
@@ -184,8 +233,8 @@ export async function searchProviders(input: SearchInput): Promise<{
     ? sql`extensions.st_setsrid(extensions.st_makepoint(${near.lon}, ${near.lat}), 4326)::extensions.geography`
     : null;
   const distanceSql = point
-    ? sql<number | null>`extensions.st_distance(${p.location}::extensions.geography, ${point}) / 1000`
-    : sql<number | null>`null`;
+    ? sql<number | null>`(extensions.st_distance(${p.location}::extensions.geography, ${point}) / 1000)`
+    : null;
   if (point) {
     // Only vets with a clinic location inside the radius (uses the location index).
     conds.push(
@@ -193,50 +242,67 @@ export async function searchProviders(input: SearchInput): Promise<{
     );
   }
 
-  const rows = await db()
-    .select({ ...cardColumns, distanceKm: distanceSql })
-    .from(p)
-    .leftJoin(a, eq(a.id, p.areaId))
-    .leftJoin(d, eq(d.id, p.districtId))
-    .where(and(...conds))
-    .limit(300);
-
-  const now = new Date();
-  const ranked = rows
-    .map((row) => {
-      const distanceKm = row.distanceKm === null ? null : Number(row.distanceKm);
-      const score = rankScore(
-        {
-          ratingSum: row.ratingSum,
-          ratingCount: row.ratingCount,
-          completeness: row.completeness,
-          availableNow: Boolean(row.availableNow),
-          emergency24x7: row.emergency24x7,
-          consultCount: row.consultCount,
-          distanceKm,
-          sameArea: Boolean(input.areaId && row.areaId === input.areaId),
-          speciesMatch: Boolean(input.species),
-          lastSeenAt: row.lastSeenAt,
-        },
-        now,
-        input.emergency,
-      );
-      return { card: toCard(row, distanceKm, false), score };
-    })
-    // Near me: nearest first (to the half km), best ranked among equals.
-    .sort((x, y) =>
-      near
-        ? Math.round((x.card.distanceKm ?? 0) * 2) - Math.round((y.card.distanceKm ?? 0) * 2) ||
-          y.score - x.score
-        : y.score - x.score,
-    );
-
+  // Sponsored vets show on their own, so the organic list leaves them out.
   const featured = input.emergency ? [] : await featuredFor(input.districtId ?? null, input.species ?? null);
-  const featuredIds = new Set(featured.map((f) => f.id));
-  const organic = ranked.filter((r) => !featuredIds.has(r.card.id)).map((r) => r.card);
-  const size = input.pageSize ?? 12;
-  const page = Math.max(1, input.page ?? 1);
-  return { featured, results: organic.slice(0, page * size), total: organic.length };
+  if (featured.length > 0)
+    conds.push(
+      notInArray(
+        p.id,
+        featured.map((f) => f.id),
+      ),
+    );
+  const where = and(...conds);
+
+  const areaId = input.districtId && input.areaId ? input.areaId : null;
+  const inArea = areaId ? sql`coalesce(${p.areaId} = ${areaId}, false)` : null;
+  const score = rankScoreSql({ areaId, distanceKm: distanceSql, emergency: Boolean(input.emergency) });
+  const order: SQL[] = inArea ? [sql`${inArea} desc`] : [];
+  switch (input.sort ?? DEFAULT_VET_SORT) {
+    case "rating":
+      order.push(sql`${bayesSql} desc`, desc(p.ratingCount));
+      break;
+    case "fee":
+      order.push(asc(p.consultFee));
+      break;
+    case "experience":
+      order.push(sql`${p.experienceYears} desc nulls last`);
+      break;
+    case "recommended":
+      // Near me: nearest first (to the half km), best ranked among equals.
+      if (distanceSql) order.push(sql`round(${distanceSql} * 2) asc`);
+      break;
+  }
+  order.push(sql`${score} desc`, asc(p.id));
+
+  const size = Math.min(300, Math.max(1, input.limit ?? input.pageSize ?? 12));
+  const offset = Math.max(0, input.offset ?? (Math.max(1, input.page ?? 1) - 1) * size);
+
+  const [rows, counts] = await Promise.all([
+    db()
+      .select({ ...cardColumns, distanceKm: distanceSql ?? sql<number | null>`null` })
+      .from(p)
+      .leftJoin(a, eq(a.id, p.areaId))
+      .leftJoin(d, eq(d.id, p.districtId))
+      .where(where)
+      .orderBy(...order)
+      .limit(size)
+      .offset(offset),
+    db()
+      .select({
+        total: sql<number>`count(*)::int`,
+        inArea: inArea ? sql<number>`(count(*) filter (where ${inArea}))::int` : sql<number>`0`,
+      })
+      .from(p)
+      .where(where),
+  ]);
+
+  const count = counts[0];
+  return {
+    featured,
+    results: rows.map((row) => toCard(row, row.distanceKm === null ? null : Number(row.distanceKm), false)),
+    total: Number(count?.total ?? 0),
+    areaTotal: areaId ? Number(count?.inArea ?? 0) : null,
+  };
 }
 
 async function featuredFor(districtId: number | null, speciesSlug: string | null): Promise<ProviderCard[]> {
@@ -525,4 +591,33 @@ export async function verifiedVetSlugs() {
     .from(schema.providers)
     .where(eq(schema.providers.status, "verified"))
     .limit(10_000);
+}
+
+/**
+ * Recomputes a vet's profile completeness (a search ranking input) from what
+ * is stored. Call it after anything that changes an input: the profile, the
+ * species, the weekly hours.
+ */
+export async function refreshCompleteness(providerId: string): Promise<void> {
+  const [row] = await db()
+    .select({
+      photoPath: p.photoPath,
+      bio: p.bio,
+      qualifications: p.qualifications,
+      registrationNo: p.registrationNo,
+      experienceYears: p.experienceYears,
+      clinicName: p.clinicName,
+      address: p.address,
+      areaId: p.areaId,
+      hasLocation: sql<boolean>`${p.location} is not null`,
+      phonePublic: p.phonePublic,
+      speciesCount: sql<number>`(select count(*)::int from ${schema.providerSpecies} ps where ps.provider_id = "providers"."id")`,
+      hasAvailability: hasScheduleSql,
+    })
+    .from(p)
+    .where(eq(p.id, providerId))
+    .limit(1);
+  if (!row) return;
+  const { score } = completeness({ ...row, speciesCount: Number(row.speciesCount) });
+  await db().update(p).set({ completeness: score }).where(eq(p.id, providerId));
 }

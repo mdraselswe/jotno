@@ -109,9 +109,12 @@ export function AskForm() {
   const [photoPath, setPhotoPath] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // A photo still uploading would be left out of the question.
+  const [uploading, setUploading] = useState(false);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    if (uploading) return;
     setError(null);
     start(async () => {
       const res = await askQuestion(locale, { title, body, speciesId, photoPath });
@@ -197,6 +200,7 @@ export function AskForm() {
           kind="question"
           value={photoPath}
           onChange={setPhotoPath}
+          onBusyChange={setUploading}
           label={t("common.uploadPhoto")}
         />
       </Step>
@@ -221,13 +225,19 @@ export function AskForm() {
       ) : null}
       {/* Phones: the submit button stays in reach above the tab bar */}
       <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 -mx-4 border-t bg-background/92 px-4 py-3 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
-        <Button type="submit" variant="brand" size="lg" disabled={pending} className="w-full md:w-auto">
-          {pending ? (
+        <Button
+          type="submit"
+          variant="brand"
+          size="lg"
+          disabled={pending || uploading}
+          className="w-full md:w-auto"
+        >
+          {pending || uploading ? (
             <LoaderCircle aria-hidden="true" className="animate-spin" />
           ) : (
             <Send aria-hidden="true" />
           )}
-          {pending ? t("pubui.ask.posting") : t("qa.post")}
+          {pending ? t("pubui.ask.posting") : uploading ? t("common.uploading") : t("qa.post")}
         </Button>
       </div>
     </form>

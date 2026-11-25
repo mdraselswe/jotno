@@ -25,7 +25,7 @@ import { business, site } from "@/config";
 import { LOCALES, localePath } from "@/config/locale";
 import { bookPath, consultStartPath, pageUrl, ROUTES, vetPath } from "@/config/routes";
 import { getHours } from "@/features/appointments/server";
-import { speciesNames, VetContactButtons, VetPhoto, vetPlace } from "@/features/providers";
+import { speciesNames, VetContactButtons, VetOfflineNotice, VetPhoto, vetPlace } from "@/features/providers";
 import { getProviderBySlug, recordStat, type ProviderPublic } from "@/features/providers/server";
 import type { Formatter, Translate } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
@@ -342,6 +342,7 @@ async function VetProfile({ params }: { params: Promise<{ slug: string }> }) {
               <p className="text-sm text-pretty text-muted-foreground">
                 {t("pubui.vet.chatCardSub", { window: fmt.number(business.consult.replyWindowMinutes) })}
               </p>
+              {vet.availableNow ? null : <VetOfflineNotice t={t} fmt={fmt} />}
               <ButtonLink href={chatHref} variant="brand" className="w-full">
                 {t("vets.chatNow")}
               </ButtonLink>

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { AreaPicker } from "@/components/forms/area-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import {
   Sheet,
   SheetClose,
@@ -22,6 +23,7 @@ import { SPECIES } from "@/content/geo";
 import { useFormatter, useLocale, useT } from "@/i18n/client";
 import { DEFAULT_RADIUS_KM, locate, NEAR_RADII, parseRadius, type LocateError } from "@/lib/geo";
 import { cn } from "@/lib/utils";
+import { DEFAULT_VET_SORT, parseVetSort, VET_SORTS } from "../vet-sort";
 
 const num = (v: string | null) => (v && /^\d+$/.test(v) ? Number(v) : null);
 
@@ -315,5 +317,35 @@ export function VetFilterSheet() {
         </SheetFooter>
       </SheetContent>
     </Sheet>
+  );
+}
+
+/** The results' sort order, kept in the URL (`?sort=`; "recommended" is the default and stays out). */
+export function VetSortSelect() {
+  const t = useT();
+  const { params, update, pending } = useVetParams();
+  const sort = parseVetSort(params.get("sort"));
+  return (
+    <div className="flex items-center gap-2">
+      <label htmlFor="vet-sort" className="shrink-0 text-sm text-muted-foreground max-sm:sr-only">
+        {t("pubui.vets.sortLabel")}
+      </label>
+      <NativeSelect
+        id="vet-sort"
+        value={sort}
+        aria-busy={pending}
+        onChange={(e) => {
+          const next = parseVetSort(e.target.value);
+          update({ sort: next === DEFAULT_VET_SORT ? null : next });
+        }}
+        className="w-auto max-w-[11rem] sm:max-w-none"
+      >
+        {VET_SORTS.map((s) => (
+          <option key={s} value={s}>
+            {t(`pubui.vets.sort.${s}`)}
+          </option>
+        ))}
+      </NativeSelect>
+    </div>
   );
 }

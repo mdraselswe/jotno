@@ -9,7 +9,7 @@ import { consultStartPath, ROUTES } from "@/config/routes";
 import { getViewer } from "@/features/auth/server";
 import { StartConsultForm } from "@/features/consults";
 import { listPets } from "@/features/pets/server";
-import { VetPhoto } from "@/features/providers";
+import { VetOfflineNotice, VetPhoto } from "@/features/providers";
 import { getProviderBySlug } from "@/features/providers/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -65,6 +65,8 @@ async function Start({ params }: { params: Promise<{ slug: string }> }) {
         </div>
         <p className="font-heading text-2xl font-bold text-primary tabular-nums">{fee}</p>
       </div>
+
+      {vet.availableNow ? null : <VetOfflineNotice t={t} fmt={fmt} />}
 
       <section className={cn(CARD, "grid gap-3 p-4 sm:p-5")} aria-labelledby="sc-how">
         <h2 id="sc-how" className="font-heading text-base font-bold">

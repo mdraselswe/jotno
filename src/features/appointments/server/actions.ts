@@ -10,6 +10,7 @@ import { ROUTES } from "@/config/routes";
 import { actionViewer } from "@/features/auth/server";
 import { notify } from "@/features/notifications/server";
 import { beginPayment, refundPlatform } from "@/features/payments/server";
+import { refreshCompleteness } from "@/features/providers/server";
 import type { MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
 import { audit, rateLimit } from "@/infrastructure/db/helpers";
@@ -64,6 +65,8 @@ export async function saveHours(input: z.input<typeof hoursSchema>): Promise<Boo
       );
     }
   });
+  // Weekly hours count toward the profile score used in search ranking.
+  await refreshCompleteness(providerId);
   revalidatePath("/[locale]/dashboard/schedule", "page");
   return { ok: true };
 }

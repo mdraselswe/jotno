@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ButtonAnchor } from "@/components/ui/button-link";
 import { useT } from "@/i18n/client";
 import { recordCallTap } from "../server/public-actions";
+import { telHref } from "../tel";
 
 /** Call, directions and share for a vet profile. Call taps are counted for the vet's dashboard. */
 export function VetContactButtons({
@@ -22,6 +23,7 @@ export function VetContactButtons({
   name: string;
 }) {
   const t = useT();
+  const tel = telHref(phone);
 
   async function share() {
     const url = window.location.href;
@@ -38,12 +40,12 @@ export function VetContactButtons({
 
   return (
     <div className="flex flex-wrap gap-2">
-      {phone ? (
+      {tel ? (
         <ButtonAnchor
           variant="outline"
           size="sm"
           className="bg-card"
-          href={`tel:${phone}`}
+          href={tel}
           onClick={() => void recordCallTap(providerId)}
         >
           <Phone aria-hidden="true" />

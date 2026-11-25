@@ -4,6 +4,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { business } from "@/config";
+import { LOCALES } from "@/config/locale";
 import { adminVetPath, ROUTES, vetPath } from "@/config/routes";
 import { actionViewer } from "@/features/auth/server";
 import { notify, notifyAdmins } from "@/features/notifications/server";
@@ -13,7 +14,9 @@ import { db, schema } from "@/infrastructure/db";
 import { audit } from "@/infrastructure/db/helpers";
 import { storage } from "@/infrastructure/storage";
 import { localeHref } from "@/lib/locale-href";
-import { completeness } from "../ranking";
+import { payoutAccountSchema, type PayoutAccountInput } from "../payout-account";
+import { payoutAccountKey } from "./payout-account";
+import { refreshCompleteness } from "./queries";
 
 const p = schema.providers;
 export type VetResult = { ok: true } | { ok: false; error: MessageKey };
@@ -56,31 +59,6 @@ async function myProvider(profileId: string) {
     .where(eq(p.profileId, profileId))
     .limit(1);
   return row ?? null;
-}
-
-/** Recomputes the profile completeness score from what is stored. */
-async function refreshCompleteness(providerId: string) {
-  const [row] = await db()
-    .select({
-      photoPath: p.photoPath,
-      bio: p.bio,
-      qualifications: p.qualifications,
-      registrationNo: p.registrationNo,
-      experienceYears: p.experienceYears,
-      clinicName: p.clinicName,
-      address: p.address,
-      areaId: p.areaId,
-      hasLocation: sql<boolean>`${p.location} is not null`,
-      phonePublic: p.phonePublic,
-      speciesCount: sql<number>`(select count(*)::int from ${schema.providerSpecies} ps where ps.provider_id = "providers"."id")`,
-      hasAvailability: sql<boolean>`exists (select 1 from ${schema.availability} av where av.provider_id = "providers"."id")`,
-    })
-    .from(p)
-    .where(eq(p.id, providerId))
-    .limit(1);
-  if (!row) return;
-  const { score } = completeness({ ...row, speciesCount: Number(row.speciesCount) });
-  await db().update(p).set({ completeness: score }).where(eq(p.id, providerId));
 }
 
 export async function saveVetProfile(locale: string, input: VetProfileInput): Promise<VetResult> {
@@ -275,13 +253,53 @@ export async function setAvailableNow(on: boolean): Promise<VetResult> {
   const viewer = await actionViewer(["vet"]);
   if (!viewer) return { ok: false, error: "common.notAllowed" };
   const until = new Date(Date.now() + business.availableHours * 3_600_000);
-  await db()
+  const [row] = await db()
     .update(p)
     .set({ availableNow: on, availableUntil: on ? until : null, lastSeenAt: new Date() })
-    .where(eq(p.profileId, viewer.id));
+    .where(eq(p.profileId, viewer.id))
+    .returning({ slug: p.slug });
   // Re-render the dashboard so the switch's server value (and "until") catch up;
   // without it useOptimistic falls back to the old value and the switch flips back.
   revalidatePath("/[locale]/dashboard", "page");
+  if (row) revalidateAvailability(row.slug);
+  return { ok: true };
+}
+
+/**
+ * Every public page that shows a vet's live dot: their profile (each
+ * language; the route file's path, since the default language is a rewrite),
+ * the vet list, the emergency list and the home page's "online now".
+ * These pages read the database per request today (no "use cache"), so this
+ * mainly drops stale copies in the client router cache, and keeps them right
+ * if they are ever cached.
+ */
+function revalidateAvailability(slug: string) {
+  for (const locale of LOCALES) revalidatePath(`/${locale}${vetPath(slug)}`);
+  revalidatePath("/[locale]/vets", "page");
+  revalidatePath("/[locale]/emergency", "page");
+  revalidatePath("/[locale]", "page");
+}
+
+/** Vet: where to send my earnings (bKash/Nagad number or bank account). Private to me and admins. */
+export async function savePayoutAccount(input: PayoutAccountInput): Promise<VetResult> {
+  const viewer = await actionViewer(["vet"]);
+  if (!viewer) return { ok: false, error: "common.notAllowed" };
+  // Only ever my own vet profile: the row is found by who is signed in.
+  const mine = await myProvider(viewer.id);
+  if (!mine) return { ok: false, error: "common.notAllowed" };
+  const parsed = payoutAccountSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "vet.invalid" };
+  const key = payoutAccountKey(mine.id);
+  await db()
+    .insert(schema.settings)
+    .values({ key, value: parsed.data, updatedBy: viewer.id })
+    .onConflictDoUpdate({
+      target: schema.settings.key,
+      set: { value: parsed.data, updatedBy: viewer.id, updatedAt: new Date() },
+    });
+  await audit(viewer.id, "provider.payout_account", "provider", mine.id, { method: parsed.data.method });
+  revalidatePath("/[locale]/dashboard/earnings", "page");
+  revalidatePath("/[locale]/admin/payouts", "page");
   return { ok: true };
 }
 

@@ -23,6 +23,15 @@ export const pubui = pack(
     "pubui.vets.emptyTitle": "No vets match these filters",
     "pubui.vets.featuredTitle": "Sponsored vets",
     "pubui.vets.allTitle": "All matching vets",
+    "pubui.vets.sortLabel": "Sort by",
+    "pubui.vets.sort.recommended": "Recommended",
+    "pubui.vets.sort.rating": "Highest rated",
+    "pubui.vets.sort.fee": "Lowest chat fee",
+    "pubui.vets.sort.experience": "Most experienced",
+    "pubui.vets.inArea": "Vets in {area}",
+    "pubui.vets.otherInDistrict": "Other vets in {district}",
+    "pubui.vets.noneInArea": "No vets in {area} yet. Here are other vets in {district}.",
+    "pubui.vets.loadingMore": "Loading more vets…",
     // Vet card
     "pubui.card.chat": "Chat",
     "pubui.card.book": "Book",
@@ -61,6 +70,9 @@ export const pubui = pack(
     "pubui.vet.sections": "On this page",
     "pubui.vet.statConsults": "Consults",
     "pubui.vet.statYears": "Years in practice",
+    "pubui.vet.offlineTitle": "This vet is offline right now",
+    "pubui.vet.offlineBody":
+      "You can still start a chat, but a reply may take longer. If there's no reply within {window} minutes, you get a full refund automatically.",
     // Questions
     "pubui.qa.eyebrow": "Free · answered by verified vets",
     "pubui.qa.searchPlaceholder": "Search, e.g. cat not eating",
@@ -159,6 +171,15 @@ export const pubui = pack(
     "pubui.vets.emptyTitle": "এই ফিল্টারে কোনো ভেট মেলেনি",
     "pubui.vets.featuredTitle": "স্পনসরড ভেট",
     "pubui.vets.allTitle": "মিলে যাওয়া সব ভেট",
+    "pubui.vets.sortLabel": "সাজান",
+    "pubui.vets.sort.recommended": "প্রস্তাবিত",
+    "pubui.vets.sort.rating": "সেরা রেটিং আগে",
+    "pubui.vets.sort.fee": "কম চ্যাট ফি আগে",
+    "pubui.vets.sort.experience": "বেশি অভিজ্ঞ আগে",
+    "pubui.vets.inArea": "{area}-এর ভেট",
+    "pubui.vets.otherInDistrict": "{district}-এর অন্য ভেট",
+    "pubui.vets.noneInArea": "{area}-এ এখনো কোনো ভেট নেই। নিচে {district}-এর অন্য ভেটরা আছেন।",
+    "pubui.vets.loadingMore": "আরও ভেট আসছে…",
     // Vet card
     "pubui.card.chat": "চ্যাট",
     "pubui.card.book": "বুক করুন",
@@ -196,6 +217,9 @@ export const pubui = pack(
     "pubui.vet.sections": "এই পাতায়",
     "pubui.vet.statConsults": "পরামর্শ",
     "pubui.vet.statYears": "বছরের অভিজ্ঞতা",
+    "pubui.vet.offlineTitle": "এই ভেট এখন অফলাইনে",
+    "pubui.vet.offlineBody":
+      "চ্যাট শুরু করতে পারবেন, তবে উত্তর আসতে দেরি হতে পারে। {window} মিনিটের মধ্যে উত্তর না এলে পুরো টাকা নিজে থেকেই ফেরত পাবেন।",
     // Questions
     "pubui.qa.eyebrow": "ফ্রি · উত্তর দেন যাচাইকৃত ভেট",
     "pubui.qa.searchPlaceholder": "খুঁজুন, যেমন বিড়াল খাচ্ছে না",

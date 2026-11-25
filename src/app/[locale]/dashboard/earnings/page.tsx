@@ -1,4 +1,14 @@
-import { BadgeCheck, Banknote, CalendarClock, Hourglass, Percent, Send, Wallet } from "lucide-react";
+import {
+  BadgeCheck,
+  Banknote,
+  CalendarClock,
+  CircleAlert,
+  Hourglass,
+  Landmark,
+  Percent,
+  Send,
+  Wallet,
+} from "lucide-react";
 import {
   DataTable,
   EmptyState,
@@ -15,7 +25,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { business } from "@/config";
 import { ROUTES } from "@/config/routes";
 import { vetLedger } from "@/features/payments/server";
-import { requireVet } from "@/features/providers/server";
+import { PayoutAccountForm } from "@/features/providers";
+import { getPayoutAccount, requireVet } from "@/features/providers/server";
 import type { MessageKey } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -49,7 +60,10 @@ async function Earnings() {
   const t = await getT();
   const fmt = await getFormatter();
   const { provider } = await requireVet(locale, localeHref(locale, ROUTES.vetEarnings));
-  const { balance, lines, payouts, month } = await vetLedger(provider.id);
+  const [{ balance, lines, payouts, month }, payoutAccount] = await Promise.all([
+    vetLedger(provider.id),
+    getPayoutAccount(provider.id),
+  ]);
   const now = requestNow().getTime();
   const pct = fmt.number(business.consult.commissionBps / 100);
   const min = taka(fmt, business.payout.minimum);
@@ -144,6 +158,19 @@ async function Earnings() {
     <div className="grid gap-6">
       <PageHeader icon={Wallet} title={t("vet.earnings")} sub={t("earn.sub", { min, pct })} />
 
+      {payoutAccount ? null : (
+        <a
+          href="#payout-account"
+          className="flex items-start gap-2.5 rounded-(--radius-xl) bg-warning/12 px-4 py-3 text-sm font-medium text-pretty ring-1 ring-warning/30 hover:bg-warning/18 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
+          <CircleAlert
+            aria-hidden="true"
+            className="mt-0.5 size-4 shrink-0 text-warning-foreground dark:text-warning"
+          />
+          {t("vetui.payout.missing")}
+        </a>
+      )}
+
       <StatGrid className="md:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label={t("vetui.stat.month")}
@@ -217,7 +244,12 @@ async function Earnings() {
           </section>
         </div>
 
-        <aside className="xl:sticky xl:top-24">
+        <aside className="grid gap-6 xl:sticky xl:top-24">
+          <div id="payout-account" className="scroll-mt-24">
+            <SectionCard title={t("vetui.payout.title")} description={t("vetui.payout.sub")} icon={Landmark}>
+              <PayoutAccountForm initial={payoutAccount} />
+            </SectionCard>
+          </div>
           <SectionCard title={t("vetui.earn.howTitle")} icon={Banknote}>
             <ul className="grid gap-3 text-sm">
               {how.map((h) => (
@@ -261,7 +293,10 @@ function EarningsSkeleton() {
             ))}
           </div>
         </div>
-        <Skeleton className="h-56 rounded-(--radius-2xl) max-xl:hidden" />
+        <div className="grid gap-6 max-xl:hidden">
+          <Skeleton className="h-80 rounded-(--radius-2xl)" />
+          <Skeleton className="h-56 rounded-(--radius-2xl)" />
+        </div>
       </div>
     </div>
   );

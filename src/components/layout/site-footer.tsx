@@ -6,6 +6,7 @@ import { ButtonLink } from "@/components/ui/button-link";
 import { business, features, site } from "@/config";
 import { FOOTER_LINKS, NAV_LINKS } from "@/config/navigation";
 import { ROUTES } from "@/config/routes";
+import { telHref } from "@/features/providers";
 import { InstallLink } from "@/features/pwa";
 import { getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -36,6 +37,7 @@ const YEAR = new Date().getFullYear();
  */
 export async function SiteFooter() {
   const t = await getT();
+  const hotline = telHref(business.emergencyHotline);
   const locale = await getLocale();
   const word = locale === "bn" ? "যত্ন" : "Jotno";
   return (
@@ -94,11 +96,11 @@ export async function SiteFooter() {
               <p className="text-xs text-muted-foreground">{t("footer.followSub")}</p>
             </div>
           ) : null}
-          {business.emergencyHotline ? (
+          {hotline ? (
             <p>
               {t("footer.emergency")}{" "}
-              <a href={`tel:${business.emergencyHotline}`} className="font-semibold underline">
-                {business.emergencyHotline}
+              <a href={hotline} className="font-semibold underline">
+                {business.emergencyHotline?.trim()}
               </a>
             </p>
           ) : null}

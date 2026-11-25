@@ -210,3 +210,20 @@ export async function answeredQuestionIds() {
     .orderBy(desc(Q.createdAt))
     .limit(10_000);
 }
+
+/**
+ * Who may answer: a signed-in vet (or admin) whose own vet profile is
+ * verified. Returns that profile, or null. `answerQuestion` uses this same
+ * check, so the answer form shows exactly when an answer would be accepted.
+ */
+export async function answeringVet(
+  viewer: { id: string; role: string } | null,
+): Promise<{ id: string; name: string } | null> {
+  if (!viewer || (viewer.role !== "vet" && viewer.role !== "admin")) return null;
+  const [vet] = await db()
+    .select({ id: schema.providers.id, status: schema.providers.status, name: schema.providers.displayName })
+    .from(schema.providers)
+    .where(eq(schema.providers.profileId, viewer.id))
+    .limit(1);
+  return vet && vet.status === "verified" ? { id: vet.id, name: vet.name } : null;
+}

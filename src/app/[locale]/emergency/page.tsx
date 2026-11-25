@@ -25,7 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { business } from "@/config";
 import { consultStartPath, ROUTES, vetPath } from "@/config/routes";
 import { emergencyContent } from "@/content/emergency";
-import { VetPhoto, vetPlace } from "@/features/providers";
+import { telHref, VetPhoto, vetPlace } from "@/features/providers";
 import { searchProviders } from "@/features/providers/server";
 import { pickLocale } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
@@ -73,6 +73,7 @@ async function EmergencyVets() {
     <ul className="grid gap-3 md:grid-cols-2">
       {results.map((v) => {
         const place = vetPlace(v, locale);
+        const tel = telHref(v.phonePublic);
         return (
           <li
             key={v.id}
@@ -111,9 +112,9 @@ async function EmergencyVets() {
               </span>
             </Link>
             <div className="grid grid-cols-2 gap-2">
-              {v.phonePublic ? (
+              {tel ? (
                 <ButtonAnchor
-                  href={`tel:${v.phonePublic}`}
+                  href={tel}
                   variant="destructive"
                   size="lg"
                   aria-label={t("pubui.emg.callVet", { name: v.displayName })}
@@ -126,7 +127,7 @@ async function EmergencyVets() {
                 href={localeHref(locale, consultStartPath(v.slug))}
                 variant="brand"
                 size="lg"
-                className={v.phonePublic ? undefined : "col-span-2"}
+                className={tel ? undefined : "col-span-2"}
                 aria-label={t("pubui.card.chatWith", { name: v.displayName })}
               >
                 <MessageCircle aria-hidden="true" />
@@ -211,6 +212,9 @@ export default async function EmergencyPage() {
   const fmt = await getFormatter();
   const c = pickLocale(emergencyContent, locale);
   const vets = localeHref(locale, ROUTES.vets);
+  // The hotline comes from config only; with none set (or a blank one), no Call button shows.
+  const hotline = business.emergencyHotline?.trim() || null;
+  const hotlineHref = telHref(hotline);
   return (
     <PageTransition>
       <section id="top" data-no-reveal className="bg-destructive/8">
@@ -224,15 +228,15 @@ export default async function EmergencyPage() {
           </h1>
           <p className="text-lg text-pretty text-foreground/80">{c.intro}</p>
           <div className="grid gap-3">
-            {business.emergencyHotline ? (
+            {hotline && hotlineHref ? (
               <ButtonAnchor
-                href={`tel:${business.emergencyHotline}`}
+                href={hotlineHref}
                 variant="destructive"
                 size="lg"
                 className="sos-breathe h-16 text-lg"
               >
                 <Phone aria-hidden="true" className="size-5" />
-                {t("emg.call", { number: business.emergencyHotline })}
+                {t("emg.call", { number: hotline })}
               </ButtonAnchor>
             ) : null}
             <div className="grid gap-3 sm:grid-cols-2">

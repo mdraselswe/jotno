@@ -107,6 +107,8 @@ export function VetProfileForm({ initial, providerId }: { initial: VetProfileVal
   const [tried, setTried] = useState(false);
   const [pending, start] = useTransition();
   const [locating, setLocating] = useState(false);
+  // A photo still uploading would be left out of the saved profile.
+  const [uploading, setUploading] = useState(false);
   const set = <K extends keyof VetProfileValues>(k: K, value: VetProfileValues[K]) =>
     setV((s) => ({ ...s, [k]: value }));
   const text = (k: keyof VetProfileValues) => ({
@@ -150,6 +152,7 @@ export function VetProfileForm({ initial, providerId }: { initial: VetProfileVal
 
   function submit(e: FormEvent) {
     e.preventDefault();
+    if (uploading) return;
     setTried(true);
     if (invalid) {
       toast.error(t("vetui.save.fixFirst"));
@@ -207,6 +210,7 @@ export function VetProfileForm({ initial, providerId }: { initial: VetProfileVal
               kind="vetPhoto"
               value={v.photoPath}
               onChange={(p) => set("photoPath", p)}
+              onBusyChange={setUploading}
               shape="circle"
               label={t("vet.photo")}
             />
@@ -359,7 +363,8 @@ export function VetProfileForm({ initial, providerId }: { initial: VetProfileVal
               <Input
                 id="vp-cfee"
                 type="number"
-                inputMode="numeric"
+                inputMode="decimal"
+                step={0.01}
                 min={minFee / 100}
                 max={maxFee / 100}
                 aria-invalid={shown(errors.consultFee) ? true : undefined}
@@ -376,7 +381,8 @@ export function VetProfileForm({ initial, providerId }: { initial: VetProfileVal
               <Input
                 id="vp-vfee"
                 type="number"
-                inputMode="numeric"
+                inputMode="decimal"
+                step={0.01}
                 min={0}
                 aria-invalid={shown(errors.visitFee) ? true : undefined}
                 aria-describedby={described("vp-vfee", errors.visitFee)}
@@ -459,8 +465,14 @@ export function VetProfileForm({ initial, providerId }: { initial: VetProfileVal
               {dirty ? t("vetui.save.unsaved") : t("vetui.save.saved")}
             </span>
           </p>
-          <Button type="submit" variant="brand" size="lg" disabled={pending} className="max-sm:flex-1">
-            {pending ? t("common.saving") : t("common.save")}
+          <Button
+            type="submit"
+            variant="brand"
+            size="lg"
+            disabled={pending || uploading}
+            className="max-sm:flex-1"
+          >
+            {pending ? t("common.saving") : uploading ? t("common.uploading") : t("common.save")}
           </Button>
         </div>
       </div>

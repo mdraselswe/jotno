@@ -21,7 +21,7 @@ import { consultStartPath, pageUrl, questionPath, ROUTES, vetPath } from "@/conf
 import { speciesName } from "@/content/places";
 import { getViewer } from "@/features/auth/server";
 import { AnswerForm, HelpfulButton, ReportButton } from "@/features/questions";
-import { getQuestion } from "@/features/questions/server";
+import { answeringVet, getQuestion } from "@/features/questions/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 
@@ -59,9 +59,10 @@ async function Question({ params }: { params: Promise<{ id: string }> }) {
   const t = await getT();
   const fmt = await getFormatter();
   const viewer = await getViewer();
-  const q = await getQuestion(id, viewer?.id ?? null);
+  const [q, vet] = await Promise.all([getQuestion(id, viewer?.id ?? null), answeringVet(viewer)]);
   if (!q) notFound();
-  const isVet = viewer?.role === "vet" || viewer?.role === "admin";
+  // Only someone the answer action accepts (a verified vet profile) sees the form.
+  const canAnswer = vet !== null;
   const answered = q.answers.length > 0;
 
   const ld = {
@@ -228,7 +229,7 @@ async function Question({ params }: { params: Promise<{ id: string }> }) {
             <p className="text-xs text-muted-foreground">{t("footer.notAdvice")}</p>
           </section>
 
-          {isVet ? (
+          {canAnswer ? (
             <SectionCard
               title={t("pubui.qa.answerTitle")}
               description={t("pubui.qa.answerSub")}

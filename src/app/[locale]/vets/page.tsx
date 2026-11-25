@@ -10,8 +10,17 @@ import { business } from "@/config";
 import { ROUTES } from "@/config/routes";
 import { DISTRICTS, SPECIES } from "@/content/geo";
 import { AREAS } from "@/content/geo-areas";
-import { VetCard, VetCardSkeleton, VetFilterPanel, VetFilterSheet, VetSearchBar } from "@/features/providers";
-import { searchProviders } from "@/features/providers/server";
+import {
+  VetCard,
+  VetCardSkeleton,
+  VetFilterPanel,
+  VetFilterSheet,
+  VetResultsList,
+  VetSearchBar,
+  VetSortSelect,
+  VETS_PAGE_SIZE,
+} from "@/features/providers";
+import { parseVetQuery, searchProviders, vetSearchOf } from "@/features/providers/server";
 import type { Translate } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { parseNear, parseRadius, widerRadius } from "@/lib/geo";
@@ -89,30 +98,34 @@ async function Results({ searchParams }: { searchParams: Promise<Search> }) {
   const t = await getT();
   const fmt = await getFormatter();
   const base = `${localeHref(locale, ROUTES.vets)}/`;
-  const near = parseNear(params.near);
-  const radiusKm = parseRadius(params.r);
-  const page = Math.max(1, int(params.page ?? null) ?? 1);
-  const { featured, results, total } = await searchProviders({
-    districtId: near ? null : int(params.district ?? null),
-    areaId: near ? null : int(params.area ?? null),
-    species: params.species ?? null,
-    q: params.q ?? null,
-    onlyAvailable: params.now === "1",
-    near,
-    radiusKm,
-    page,
+  const query = parseVetQuery(params);
+  const { near, radiusKm } = query;
+  // A shared `?page=3` link opens the first three pages; "load more" then fetches one page at a time.
+  const { featured, results, total, areaTotal } = await searchProviders({
+    ...vetSearchOf(query),
+    offset: 0,
+    limit: query.page * VETS_PAGE_SIZE,
   });
   const km = (n: number) => t("vets.km", { n: fmt.number(n) });
   const chips = activeChips(params, base, locale, t, km);
+  const name = (x: { en: string; bn: string }) => (locale === "bn" ? x.bn : x.en);
+  const district = query.districtId ? DISTRICTS.find((d) => d.id === query.districtId) : undefined;
+  const area = query.areaId ? AREAS.find((a) => a.id === query.areaId) : undefined;
+  const filters = new URLSearchParams(params);
+  filters.delete("page");
+  const filterQs = filters.toString();
 
   const toolbar = (
     <div className="grid gap-3">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="font-heading text-lg font-semibold" aria-live="polite">
           {t("vets.results", { n: fmt.number(total) })}
         </p>
-        <div className="lg:hidden">
-          <VetFilterSheet />
+        <div className="flex items-center gap-2">
+          <VetSortSelect />
+          <div className="lg:hidden">
+            <VetFilterSheet />
+          </div>
         </div>
       </div>
       {chips.length > 0 ? (
@@ -179,9 +192,6 @@ async function Results({ searchParams }: { searchParams: Promise<Search> }) {
     );
   }
 
-  const next = new URLSearchParams(params);
-  next.set("page", String(page + 1));
-
   return (
     <div className="grid min-w-0 grid-cols-1 gap-6">
       {toolbar}
@@ -200,30 +210,17 @@ async function Results({ searchParams }: { searchParams: Promise<Search> }) {
           <p className="text-xs text-muted-foreground">{t("vets.sponsoredNote")}</p>
         </section>
       ) : null}
-      {results.length > 0 ? (
-        <section className="grid gap-4" aria-labelledby="vets-all">
-          <h2 id="vets-all" className="sr-only">
-            {t("pubui.vets.allTitle")}
-          </h2>
-          <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-            {results.map((v) => (
-              <li key={v.id}>
-                <VetCard vet={v} locale={locale} t={t} fmt={fmt} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-      <div className="grid justify-items-center gap-3 pt-2">
-        <p className="text-sm text-muted-foreground">
-          {t("pubui.vets.showing", { shown: fmt.number(results.length), total: fmt.number(total) })}
-        </p>
-        {results.length < total ? (
-          <ButtonLink href={`${base}?${next.toString()}` as Route} variant="outline" size="lg" scroll={false}>
-            {t("common.loadMore")}
-          </ButtonLink>
-        ) : null}
-      </div>
+      {/* Keyed by the filters: a new search starts a fresh list (and drops loaded pages). */}
+      <VetResultsList
+        key={filterQs}
+        initial={results}
+        total={total}
+        areaId={area ? area.id : null}
+        areaTotal={areaTotal}
+        areaName={area ? name(area) : null}
+        districtName={district ? name(district) : null}
+        query={filterQs}
+      />
     </div>
   );
 }
