@@ -48,8 +48,9 @@ export const settingsSchema = z.object({
 export type Settings = z.infer<typeof settingsSchema>;
 
 export const DEFAULT_SETTINGS: Settings = {
-  bkash: { enabled: true, number: "", accountType: "personal", feeBps: 185, feeFlat: 0 },
-  nagad: { enabled: true, number: "", accountType: "personal", feeBps: 149, feeFlat: 0 },
+  // No extra charge for now (Jotno absorbs it); the team can add one in /admin/settings.
+  bkash: { enabled: true, number: "", accountType: "personal", feeBps: 0, feeFlat: 0 },
+  nagad: { enabled: true, number: "", accountType: "personal", feeBps: 0, feeFlat: 0 },
   cod: { enabled: true, maxOrder: 1_000_000 },
   delivery: { inside: 6_000, outside: 12_000, freeFrom: 200_000 },
   supportPhone: "",

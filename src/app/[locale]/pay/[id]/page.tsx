@@ -108,7 +108,7 @@ async function Pay({ params }: { params: Promise<{ id: string }> }) {
 
   if (p.status === "paid" || p.status === "refund_due" || p.status === "refunded")
     return (
-      <div className="grid gap-4">
+      <div className="mx-auto grid w-full max-w-lg gap-4">
         {steps(2)}
         <Result
           icon={p.status === "paid" ? CheckCircle2 : RefreshCw}
@@ -137,7 +137,7 @@ async function Pay({ params }: { params: Promise<{ id: string }> }) {
 
   if (p.status === "cancelled" || p.status === "failed")
     return (
-      <div className="grid gap-4">
+      <div className="mx-auto grid w-full max-w-lg gap-4">
         <Result icon={XCircle} tone="stopped" title={t("pay.cancelledTitle")} sub={t("pay.cancelledSub")}>
           <Receipt rows={[forRow, { label: t("pay.amount"), value: taka(fmt, p.amount) }]} />
           <ButtonLink
@@ -155,7 +155,7 @@ async function Pay({ params }: { params: Promise<{ id: string }> }) {
 
   if (p.status === "review")
     return (
-      <div className="grid gap-4">
+      <div className="mx-auto grid w-full max-w-lg gap-4">
         <AutoRefresh />
         {steps(2)}
         <Result
@@ -194,7 +194,7 @@ async function Pay({ params }: { params: Promise<{ id: string }> }) {
   // Cash on delivery chosen: the order is placed; nothing to pay now.
   if (p.gateway === "cod")
     return (
-      <div className="grid gap-4">
+      <div className="mx-auto grid w-full max-w-lg gap-4">
         {steps(2)}
         <Result icon={CheckCircle2} tone="success" title={t("pay.codPlaced")} sub={t("pay.codSub")}>
           <Receipt
@@ -225,7 +225,7 @@ async function Pay({ params }: { params: Promise<{ id: string }> }) {
   const deadline = payDeadline(p);
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4 lg:gap-6">
       {steps(1)}
       <ManualPay
         paymentId={p.id}
@@ -240,8 +240,8 @@ async function Pay({ params }: { params: Promise<{ id: string }> }) {
             ? t(isOrder ? "payui.payByOrder" : "payui.payBy", { time: fmt.dateTime(deadline) })
             : null
         }
+        footer={help}
       />
-      {help}
     </div>
   );
 }
@@ -249,7 +249,8 @@ async function Pay({ params }: { params: Promise<{ id: string }> }) {
 export default function PayPage({ params }: PageProps<"/[locale]/pay/[id]">) {
   return (
     <div className="container-page grid min-h-[70svh] py-6 md:py-10">
-      <div className="mx-auto w-full max-w-lg">
+      {/* The result screens stay narrow; the payment form uses a checkout layout from lg. */}
+      <div className="mx-auto w-full max-w-5xl">
         <Private rows={4}>
           <Pay params={params} />
         </Private>

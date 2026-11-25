@@ -39,7 +39,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "Paid chats, bookings and the shop",
           body: [
-            "Prices are shown before you pay. You pay by bKash or Nagad Send Money to the number shown on the payment page (plus the wallet's cash-out charge), then enter your number and the transaction ID; we check it, usually within 30 minutes, and your chat or booking starts. Shop orders can also be paid in cash on delivery. Never share your wallet PIN or OTP with anyone, including us. A chat consult stays open for 24 hours after it starts. Refunds follow our Refund policy.",
+            "Prices are shown before you pay. You pay by bKash or Nagad Send Money to the number shown on the payment page (plus any charge shown there), then enter your number and the transaction ID; we check it, usually within 30 minutes, and your chat or booking starts. Shop orders can also be paid in cash on delivery. Never share your wallet PIN or OTP with anyone, including us. A chat consult stays open for 24 hours after it starts. Refunds follow our Refund policy.",
           ],
         },
         {
@@ -87,7 +87,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "পেইড চ্যাট, বুকিং আর শপ",
           body: [
-            "পেমেন্টের আগে দাম দেখানো হয়। পেমেন্ট পেজে দেখানো নম্বরে বিকাশ বা নগদে সেন্ড মানি করুন (ওয়ালেটের ক্যাশ-আউট চার্জসহ), তারপর আপনার নম্বর আর ট্রানজেকশন আইডি দিন; আমরা সাধারণত ৩০ মিনিটের মধ্যে যাচাই করি, তারপর চ্যাট বা বুকিং শুরু হয়। শপের অর্ডারে ক্যাশ অন ডেলিভারিও আছে। আপনার ওয়ালেটের পিন বা ওটিপি কাউকে দেবেন না, আমাদেরও না। চ্যাট শুরু হওয়ার পর ২৪ ঘণ্টা খোলা থাকে। রিফান্ড আমাদের রিফান্ড নীতি অনুযায়ী হয়।",
+            "পেমেন্টের আগে দাম দেখানো হয়। পেমেন্ট পেজে দেখানো নম্বরে বিকাশ বা নগদে সেন্ড মানি করুন (সেখানে কোনো চার্জ দেখালে সেটাসহ), তারপর আপনার নম্বর আর ট্রানজেকশন আইডি দিন; আমরা সাধারণত ৩০ মিনিটের মধ্যে যাচাই করি, তারপর চ্যাট বা বুকিং শুরু হয়। শপের অর্ডারে ক্যাশ অন ডেলিভারিও আছে। আপনার ওয়ালেটের পিন বা ওটিপি কাউকে দেবেন না, আমাদেরও না। চ্যাট শুরু হওয়ার পর ২৪ ঘণ্টা খোলা থাকে। রিফান্ড আমাদের রিফান্ড নীতি অনুযায়ী হয়।",
           ],
         },
         {
