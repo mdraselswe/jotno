@@ -13,7 +13,10 @@ import { dhakaDay } from "@/lib/dhaka";
 import { localeHref } from "@/lib/locale-href";
 import { isPast } from "@/lib/time";
 
-export const metadata = { title: "Appointments", robots: { index: false } };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("vet.appointments"), robots: { index: false } };
+}
 
 const SHOWS = ["today", "upcoming", "past"] as const;
 type Show = (typeof SHOWS)[number];
@@ -99,7 +102,7 @@ async function Appointments({ searchParams }: { searchParams: Promise<SP> }) {
           href: `${base}/?show=${s}` as Route,
           label: t(`vetui.appt.${s}`),
           active: s === show,
-          count: lists[s].length,
+          count: fmt.number(lists[s].length),
         }))}
       />
 

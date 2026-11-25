@@ -97,7 +97,7 @@ function ChipNav({ links, label }: { links: readonly SectionLink[]; label: Messa
   return (
     <nav
       aria-label={t(label)}
-      className="sticky top-[4.25rem] z-30 -mx-4 bg-background/85 px-4 py-2 backdrop-blur-md lg:hidden"
+      className="sticky top-[4.25rem] z-30 -mx-4 min-w-0 bg-background/85 px-4 py-2 backdrop-blur-md lg:hidden"
     >
       <ul ref={row} className="flex [scrollbar-width:none] gap-1.5 overflow-x-auto scroll-smooth">
         {links.map((link) => {
@@ -219,7 +219,7 @@ export function SectionLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="container-page grid gap-4 pt-3 pb-10 lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:gap-8 lg:py-10">
+    <div className="container-page grid grid-cols-[minmax(0,1fr)] gap-4 pt-3 pb-10 lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:gap-8 lg:py-10">
       <ChipNav links={links} label={label} />
       <SideNav links={links} label={label} title={title} titleIcon={titleIcon} />
       <div className="grid min-w-0 content-start gap-6">{children}</div>

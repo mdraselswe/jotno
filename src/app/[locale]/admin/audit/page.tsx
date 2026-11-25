@@ -130,7 +130,7 @@ async function Audit({ searchParams }: { searchParams: Promise<SP> }) {
       <DataTable
         rows={rows}
         columns={columns}
-        rowKey={(r) => r.id}
+        rowKey={(r) => String(r.id)}
         caption={t("admin.audit")}
         empty={
           <EmptyState

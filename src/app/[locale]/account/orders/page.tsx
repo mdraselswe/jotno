@@ -11,7 +11,10 @@ import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 
-export const metadata = { title: "Orders", robots: { index: false } };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("account.orders"), robots: { index: false } };
+}
 
 async function Orders() {
   const locale = await getLocale();

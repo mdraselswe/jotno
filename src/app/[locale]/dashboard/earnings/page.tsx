@@ -22,7 +22,10 @@ import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
-export const metadata = { title: "Earnings", robots: { index: false } };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("vet.earnings"), robots: { index: false } };
+}
 
 const DAY_KEYS: readonly MessageKey[] = [
   "appt.sun",
@@ -61,7 +64,9 @@ async function Earnings() {
         <span className="font-medium">
           {l.kind === "payout"
             ? t("earn.payout")
-            : (l.memo ?? (l.amount < 0 ? t("vetui.earn.refund") : t("vetui.earn.chat")))}
+            : l.amount < 0
+              ? t("vetui.earn.refund")
+              : t("vetui.earn.chat")}
         </span>
       ),
     },

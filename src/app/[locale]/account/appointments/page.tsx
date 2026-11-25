@@ -18,7 +18,10 @@ import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 import { isPast } from "@/lib/time";
 
-export const metadata = { title: "Appointments", robots: { index: false } };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("account.appointments"), robots: { index: false } };
+}
 
 function toRow(a: AppointmentItem, t: Translate, fmt: Formatter, upcoming: boolean): AppointmentRow {
   const meta: NonNullable<AppointmentRow["meta"]> = [];

@@ -11,7 +11,10 @@ import { requireVet } from "@/features/providers/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 
-export const metadata = { title: "Schedule", robots: { index: false } };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("vet.schedule"), robots: { index: false } };
+}
 
 async function Schedule() {
   const locale = await getLocale();

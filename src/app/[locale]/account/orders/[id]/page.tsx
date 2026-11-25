@@ -21,7 +21,10 @@ import { myOrder, productsByIds } from "@/features/shop/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
-export const metadata = { title: "Order", robots: { index: false } };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("account.orders"), robots: { index: false } };
+}
 
 async function Order({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

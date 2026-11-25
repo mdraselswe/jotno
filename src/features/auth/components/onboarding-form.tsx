@@ -8,7 +8,7 @@ import { AreaPicker } from "@/components/forms/area-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useLocale, useT } from "@/i18n/client";
+import { useFormatter, useLocale, useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 import { isBdMobile } from "../phone";
 import { completeOnboarding } from "../server/actions";
@@ -23,6 +23,7 @@ const STEPS = [
 /** Three short steps (who, name + phone, area) in one form; the server checks everything again. */
 export function OnboardingForm({ defaultName, defaultRole }: { defaultName: string; defaultRole?: Role }) {
   const t = useT();
+  const fmt = useFormatter();
   const locale = useLocale();
   const next = useSearchParams().get("next");
   const [step, setStep] = useState(0);
@@ -144,7 +145,7 @@ export function OnboardingForm({ defaultName, defaultRole }: { defaultName: stri
       {/* Progress */}
       <div className="grid gap-2">
         <p className="text-xs font-semibold text-primary" aria-live="polite">
-          {t("onboarding.step", { n: step + 1, total: STEPS.length })}
+          {t("onboarding.step", { n: fmt.number(step + 1), total: fmt.number(STEPS.length) })}
         </p>
         <ol className="grid grid-cols-3 gap-2">
           {STEPS.map((s, i) => (

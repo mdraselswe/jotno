@@ -188,7 +188,7 @@ async function Products({
             href: href(v),
             label: labels[v],
             active: view === v,
-            count: counts[v],
+            count: fmt.number(counts[v]),
           }))}
         />
         <form action={base} role="search" className="relative max-w-md">

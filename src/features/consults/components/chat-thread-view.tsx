@@ -133,7 +133,7 @@ export function SystemRow({
         : Phone;
     const label =
       call.status === "ended"
-        ? t("call.line.ended", { media, time: clock(call.seconds) })
+        ? t("call.line.ended", { media, time: clock(call.seconds, fmt.number) })
         : t(
             call.status === "declined"
               ? "call.line.declined"

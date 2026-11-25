@@ -449,6 +449,12 @@
   html {
     @apply font-sans;
   }
+  /* Grid items may shrink below their content (min-width: auto lets one
+     truncated line or a nowrap chip row push a whole page wider than a
+     360px phone). In the base layer, so min-w-* utilities still win. */
+  :where(main .grid) > * {
+    min-width: 0;
+  }
 }
 
 /* Page container: one place to change the max width and side gutters. */
@@ -857,7 +863,7 @@ html:lang(bn) :is(h1, h2, h3, h4, .font-heading) {
 /* Full-screen app pages (the consult chat): a page that puts
    data-app-fullscreen on its root hides the bottom tab bar and the footer,
    like a messaging app. */
-body:has([data-app-fullscreen]) :is([data-tab-bar], [data-site-footer]) {
+body:has([data-app-fullscreen]) :is([data-tab-bar], [data-site-footer], [data-demo-banner]) {
   display: none;
 }
 

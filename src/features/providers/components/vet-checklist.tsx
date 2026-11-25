@@ -1,7 +1,7 @@
 import { Check, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { ROUTES } from "@/config/routes";
-import type { MessageKey, Translate } from "@/i18n";
+import { formatter, type MessageKey, type Translate } from "@/i18n";
 import { localeHref } from "@/lib/locale-href";
 import { cn } from "@/lib/utils";
 import type { ChecklistItem, ChecklistTarget } from "../checklist";
@@ -51,6 +51,7 @@ export function VetChecklist({
   showDone?: boolean;
   className?: string;
 }) {
+  const num = formatter(locale).number;
   const done = items.filter((i) => i.done).length;
   const pct = Math.round((done / items.length) * 100);
   const shown = [...items]
@@ -62,7 +63,7 @@ export function VetChecklist({
         <div className="flex items-center justify-between gap-3 text-sm">
           <span className="font-medium">{t("vetui.check.title")}</span>
           <span className="text-muted-foreground tabular-nums">
-            {t("vetui.check.progress", { done, total: items.length })}
+            {t("vetui.check.progress", { done: num(done), total: num(items.length) })}
           </span>
         </div>
         <div

@@ -16,7 +16,10 @@ import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
-export const metadata = { title: "Pay", robots: { index: false } };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("pay.title"), robots: { index: false } };
+}
 
 const TONE = {
   success: "bg-success/12 text-success dark:text-[color-mix(in_oklch,var(--success),white_35%)]",

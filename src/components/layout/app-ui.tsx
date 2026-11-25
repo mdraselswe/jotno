@@ -363,7 +363,7 @@ export function FilterPills({
   items,
 }: {
   label: string;
-  items: readonly { href: Route; label: ReactNode; active: boolean; count?: number }[];
+  items: readonly { href: Route; label: ReactNode; active: boolean; count?: number | string }[];
 }) {
   return (
     <nav aria-label={label} className="-mx-1 [scrollbar-width:none] overflow-x-auto px-1">

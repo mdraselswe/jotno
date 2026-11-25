@@ -239,7 +239,7 @@ async function Orders({
             href: href({ status: tab.key, page: 1 }),
             label: tab.label,
             active: status === tab.key,
-            count: tab.n ? tab.n : undefined,
+            count: tab.n ? fmt.number(tab.n) : undefined,
           }))}
         />
         <form action={base} className="flex max-w-md gap-2" role="search">

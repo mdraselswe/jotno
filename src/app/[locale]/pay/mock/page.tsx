@@ -1,8 +1,12 @@
+import { getT } from "@/i18n/server";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MockCheckout } from "@/features/payments";
 
-export const metadata = { title: "Checkout", robots: { index: false } };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("pay.title"), robots: { index: false } };
+}
 
 export default function MockPayPage() {
   return (

@@ -115,7 +115,12 @@ async function Vets({ searchParams }: { searchParams: Promise<SP> }) {
             href: href({ status: f }),
             label: f === "all" ? t("common.all") : t(`adminui.vetStatus.${f}`),
             active: f === status,
-            count: f === "pending" ? counts.pending : f === "verified" ? counts.verified : undefined,
+            count:
+              f === "pending"
+                ? fmt.number(counts.pending)
+                : f === "verified"
+                  ? fmt.number(counts.verified)
+                  : undefined,
           }))}
         />
       </div>

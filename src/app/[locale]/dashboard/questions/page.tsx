@@ -14,7 +14,10 @@ import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { cn } from "@/lib/utils";
 
-export const metadata = { title: "Questions", robots: { index: false } };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("vet.questions"), robots: { index: false } };
+}
 
 type SP = Record<string, string | string[] | undefined>;
 

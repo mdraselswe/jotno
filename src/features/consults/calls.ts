@@ -75,12 +75,14 @@ export function isChatPage(pathname: string, consultId: string): boolean {
 }
 
 /** "4:05" / "1:02:09" for a call length. */
-export function clock(seconds: number): string {
+export function clock(seconds: number, num?: (n: number) => string): string {
   const s = Math.max(0, Math.floor(seconds));
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const r = String(s % 60).padStart(2, "0");
-  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${r}` : `${m}:${r}`;
+  const out = h > 0 ? `${h}:${String(m).padStart(2, "0")}:${r}` : `${m}:${r}`;
+  // In the page language's digits (০:৪৪ in Bangla) when a formatter is given.
+  return num ? out.replace(/\d/g, (d) => num(Number(d))) : out;
 }
 
 /**
