@@ -1,12 +1,44 @@
-import { ArrowRight, CircleCheck, Plus } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Banknote,
+  CalendarCheck,
+  CircleCheck,
+  Gift,
+  MessageCircleQuestionMark,
+  MessagesSquare,
+  Search,
+  ShoppingBag,
+  Siren,
+  Syringe,
+  Users,
+  Wallet,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import type { Route } from "next";
 import type { ReactNode } from "react";
 import { PeekingPet, type PetKind } from "@/components/illustrations/pets";
-import { Spot } from "@/components/illustrations/spots";
 import { ButtonLink } from "@/components/ui/button-link";
-import type { JoinContent } from "@/content/join";
+import type { JoinContent, JoinIcon } from "@/content/join";
 import { format, type Formatter } from "@/i18n";
 import { ShareButton } from "@/features/share";
+
+const ICONS: Record<JoinIcon, LucideIcon> = {
+  search: Search,
+  question: MessageCircleQuestionMark,
+  chat: MessagesSquare,
+  quick: Zap,
+  clinic: CalendarCheck,
+  records: Syringe,
+  emergency: Siren,
+  shop: ShoppingBag,
+  points: Gift,
+  fee: Wallet,
+  badge: BadgeCheck,
+  clients: Users,
+  payout: Banknote,
+};
 
 /** "[word]" → highlighted word (the brand scribble), like the home hero. */
 function Title({ text }: { text: string }) {
@@ -29,9 +61,10 @@ function Title({ text }: { text: string }) {
 }
 
 /**
- * A shareable onboarding page (owners: /join, vets: /for-vets): hero with
- * an animated scene, benefits, a step timeline, one page-specific section,
- * FAQ, and a closing call to action with a share button.
+ * A shareable onboarding page (owners: /join, vets: /for-vets), kept short
+ * so it reads in a minute on a phone: hero, what you get (each line with its
+ * price), the page's own section (vets: earnings), then three steps with the
+ * call to action and a share button.
  */
 export function JoinPage({
   c,
@@ -50,8 +83,8 @@ export function JoinPage({
   scene: ReactNode;
   ctaHref: Route;
   secondaryHref: Route;
-  /** The page's own section (prices, earnings calculator), shown after the steps. */
-  middle: ReactNode;
+  /** The page's own section (the vets' earnings calculator), after the list. */
+  middle?: ReactNode;
   pets: [PetKind, PetKind];
 }) {
   const f = (s: string) => format(s, vars);
@@ -59,8 +92,8 @@ export function JoinPage({
     <div className="grid">
       {/* Hero */}
       <section data-no-reveal className="relative overflow-hidden surface-soft dots">
-        <div className="container-page grid items-center gap-10 py-14 md:grid-cols-[1.1fr_1fr] md:py-20">
-          <div className="grid gap-6">
+        <div className="container-page grid items-center gap-10 py-10 md:grid-cols-[1.1fr_1fr] md:py-16">
+          <div className="grid gap-5">
             <p className="justify-self-start rounded-full bg-card px-3 py-1 text-sm font-semibold shadow-(--shadow-control)">
               {c.eyebrow}
             </p>
@@ -86,101 +119,70 @@ export function JoinPage({
               ))}
             </ul>
           </div>
-          <div className="mx-auto w-full max-w-md">{scene}</div>
+          {/* Phones go straight from the pitch to the list. */}
+          <div className="mx-auto w-full max-w-md max-md:hidden">{scene}</div>
         </div>
       </section>
 
-      {/* Benefits */}
-      <section className="container-page grid gap-10 py-20 md:py-24">
-        <h2 className="max-w-2xl font-heading text-3xl font-bold tracking-tight text-balance md:text-5xl">
-          {c.benefitsTitle}
+      {/* What you get, each with its price */}
+      <section className="container-page grid gap-6 py-12 md:py-16">
+        <h2 className="font-heading text-3xl font-bold tracking-tight text-balance md:text-4xl">
+          {c.itemsTitle}
         </h2>
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {c.benefits.map((b) => (
-            <li
-              key={b.title}
-              data-animate
-              className="group glow-border relative grid content-start gap-2 rounded-(--radius-2xl) bg-card p-6 shadow-(--shadow-card) transition-shadow duration-(--motion-base) hover:shadow-(--shadow-card-hover)"
-            >
-              <Spot
-                name={b.spot}
-                className="-ms-2 w-32 transition-transform duration-(--motion-slow) ease-out-expo group-hover:scale-105"
-              />
-              <h3 className="font-heading text-xl font-bold tracking-tight">{b.title}</h3>
-              <p className="text-pretty text-muted-foreground">{f(b.body)}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* Steps */}
-      <section className="relative surface-warm dots">
-        <PeekingPet kind={pets[0]} className="right-[8%]" />
-        <div className="container-page grid gap-10 py-20 md:py-24">
-          <h2 className="font-heading text-3xl font-bold tracking-tight text-balance md:text-5xl">
-            {c.stepsTitle}
-          </h2>
-          <ol className="relative grid gap-4 md:auto-cols-fr md:grid-flow-col">
-            <span
-              aria-hidden="true"
-              className="absolute top-6 right-6 left-6 hidden h-0.5 bg-foreground/15 md:block"
-            />
-            {c.steps.map((s, n) => (
-              <li key={s.title} data-animate className="relative grid content-start gap-3">
-                <span className="relative grid size-12 place-items-center rounded-full bg-foreground font-heading text-lg font-bold text-background tabular-nums shadow-(--shadow-control)">
-                  {fmt.number(n + 1)}
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {c.items.map((item) => {
+            const Icon = ICONS[item.icon];
+            return (
+              <li
+                key={item.title}
+                data-animate
+                className="flex gap-3.5 rounded-(--radius-2xl) bg-card p-4 shadow-(--shadow-card) sm:p-5"
+              >
+                <span className="grid size-10 shrink-0 place-items-center rounded-(--radius-lg) bg-primary/10 text-primary">
+                  <Icon aria-hidden="true" className="size-5" />
                 </span>
-                <h3 className="font-heading text-lg font-bold tracking-tight">{s.title}</h3>
-                <p className="text-sm text-pretty text-foreground/75">{f(s.body)}</p>
+                <div className="grid min-w-0 flex-1 content-start gap-1">
+                  <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                    <h3 className="font-heading font-bold tracking-tight">{item.title}</h3>
+                    {item.tag ? (
+                      <span className="rounded-full bg-success/12 px-2 py-0.5 text-xs font-semibold text-success tabular-nums dark:text-[color-mix(in_oklch,var(--success),white_35%)]">
+                        {f(item.tag)}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="text-sm text-pretty text-muted-foreground">{f(item.body)}</p>
+                </div>
               </li>
-            ))}
-          </ol>
-        </div>
+            );
+          })}
+        </ul>
       </section>
 
       {middle}
 
-      {/* FAQ */}
-      <section className="container-page grid gap-8 py-20 md:grid-cols-[1fr_1.6fr] md:py-24">
-        <div className="grid content-start gap-4">
-          <h2 className="font-heading text-3xl font-bold tracking-tight text-balance md:text-5xl">
-            {c.faqTitle}
-          </h2>
-          <Spot name="question" className="w-40 max-md:hidden" />
-        </div>
-        <div className="grid content-start gap-3">
-          {c.faq.map((q) => (
-            <details
-              key={q.q}
-              data-animate
-              className="group rounded-(--radius-2xl) bg-card p-5 shadow-(--shadow-card) open:shadow-(--shadow-card-hover)"
-            >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-heading text-lg font-semibold [&::-webkit-details-marker]:hidden">
-                {q.q}
-                <Plus
-                  aria-hidden="true"
-                  className="size-5 shrink-0 text-primary transition-transform duration-(--motion-base) group-open:rotate-45"
-                />
-              </summary>
-              <p className="mt-3 text-pretty text-muted-foreground">{f(q.a)}</p>
-            </details>
-          ))}
-        </div>
-      </section>
-
-      {/* Closing call to action + share */}
-      <section className="container-page pt-6 pb-24">
-        <div className="relative grid gap-8 rounded-(--radius-3xl) surface-sun p-8 shadow-(--shadow-card) sm:p-12 md:grid-cols-[1.4fr_1fr] md:items-center">
+      {/* Three steps, the call to action and share */}
+      <section className="container-page pt-4 pb-20">
+        <div className="relative grid gap-8 rounded-(--radius-3xl) surface-sun p-6 shadow-(--shadow-card) sm:p-10 md:grid-cols-[1.4fr_1fr] md:items-center">
           <PeekingPet kind={pets[1]} delay={2} className="left-[10%]" />
-          <div className="grid gap-4">
-            <h2 className="font-heading text-4xl leading-[0.98] font-extrabold tracking-tight text-balance md:text-5xl">
-              {c.final.title}
+          <div className="grid gap-5">
+            <h2 className="font-heading text-3xl leading-tight font-extrabold tracking-tight text-balance md:text-4xl">
+              {c.stepsTitle}
             </h2>
-            <p className="text-lg text-pretty text-foreground/80">{c.final.body}</p>
+            <ol className="grid gap-3">
+              {c.steps.map((s, n) => (
+                <li key={s} className="flex items-center gap-3">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-full bg-foreground font-heading text-sm font-bold text-background tabular-nums">
+                    {fmt.number(n + 1)}
+                  </span>
+                  <span className="font-medium text-pretty">{f(s)}</span>
+                </li>
+              ))}
+            </ol>
             <ButtonLink href={ctaHref} size="lg" className="justify-self-start">
               {c.cta}
               <ArrowRight aria-hidden="true" />
             </ButtonLink>
+            <p className="text-sm text-foreground/75">{c.final.body}</p>
           </div>
           <div className="grid gap-3 rounded-(--radius-2xl) bg-card p-6 shadow-(--shadow-card)">
             <p className="font-heading text-xl font-bold">{c.share.title}</p>

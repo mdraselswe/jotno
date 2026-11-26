@@ -199,7 +199,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "Chat consults",
           body: [
-            `If the vet doesn't reply within ${business.consult.replyWindowMinutes} minutes of your payment, the chat is refunded in full automatically. If something else went wrong, write to us within 3 days and we'll review it.`,
+            `If the vet doesn't reply within ${business.consult.replyWindowMinutes} minutes of the chat opening (once your payment is confirmed), the chat is refunded in full automatically; you don't need to ask. If something else went wrong, write to us within 3 days and we'll review it.`,
           ],
         },
         {
@@ -229,7 +229,7 @@ export const legalContent: Record<LegalDoc, Record<string, LegalPage>> = {
         {
           heading: "চ্যাট কনসাল্ট",
           body: [
-            `পেমেন্টের ${bn(business.consult.replyWindowMinutes)} মিনিটের মধ্যে ভেট উত্তর না দিলে চ্যাটের পুরো টাকা আপনাআপনি ফেরত যায়। অন্য কোনো সমস্যা হলে ৩ দিনের মধ্যে আমাদের লিখুন, আমরা দেখব।`,
+            `পেমেন্ট নিশ্চিত হয়ে চ্যাট খোলার ${bn(business.consult.replyWindowMinutes)} মিনিটের মধ্যে ভেট উত্তর না দিলে চ্যাটের পুরো টাকা আপনাআপনি ফেরত যায়, চাইতে হয় না। অন্য কোনো সমস্যা হলে ৩ দিনের মধ্যে আমাদের লিখুন, আমরা দেখব।`,
           ],
         },
         {
