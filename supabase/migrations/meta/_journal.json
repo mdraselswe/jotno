@@ -43,6 +43,13 @@
       "when": 1795627426628,
       "tag": "20261125172346_growth_referrals_quick",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795723208028,
+      "tag": "20261126200008_bvc_register",
+      "breakpoints": true
     }
   ]
 }

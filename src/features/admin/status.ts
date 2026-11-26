@@ -30,9 +30,9 @@ export const VERIFIABLE_STATUSES = ["pending", "suspended"] as const;
 /**
  * What an admin can tick before verifying a vet. Optional, but what was ticked
  * goes into the audit log with the verification, so the history shows how
- * each vet was checked.
+ * each vet was checked. (Old entries may still hold "call", no longer offered.)
  */
-export const VERIFY_CHECKS = ["certificate", "nid", "bvcSite", "call"] as const;
+export const VERIFY_CHECKS = ["certificate", "nid", "bvcSite"] as const;
 export type VerifyCheck = (typeof VERIFY_CHECKS)[number];
 
 /** Why Verify is off for a vet in this status, or null when it can be verified. */
@@ -105,7 +105,7 @@ export function auditTone(action: string): BadgeTone {
 export const AUDIT_GROUPS = {
   all: [],
   people: ["user."],
-  vets: ["provider.", "document.", "vet.", "featured."],
+  vets: ["provider.", "document.", "vet.", "featured.", "bvc."],
   care: ["consult.", "appointment.", "report."],
   money: ["payment.", "payout."],
   shop: ["order.", "product.", "stock.", "coupon.", "category."],

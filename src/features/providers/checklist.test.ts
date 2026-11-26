@@ -4,6 +4,7 @@ import { readyForReview, vetChecklist, type ChecklistInput } from "./checklist";
 const EMPTY: ChecklistInput = {
   photoPath: null,
   registrationNo: null,
+  nameNidBn: null,
   areaId: null,
   speciesCount: 0,
   documentCount: 0,
@@ -29,6 +30,7 @@ describe("vetChecklist", () => {
       ...EMPTY,
       photoPath: "vet/1.jpg",
       registrationNo: " 1234 ",
+      nameNidBn: "মোঃ রহিম",
       areaId: 7,
       speciesCount: 2,
       documentCount: 1,

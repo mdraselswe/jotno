@@ -9,6 +9,7 @@ import type { ChecklistItem, ChecklistTarget } from "../checklist";
 const LABEL: Record<ChecklistItem["key"], MessageKey> = {
   photo: "vetui.check.photo",
   bvc: "vetui.check.bvc",
+  nidName: "vetui.check.nidName",
   area: "vetui.check.area",
   species: "vetui.check.species",
   docs: "vetui.check.docs",

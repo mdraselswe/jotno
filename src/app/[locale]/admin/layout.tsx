@@ -8,6 +8,7 @@ const LINKS: readonly SectionLink[] = [
   { href: ROUTES.adminAppointments, label: "manage.appointments", icon: "calendar" },
   { href: ROUTES.adminUsers, label: "manage.users", icon: "users", group: "section.group.people" },
   { href: ROUTES.adminVets, label: "admin.vets", icon: "vets" },
+  { href: ROUTES.adminBvc, label: "adminui.bvc.title", icon: "verified" },
   { href: ROUTES.adminFeatured, label: "admin.featured", icon: "featured" },
   { href: ROUTES.adminReferrals, label: "grow.nav.referrals", icon: "invite" },
   { href: ROUTES.adminPayments, label: "payAdmin.title", icon: "payments", group: "section.group.money" },

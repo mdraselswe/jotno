@@ -18,6 +18,10 @@ import {
   listHref,
   pageParam,
   providerTone,
+  REGISTER_FILTERS,
+  registerStatus,
+  registerTone,
+  type RegisterFilter,
 } from "@/features/admin";
 import { ADMIN_PAGE, adminCounts, providersByStatus, adminMetadata } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
@@ -41,15 +45,18 @@ async function Vets({ searchParams }: { searchParams: Promise<SP> }) {
   const status: Filter = (FILTERS as readonly string[]).includes(one(sp.status))
     ? (one(sp.status) as Filter)
     : "pending";
+  const register: RegisterFilter | null = (REGISTER_FILTERS as readonly string[]).includes(one(sp.bvc))
+    ? (one(sp.bvc) as RegisterFilter)
+    : null;
   const page = pageParam(one(sp.page));
-  const [found, counts] = await Promise.all([providersByStatus(status, q, page), adminCounts()]);
+  const [found, counts] = await Promise.all([providersByStatus(status, q, page, register), adminCounts()]);
   const rows = found.slice(0, ADMIN_PAGE);
   const more = found.length > ADMIN_PAGE;
   const base = localeHref(locale, ROUTES.adminVets);
-  const href = (p: { status?: Filter; q?: string; page?: number }) =>
+  const href = (p: { status?: Filter; q?: string; page?: number; bvc?: RegisterFilter | "" }) =>
     listHref(
       base,
-      { q: p.q ?? q, status: p.status ?? status, page: p.page ?? 1 },
+      { q: p.q ?? q, status: p.status ?? status, bvc: p.bvc ?? register, page: p.page ?? 1 },
       { status: "pending", page: 1 },
     ) as Route;
 
@@ -83,6 +90,14 @@ async function Vets({ searchParams }: { searchParams: Promise<SP> }) {
       header: t("adminui.vet.bvc"),
       className: "font-mono text-xs",
       cell: (v) => v.registrationNo ?? "—",
+    },
+    {
+      key: "register",
+      header: t("adminui.vets.registerCol"),
+      cell: (v) => {
+        const st = registerStatus(v, v.registerRow ? { nameBn: v.registerName } : null);
+        return <StatusBadge tone={registerTone(st)}>{t(`adminui.bvc.status.${st}`)}</StatusBadge>;
+      },
     },
     { key: "district", header: t("common.district"), cell: (v) => v.district ?? "—" },
     {
@@ -123,7 +138,7 @@ async function Vets({ searchParams }: { searchParams: Promise<SP> }) {
           submit={t("manage.search")}
           clear={t("adminui.clearSearch")}
           clearHref={href({ q: "" })}
-          keep={{ status: status === "pending" ? undefined : status }}
+          keep={{ status: status === "pending" ? undefined : status, bvc: register ?? undefined }}
         />
         <FilterPills
           label={t("common.status")}
@@ -138,6 +153,17 @@ async function Vets({ searchParams }: { searchParams: Promise<SP> }) {
                   ? fmt.number(counts.verified)
                   : undefined,
           }))}
+        />
+        <FilterPills
+          label={t("adminui.vets.registerFilter")}
+          items={[
+            { href: href({ bvc: "" }), label: t("adminui.vets.reg.any"), active: register === null },
+            ...REGISTER_FILTERS.map((f) => ({
+              href: href({ bvc: f }),
+              label: t(`adminui.vets.reg.${f}`),
+              active: register === f,
+            })),
+          ]}
         />
       </div>
       {status === "pending" && rows.length > 0 ? (

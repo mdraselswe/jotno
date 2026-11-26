@@ -27,6 +27,7 @@ import { profileChanged } from "@/features/auth";
 import { ImageUpload } from "@/features/uploads";
 import { useFormatter, useLocale, useT } from "@/i18n/client";
 import { locate as findPosition, type LocateError } from "@/lib/geo";
+import { hasBangla } from "@/lib/bangla-name";
 import { taka, toPoisha } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { adminSaveVetProfile, saveVetProfile } from "../server/actions";
@@ -37,6 +38,7 @@ export interface VetProfileValues {
   bio: string;
   qualifications: string;
   registrationNo: string;
+  nameNidBn: string;
   experienceYears: string;
   consultFeeTaka: string;
   visitFeeTaka: string;
@@ -124,6 +126,7 @@ export function VetProfileForm({ initial, providerId }: { initial: VetProfileVal
   const { minFee, maxFee, commissionBps } = business.consult;
   const errors = {
     name: v.displayName.trim().length < 3 ? t("vetui.err.name") : null,
+    nidName: v.nameNidBn.trim() && !hasBangla(v.nameNidBn) ? t("vetui.err.nidName") : null,
     consultFee:
       consultFee === null || consultFee < minFee || consultFee > maxFee
         ? t("vetui.err.fee", { min: taka(fmt, minFee), max: taka(fmt, maxFee) })
@@ -166,6 +169,7 @@ export function VetProfileForm({ initial, providerId }: { initial: VetProfileVal
         bio: snapshot.bio,
         qualifications: snapshot.qualifications,
         registrationNo: snapshot.registrationNo,
+        nameNidBn: snapshot.nameNidBn,
         experienceYears: experience,
         consultFee: consultFee ?? 0,
         visitFee: visitFee ?? 0,
@@ -274,6 +278,22 @@ export function VetProfileForm({ initial, providerId }: { initial: VetProfileVal
                 />
               </Field>
             </div>
+            <Field
+              id="vp-nidname"
+              label={t("vet.nidName")}
+              hint={t("vet.nidNameHint")}
+              error={shown(errors.nidName)}
+            >
+              <Input
+                id="vp-nidname"
+                lang="bn"
+                maxLength={100}
+                autoComplete="off"
+                aria-invalid={shown(errors.nidName) ? true : undefined}
+                aria-describedby={described("vp-nidname", errors.nidName)}
+                {...text("nameNidBn")}
+              />
+            </Field>
             <Field id="vp-qual" label={t("vet.qualifications")} hint={t("vet.qualificationsHint")}>
               <Input
                 id="vp-qual"

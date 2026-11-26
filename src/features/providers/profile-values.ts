@@ -11,6 +11,7 @@ interface StoredProfile {
   bio: string | null;
   qualifications: string | null;
   registrationNo: string | null;
+  nameNidBn: string | null;
   experienceYears: number | null;
   consultFee: number;
   visitFee: number;
@@ -35,6 +36,7 @@ export function vetProfileValues(p: StoredProfile): VetProfileValues {
     bio: p.bio ?? "",
     qualifications: p.qualifications ?? "",
     registrationNo: p.registrationNo ?? "",
+    nameNidBn: p.nameNidBn ?? "",
     experienceYears: p.experienceYears == null ? "" : String(p.experienceYears),
     consultFeeTaka: vetFeeInput(p.consultFee),
     visitFeeTaka: vetFeeInput(p.visitFee),

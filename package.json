@@ -37,7 +37,8 @@
     "db:reset": "supabase db reset",
     "db:generate": "drizzle-kit generate",
     "db:env": "node scripts/db-env.ts",
-    "db:clear-demo": "node scripts/clear-demo.ts"
+    "db:clear-demo": "node scripts/clear-demo.ts",
+    "bvc:import": "node scripts/bvc-import.ts"
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",
@@ -83,6 +84,7 @@
     "husky": "9.1.7",
     "jsdom": "31.0.1",
     "lint-staged": "17.6.1",
+    "pdfjs-dist": "6.5.438",
     "prettier": "3.10.1",
     "prettier-plugin-tailwindcss": "0.8.1",
     "serve": "14.2.8",

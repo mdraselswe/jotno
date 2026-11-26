@@ -245,6 +245,10 @@ export const providers = pgTable(
     qualifications: text("qualifications"),
     registrationNo: text("registration_no"),
     registrationBody: text("registration_body").notNull().default("BVC"),
+    /** The vet's name as on their NID, in Bangla, to compare with the BVC register. */
+    nameNidBn: text("name_nid_bn"),
+    /** `nameKey(nameNidBn)` (lib/bangla-name.ts), so the admin list can filter on a match. */
+    nameNidKey: text("name_nid_key"),
     experienceYears: integer("experience_years"),
     /** Chat consult fee in poisha. */
     consultFee: integer("consult_fee").notNull().default(30000),
@@ -1031,3 +1035,43 @@ export const reports = pgTable("reports", {
   resolvedAt: tstz("resolved_at"),
   createdAt: createdAt(),
 }).enableRLS();
+
+// ── BVC register ────────────────────────────────────────────────────────────
+/**
+ * Where register rows came from: a BVC voter list PDF (scripts/bvc-import.ts)
+ * or a registration notice an admin typed in. Server only.
+ */
+export const bvcSources = pgTable("bvc_sources", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  url: text("url"),
+  publishedOn: date("published_on"),
+  /** sha256 of an imported file, so the same PDF is not recorded twice. */
+  fileHash: text("file_hash").unique(),
+  rowCount: integer("row_count").notNull().default(0),
+  createdAt: createdAt(),
+}).enableRLS();
+
+/**
+ * Registered vets as BVC publishes them: number, Bangla name, division. No
+ * addresses. Matched against each vet's profile on the admin pages; a public
+ * list, so a match is a hint, not proof. Server only.
+ */
+export const bvcRegister = pgTable(
+  "bvc_register",
+  {
+    /** `bvcKey(regNo)` (lib/bvc.ts): digits only, no leading zeros. */
+    regKey: text("reg_key").primaryKey(),
+    regNo: text("reg_no").notNull(),
+    /** Null when the source's text for the name can't be read (open the PDF at `page`). */
+    nameBn: text("name_bn"),
+    /** `nameKey(nameBn)` (lib/bangla-name.ts). */
+    nameKey: text("name_key"),
+    division: text("division"),
+    sourceId: uuid("source_id").references(() => bvcSources.id, { onDelete: "set null" }),
+    /** The page of the source PDF the row is on, for checking by eye. */
+    page: integer("page"),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("bvc_register_name_idx").on(t.nameKey)],
+).enableRLS();

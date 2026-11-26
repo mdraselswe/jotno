@@ -1,10 +1,12 @@
 import "server-only";
-import { and, desc, eq, gt, ilike, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, ilike, inArray, isNotNull, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { business } from "@/config";
 import { vetBalance } from "@/features/payments";
 import { db, schema } from "@/infrastructure/db";
 import { mediaUrl } from "@/infrastructure/storage";
+import { nameKey } from "@/lib/bangla-name";
 import { bvcKey } from "@/lib/bvc";
+import type { RegisterFilter } from "../bvc-match";
 import { RESTORE_ACTION } from "../restore";
 
 const P = schema.providers;
@@ -50,8 +52,22 @@ export async function adminCounts() {
 export const ADMIN_PAGE = 50;
 const pageOffset = (page: number) => (Math.max(1, page) - 1) * ADMIN_PAGE;
 
-/** Vets by status, newest first, optionally by name, email or BVC number (a page of 50, plus one). */
-export async function providersByStatus(status: (typeof P.$inferSelect)["status"] | "all", q = "", page = 1) {
+/** `bvcKey` (lib/bvc.ts) in Postgres: Bangla digits to ASCII, digits only, no leading zeros. */
+const bvcKeySql = sql<string>`ltrim(regexp_replace(translate(coalesce(${P.registrationNo}, ''), '০১২৩৪৫৬৭৮৯', '0123456789'), '[^0-9]', '', 'g'), '0')`;
+
+const R = schema.bvcRegister;
+
+/**
+ * Vets by status, newest first, optionally by name, email or BVC number (a page
+ * of 50, plus one), with their BVC register row. `register`: only vets whose
+ * number is not in the register, or whose register name needs a look.
+ */
+export async function providersByStatus(
+  status: (typeof P.$inferSelect)["status"] | "all",
+  q = "",
+  page = 1,
+  register: RegisterFilter | null = null,
+) {
   const term = q.trim().slice(0, 60);
   const like = `%${term.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
   return db()
@@ -65,13 +81,22 @@ export async function providersByStatus(status: (typeof P.$inferSelect)["status"
       isDemo: P.isDemo,
       email: schema.profiles.email,
       district: schema.districts.nameEn,
+      nameNidBn: P.nameNidBn,
+      registerRow: R.regKey,
+      registerName: R.nameBn,
     })
     .from(P)
     .innerJoin(schema.profiles, eq(schema.profiles.id, P.profileId))
     .leftJoin(schema.districts, eq(schema.districts.id, P.districtId))
+    .leftJoin(R, eq(R.regKey, bvcKeySql))
     .where(
       and(
         status === "all" ? undefined : eq(P.status, status),
+        register === "missing" ? isNull(R.regKey) : undefined,
+        // Keys differ for "close" names too: the list shows each row's verdict.
+        register === "check"
+          ? and(isNotNull(R.regKey), or(isNull(R.nameKey), isNull(P.nameNidKey), ne(R.nameKey, P.nameNidKey)))
+          : undefined,
         term
           ? or(ilike(P.displayName, like), ilike(schema.profiles.email, like), ilike(P.registrationNo, like))
           : undefined,
@@ -81,9 +106,6 @@ export async function providersByStatus(status: (typeof P.$inferSelect)["status"
     .limit(ADMIN_PAGE + 1)
     .offset(pageOffset(page));
 }
-
-/** `bvcKey` (lib/bvc.ts) in Postgres: Bangla digits to ASCII, digits only, no leading zeros. */
-const bvcKeySql = sql<string>`ltrim(regexp_replace(translate(coalesce(${P.registrationNo}, ''), '০১২৩৪৫৬৭৮৯', '0123456789'), '[^0-9]', '', 'g'), '0')`;
 
 /** Other profiles with the same BVC number, however it was typed (one number belongs to one vet). */
 async function sameBvc(id: string, registrationNo: string | null) {
@@ -113,7 +135,7 @@ export async function providerForReview(id: string) {
     .where(eq(P.id, id))
     .limit(1);
   if (!row) return null;
-  const [documents, history, twins] = await Promise.all([
+  const [documents, history, twins, register] = await Promise.all([
     db().select().from(schema.providerDocuments).where(eq(schema.providerDocuments.providerId, id)),
     db()
       .select()
@@ -122,8 +144,95 @@ export async function providerForReview(id: string) {
       .orderBy(desc(schema.auditLog.createdAt))
       .limit(20),
     sameBvc(id, row.p.registrationNo),
+    registerFor(row.p.registrationNo, row.p.nameNidBn),
   ]);
-  return { ...row, photoUrl: mediaUrl(row.p.photoPath), documents, history, twins };
+  return { ...row, photoUrl: mediaUrl(row.p.photoPath), documents, history, twins, register };
+}
+
+const registerColumns = {
+  regKey: R.regKey,
+  regNo: R.regNo,
+  nameBn: R.nameBn,
+  division: R.division,
+  page: R.page,
+  updatedAt: R.updatedAt,
+  sourceTitle: schema.bvcSources.title,
+  sourceUrl: schema.bvcSources.url,
+  sourcePublished: schema.bvcSources.publishedOn,
+  /** Typed in by an admin (server/bvc-actions.ts), not from an imported list. */
+  sourceManual: sql<boolean>`coalesce(${schema.bvcSources.fileHash} = 'manual', false)`,
+};
+
+/**
+ * The register row for a vet's BVC number, and rows with the vet's NID name
+ * (a typo in the number still finds them), for the admin's side-by-side check.
+ */
+async function registerFor(registrationNo: string | null, nameNidBn: string | null) {
+  const key = bvcKey(registrationNo);
+  const name = nameKey(nameNidBn);
+  const [found, byName] = await Promise.all([
+    key
+      ? db()
+          .select(registerColumns)
+          .from(R)
+          .leftJoin(schema.bvcSources, eq(schema.bvcSources.id, R.sourceId))
+          .where(eq(R.regKey, key))
+          .limit(1)
+      : Promise.resolve([]),
+    name
+      ? db()
+          .select(registerColumns)
+          .from(R)
+          .leftJoin(schema.bvcSources, eq(schema.bvcSources.id, R.sourceId))
+          .where(and(eq(R.nameKey, name), key ? ne(R.regKey, key) : undefined))
+          .limit(3)
+      : Promise.resolve([]),
+  ]);
+  return { row: found[0] ?? null, byName };
+}
+
+/** The BVC register page: imported lists, size, and rows by number or name. */
+export async function bvcOverview() {
+  const [sources, [counts]] = await Promise.all([
+    db()
+      .select({
+        id: schema.bvcSources.id,
+        title: schema.bvcSources.title,
+        url: schema.bvcSources.url,
+        publishedOn: schema.bvcSources.publishedOn,
+        rowCount: schema.bvcSources.rowCount,
+        createdAt: schema.bvcSources.createdAt,
+        manual: sql<boolean>`coalesce(${schema.bvcSources.fileHash} = 'manual', false)`,
+        current: sql<number>`(select count(*)::int from ${R} where ${R.sourceId} = ${schema.bvcSources.id})`,
+      })
+      .from(schema.bvcSources)
+      .orderBy(desc(schema.bvcSources.createdAt))
+      .limit(20),
+    db()
+      .select({
+        total: sql<number>`count(*)::int`,
+        unreadable: sql<number>`count(*) filter (where ${R.nameBn} is null)::int`,
+      })
+      .from(R),
+  ]);
+  return { sources, total: Number(counts?.total ?? 0), unreadable: Number(counts?.unreadable ?? 0) };
+}
+
+/** Register rows by BVC number (exact) or Bangla name (part of it), up to 50. */
+export async function bvcSearch(q: string) {
+  const term = q.trim().slice(0, 60);
+  if (!term) return [];
+  const key = bvcKey(term);
+  // Digits (either script), spaces and dashes: a number; anything else: a name.
+  const byNumber = /^[\d\u09E6-\u09EF\s-]+$/.test(term);
+  const like = `%${term.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
+  return db()
+    .select(registerColumns)
+    .from(R)
+    .leftJoin(schema.bvcSources, eq(schema.bvcSources.id, R.sourceId))
+    .where(byNumber && key ? eq(R.regKey, key) : ilike(R.nameBn, like))
+    .orderBy(R.regKey)
+    .limit(50);
 }
 
 /** Vets with money ready to pay out (balance ≥ minimum). */

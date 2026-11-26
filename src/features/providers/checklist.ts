@@ -7,6 +7,7 @@
 export type ChecklistKey =
   | "photo"
   | "bvc"
+  | "nidName"
   | "area"
   | "species"
   | "docs"
@@ -32,6 +33,7 @@ export interface ChecklistItem {
 export interface ChecklistInput {
   photoPath: string | null;
   registrationNo: string | null;
+  nameNidBn: string | null;
   areaId: number | null;
   speciesCount: number;
   documentCount: number;
@@ -51,6 +53,7 @@ export function vetChecklist(p: ChecklistInput): ChecklistItem[] {
   return [
     { key: "photo", done: Boolean(p.photoPath), required: true, target: "basics" },
     { key: "bvc", done: filled(p.registrationNo), required: true, target: "creds" },
+    { key: "nidName", done: filled(p.nameNidBn), required: true, target: "creds" },
     { key: "area", done: p.areaId != null, required: true, target: "place" },
     { key: "species", done: p.speciesCount > 0, required: true, target: "services" },
     { key: "docs", done: p.documentCount > 0, required: true, target: "documents" },

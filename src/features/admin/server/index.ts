@@ -28,6 +28,8 @@ export {
   payoutQueue,
   providerForReview,
   providersByStatus,
+  bvcOverview,
+  bvcSearch,
   recentPayouts,
   recentRefundable,
   restoredHides,

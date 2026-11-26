@@ -40,6 +40,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DISTRICTS } from "@/content/geo";
 import { useFormatter, useLocale, useT } from "@/i18n/client";
 import type { MessageKey } from "@/i18n";
+import { hasBangla } from "@/lib/bangla-name";
 import { taka, toPoisha } from "@/lib/money";
 import {
   addFeatured,
@@ -59,7 +60,9 @@ import {
   verifyProvider,
   type AdminResult,
 } from "../server/actions";
+import { BVC_DIVISIONS } from "../bvc-match";
 import type { HiddenContent } from "../restore";
+import { removeBvcEntry, saveBvcEntry } from "../server/bvc-actions";
 import { VERIFY_CHECKS, verifyBlock, type VerifyCheck } from "../status";
 
 type Variant = "default" | "brand" | "outline" | "secondary" | "ghost" | "destructive";
@@ -738,6 +741,118 @@ export function CancelAppointmentButton({ id, when }: { id: string; when: string
       confirm={t("manage.cancelVisit")}
       reason={{ label: t("manage.cancelReason"), min: 3, max: 200 }}
       onConfirm={(r) => adminCancelAppointment(id, r)}
+    />
+  );
+}
+
+// ── BVC register ────────────────────────────────────────────────────────────
+
+/** Add a vet from a registration notice, or correct a row (same number). */
+export function BvcEntryForm() {
+  const { pending, run, t } = useAction();
+  const id = useId();
+  const [regNo, setRegNo] = useState("");
+  const [nameBn, setNameBn] = useState("");
+  const [division, setDivision] = useState("");
+  const [url, setUrl] = useState("");
+  const numberOk = /[0-9\u09E6-\u09EF]/.test(regNo);
+  const nameOk = hasBangla(nameBn) && nameBn.trim().length >= 3;
+  const urlOk = !url.trim() || URL.canParse(url.trim());
+  return (
+    <form
+      className="grid gap-4 sm:grid-cols-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        run(
+          () =>
+            saveBvcEntry({
+              regNo,
+              nameBn,
+              division: (BVC_DIVISIONS as readonly string[]).includes(division)
+                ? (division as (typeof BVC_DIVISIONS)[number])
+                : null,
+              url: url.trim() || null,
+            }),
+          () => {
+            setRegNo("");
+            setNameBn("");
+            setUrl("");
+          },
+        );
+      }}
+    >
+      <div className="grid gap-2">
+        <Label htmlFor={`${id}-no`}>{t("adminui.bvc.regNo")}</Label>
+        <Input
+          id={`${id}-no`}
+          inputMode="numeric"
+          maxLength={12}
+          required
+          value={regNo}
+          onChange={(e) => setRegNo(e.target.value)}
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor={`${id}-div`}>{t("adminui.bvc.division")}</Label>
+        <NativeSelect id={`${id}-div`} value={division} onChange={(e) => setDivision(e.target.value)}>
+          <option value="">{t("adminui.bvc.anyDivision")}</option>
+          {BVC_DIVISIONS.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </NativeSelect>
+      </div>
+      <div className="grid gap-2 sm:col-span-2">
+        <Label htmlFor={`${id}-name`}>{t("adminui.bvc.nameBn")}</Label>
+        <Input
+          id={`${id}-name`}
+          lang="bn"
+          maxLength={100}
+          required
+          value={nameBn}
+          aria-invalid={(nameBn !== "" && !nameOk) || undefined}
+          onChange={(e) => setNameBn(e.target.value)}
+        />
+      </div>
+      <div className="grid gap-2 sm:col-span-2">
+        <Label htmlFor={`${id}-url`}>{t("adminui.bvc.url")}</Label>
+        <Input
+          id={`${id}-url`}
+          type="url"
+          inputMode="url"
+          maxLength={300}
+          placeholder="https://bvc.gov.bd/…"
+          value={url}
+          aria-invalid={!urlOk || undefined}
+          onChange={(e) => setUrl(e.target.value)}
+        />
+      </div>
+      <Button
+        type="submit"
+        variant="brand"
+        disabled={pending || !numberOk || !nameOk || !urlOk}
+        className="sm:col-span-2 sm:justify-self-start"
+      >
+        <Save aria-hidden="true" />
+        {t("adminui.bvc.save")}
+      </Button>
+    </form>
+  );
+}
+
+export function RemoveBvcButton({ regKey, regNo }: { regKey: string; regNo: string }) {
+  const t = useT();
+  return (
+    <ConfirmAction
+      label={t("adminui.bvc.remove")}
+      icon={Trash2}
+      variant="ghost"
+      className="text-destructive hover:text-destructive"
+      title={t("adminui.bvc.removeTitle", { no: regNo })}
+      body={t("adminui.bvc.removeBody")}
+      confirm={t("adminui.bvc.remove")}
+      onConfirm={() => removeBvcEntry(regKey)}
     />
   );
 }

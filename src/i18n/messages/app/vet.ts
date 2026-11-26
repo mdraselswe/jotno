@@ -25,7 +25,7 @@ export const vet = pack(
     "vet.submit": "Send for verification",
     "vet.submitted": "Sent! We'll check it soon.",
     "vet.submitMissing":
-      "Add your photo, BVC registration number, area, the animals you treat and at least one document first.",
+      "Add your photo, BVC registration number, your name as on your NID, area, the animals you treat and at least one document first.",
     "vet.availableOn": "You're available now",
     "vet.availableOff": "You're offline",
     "vet.availableHint": "Switch on when you can reply to chats. You'll show a green dot and rank higher.",
@@ -50,6 +50,9 @@ export const vet = pack(
     "vet.registrationNo": "BVC registration number",
     "vet.registrationHint":
       "Bangladesh Veterinary Council. We check it before you appear in search; changing it (or your name) later sends your profile back for a quick re-check.",
+    "vet.nidName": "Your name as on your NID (in Bangla)",
+    "vet.nidNameHint":
+      "Exactly as your national ID card writes it, in Bangla letters. Only our team sees it: we match it with the BVC register. We don't ask for the NID number.",
     "vet.experience": "Years of experience",
     "vet.qualifications": "Degrees",
     "vet.qualificationsHint": "e.g. DVM (BAU), MS in Surgery",
@@ -152,7 +155,7 @@ export const vet = pack(
     "vet.submit": "যাচাইয়ের জন্য পাঠান",
     "vet.submitted": "পাঠানো হয়েছে! শিগগিরই দেখব।",
     "vet.submitMissing":
-      "আগে আপনার ছবি, BVC রেজিস্ট্রেশন নম্বর, এলাকা, কোন প্রাণীর চিকিৎসা করেন আর অন্তত একটা ডকুমেন্ট দিন।",
+      "আগে আপনার ছবি, BVC রেজিস্ট্রেশন নম্বর, NID অনুযায়ী নাম, এলাকা, কোন প্রাণীর চিকিৎসা করেন আর অন্তত একটা ডকুমেন্ট দিন।",
     "vet.availableOn": "আপনি এখন অ্যাভেইলেবল",
     "vet.availableOff": "আপনি অফলাইন",
     "vet.availableHint": "চ্যাটের উত্তর দিতে পারলে চালু করুন। সবুজ ডট দেখাবে আর সার্চে উপরে আসবেন।",
@@ -177,6 +180,9 @@ export const vet = pack(
     "vet.registrationNo": "BVC রেজিস্ট্রেশন নম্বর",
     "vet.registrationHint":
       "বাংলাদেশ ভেটেরিনারি কাউন্সিল। সার্চে দেখানোর আগে আমরা যাচাই করি; পরে এটা (বা নাম) বদলালে প্রোফাইল আবার যাচাইয়ে যাবে।",
+    "vet.nidName": "NID অনুযায়ী আপনার নাম (বাংলায়)",
+    "vet.nidNameHint":
+      "জাতীয় পরিচয়পত্রে যেভাবে লেখা, হুবহু সেভাবে বাংলা অক্ষরে। শুধু আমাদের টিম দেখে: BVC তালিকার সাথে মেলাতে। NID নম্বর আমরা চাই না।",
     "vet.experience": "অভিজ্ঞতা (বছর)",
     "vet.qualifications": "ডিগ্রি",
     "vet.qualificationsHint": "যেমন DVM (বাকৃবি), MS in Surgery",

@@ -1,4 +1,5 @@
 import {
+  BookCheck,
   ExternalLink,
   FileText,
   History,
@@ -32,6 +33,8 @@ import {
   FactList,
   listHref,
   providerTone,
+  registerStatus,
+  registerTone,
   ReviewActions,
   VERIFY_CHECKS,
   type VerifyCheck,
@@ -77,6 +80,7 @@ async function Review({ params }: { params: Promise<{ id: string }> }) {
     { label: t("common.phone"), value: r.phone ?? dash },
     { label: t("adminui.vet.publicPhone"), value: p.phonePublic ?? dash },
     { label: t("adminui.vet.bvc"), value: <span className="font-mono">{p.registrationNo ?? dash}</span> },
+    { label: t("adminui.vet.nidName"), value: <span lang="bn">{p.nameNidBn ?? dash}</span> },
     { label: t("adminui.vet.degrees"), value: p.qualifications ?? dash },
     {
       label: t("adminui.vet.experience"),
@@ -91,6 +95,23 @@ async function Review({ params }: { params: Promise<{ id: string }> }) {
       value: fmt.number(p.completeness / 100, { style: "percent" }),
     },
     { label: t("adminui.vet.submitted"), value: p.submittedAt ? fmt.dateTime(p.submittedAt) : dash },
+  ];
+
+  const reg = r.register.row;
+  const regStatus = registerStatus(p, reg);
+  const sideBySide = [
+    {
+      label: t("adminui.bvc.regNo"),
+      mine: <span className="font-mono">{p.registrationNo ?? dash}</span>,
+      list: <span className="font-mono">{reg?.regNo ?? dash}</span>,
+    },
+    {
+      label: t("adminui.bvc.name"),
+      mine: <span lang="bn">{p.nameNidBn ?? dash}</span>,
+      list: <span lang="bn">{reg?.nameBn ?? dash}</span>,
+    },
+    // The profile has a district, the list a division: close enough to spot a mismatch.
+    { label: t("adminui.bvc.where"), mine: r.district ?? dash, list: reg?.division ?? dash },
   ];
 
   const consultsHref = listHref(localeHref(locale, ROUTES.adminConsults), { q: p.displayName }) as Route;
@@ -174,6 +195,98 @@ async function Review({ params }: { params: Promise<{ id: string }> }) {
                 {p.bio}
               </p>
             ) : null}
+          </SectionCard>
+
+          <SectionCard
+            title={t("adminui.bvc.cardTitle")}
+            description={t("adminui.bvc.cardSub")}
+            icon={BookCheck}
+          >
+            <div className="grid gap-4">
+              <div className="grid gap-1.5">
+                <StatusBadge tone={registerTone(regStatus)} className="justify-self-start">
+                  {t(`adminui.bvc.status.${regStatus}`)}
+                </StatusBadge>
+                <p className="text-sm text-pretty text-muted-foreground">
+                  {t(`adminui.bvc.explain.${regStatus}`)}
+                </p>
+              </div>
+              {reg ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[22rem] text-sm">
+                    <thead>
+                      <tr className="border-b text-start text-xs text-muted-foreground">
+                        <th scope="col" className="py-2 pe-3 text-start font-medium">
+                          <span className="sr-only">{t("adminui.bvc.name")}</span>
+                        </th>
+                        <th scope="col" className="py-2 pe-3 text-start font-medium">
+                          {t("adminui.bvc.profileSide")}
+                        </th>
+                        <th scope="col" className="py-2 text-start font-medium">
+                          {t("adminui.bvc.listSide")}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sideBySide.map((row) => (
+                        <tr key={row.label} className="border-b last:border-0">
+                          <th scope="row" className="py-2 pe-3 text-start font-medium text-muted-foreground">
+                            {row.label}
+                          </th>
+                          <td className="py-2 pe-3">{row.mine}</td>
+                          <td className="py-2">{row.list}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+              {reg ? (
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                  <span>
+                    {t("adminui.bvc.source")}:{" "}
+                    {reg.sourceUrl ? (
+                      <a
+                        href={reg.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium text-foreground underline underline-offset-4"
+                      >
+                        {reg.sourceTitle}
+                      </a>
+                    ) : (
+                      <span className="font-medium text-foreground">
+                        {reg.sourceManual || !reg.sourceTitle ? t("adminui.bvc.manual") : reg.sourceTitle}
+                      </span>
+                    )}
+                    {reg.sourcePublished ? ` · ${fmt.date(new Date(reg.sourcePublished))}` : null}
+                  </span>
+                  {reg.page ? <span>· {t("adminui.bvc.page", { n: n(reg.page) })}</span> : null}
+                </p>
+              ) : null}
+              {r.register.byName.length > 0 ? (
+                <div className="grid gap-1.5 rounded-(--radius-lg) bg-muted/60 px-3 py-2.5 text-sm">
+                  <p className="text-pretty">{t("adminui.bvc.byName")}</p>
+                  <ul className="grid gap-1">
+                    {r.register.byName.map((o) => (
+                      <li key={o.regKey} className="flex flex-wrap gap-x-2">
+                        <span className="font-mono">{o.regNo}</span>
+                        <span lang="bn">{o.nameBn}</span>
+                        {o.division ? <span className="text-muted-foreground">{o.division}</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              <ButtonLink
+                href={listHref(localeHref(locale, ROUTES.adminBvc), { q: p.registrationNo ?? "" }) as Route}
+                variant="link"
+                size="sm"
+                className="justify-self-start px-0"
+              >
+                {t("adminui.bvc.title")}
+              </ButtonLink>
+            </div>
           </SectionCard>
 
           <SectionCard title={t("admin.documents")} description={t("adminui.vet.docsHint")} icon={FileText}>

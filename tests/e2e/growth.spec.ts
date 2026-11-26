@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { nameKey } from "../../src/lib/bangla-name";
 import { localStackUp, signIn, sql } from "./helpers/local";
 
 /**
@@ -16,9 +17,14 @@ const people = (project: string) =>
   PEOPLE[project] ?? { owner: "mim@demo.jotno.test", vet: "nadia@demo.jotno.test" };
 const summaryFor = (project: string) =>
   `E2E: quick help (${project}), my dog has vomited three times since morning and won't eat.`;
-const INVITE_CODE = "E2EINVITE";
+// Per project: each project's clean-up removes its own invite only, not the other's mid-test.
+const inviteCode = (project: string) => `E2EINVITE${project === "mobile" ? "M" : "D"}`;
 /** The throwaway vet of the BVC check test (removed with its auth user afterwards). */
 const TWIN_EMAIL = "e2e-bvc-twin@demo.jotno.test";
+/** The register test's vet and the BVC number the admin adds for it (above any real number). */
+const MATCH_EMAIL = "e2e-bvc-match@demo.jotno.test";
+const MATCH_BVC = "99001";
+const NID_NAME = "মোঃ পরীক্ষা রহমান";
 
 async function cleanUp(project: string) {
   const SUMMARY = summaryFor(project);
@@ -27,12 +33,15 @@ async function cleanUp(project: string) {
   try {
     // The BVC check test’s throwaway vet (profile, vet and documents go with the auth user).
     await db`delete from auth.users where email = ${TWIN_EMAIL}`;
+    // The register test's vet and the row the admin typed in.
+    await db`delete from auth.users where email = ${MATCH_EMAIL}`;
+    await db`delete from public.bvc_register where reg_key = ${MATCH_BVC}`;
     // The approval test: its invite, the reward it earned, its paid request.
     const invited = await db<{ referee_id: string }[]>`
-      select referee_id from public.referrals where code = ${INVITE_CODE}`;
+      select referee_id from public.referrals where code = ${inviteCode(project)}`;
     for (const r of invited)
       await db`delete from public.points where ref_type = 'referral' and ref_id = ${r.referee_id}`;
-    await db`delete from public.referrals where code = ${INVITE_CODE}`;
+    await db`delete from public.referrals where code = ${inviteCode(project)}`;
     const approved = await db<{ id: string; payment_id: string | null }[]>`
       select id, payment_id from public.quick_requests where summary = ${`${SUMMARY} (approve)`}`;
     await db`delete from public.quick_requests where summary = ${`${SUMMARY} (approve)`}`;
@@ -146,13 +155,13 @@ test.describe("invites and quick help", () => {
     let paymentId = "";
     let ownerId = "";
     try {
-      await db`delete from public.referrals where code = ${INVITE_CODE}`;
+      await db`delete from public.referrals where code = ${inviteCode(info.project.name)}`;
       const [o] = await db<{ id: string }[]>`select id from public.profiles where email = ${OWNER}`;
       const [v] = await db<{ id: string }[]>`select id from public.profiles where email = ${INVITER}`;
       if (!o || !v) throw new Error("demo people missing");
       ownerId = o.id;
       const added = await db`
-        insert into public.referrals (referee_id, referrer_id, code) values (${o.id}, ${v.id}, ${INVITE_CODE})
+        insert into public.referrals (referee_id, referrer_id, code) values (${o.id}, ${v.id}, ${inviteCode(info.project.name)})
         on conflict (referee_id) do nothing returning referee_id`;
       test.skip(added.length === 0, "this owner already came through a real invite");
       const [q] = await db<{ id: string }[]>`
@@ -233,7 +242,7 @@ test.describe("invites and quick help", () => {
     }
     await page.getByRole("button", { name: "Verify (BVC checked)" }).click();
     const dialog = page.getByRole("dialog");
-    await expect(dialog).toContainText("Checked: 2 of 4.");
+    await expect(dialog).toContainText("Checked: 2 of 3.");
     await dialog.getByRole("button", { name: "Yes, verify" }).click();
     await expect(page.getByText("Checked: certificate, NID")).toBeVisible({ timeout: 15_000 });
 
@@ -247,5 +256,63 @@ test.describe("invites and quick help", () => {
     } finally {
       await check.end();
     }
+  });
+
+  test("an admin adds a vet to the BVC register and the profile shows the match", async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop", "the admin signs in from the desktop project only");
+    const db = sql();
+    let vetId = "";
+    try {
+      await db`delete from auth.users where email = ${MATCH_EMAIL}`;
+      await db`delete from public.bvc_register where reg_key = ${MATCH_BVC}`;
+      const [u] = await db<{ id: string }[]>`
+        insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at)
+        values (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+          ${MATCH_EMAIL}, '{"full_name":"E2E Match"}'::jsonb, now(), now())
+        returning id`;
+      if (!u) throw new Error("could not create the test user");
+      const [v] = await db<{ id: string }[]>`
+        insert into public.providers
+          (profile_id, status, slug, display_name, registration_no, name_nid_bn, name_nid_key, submitted_at)
+        values (${u.id}, 'pending', 'e2e-bvc-match', 'Dr. E2E Match', ${`BVC-${MATCH_BVC}`},
+          ${NID_NAME}, ${nameKey(NID_NAME)}, now())
+        returning id`;
+      if (!v) throw new Error("could not create the test vet");
+      vetId = v.id;
+    } finally {
+      await db.end();
+    }
+
+    await signIn(page, "admin@demo.jotno.test", `/en/admin/vets/${vetId}/`);
+    await page.goto(`/en/admin/vets/${vetId}/`);
+    const card = page.locator("section").filter({ has: page.getByRole("heading", { name: "BVC register" }) });
+    await expect(card.getByText("Not in the list", { exact: true })).toBeVisible();
+    await page.goto("/en/admin/vets/?bvc=missing");
+    // The list draws each vet twice (table on wide screens, cards on phones).
+    await expect(page.getByRole("main").getByText("Dr. E2E Match").filter({ visible: true })).toBeVisible();
+
+    // A registration notice: the admin types the new vet in (until the form is hydrated, retry).
+    await page.goto("/en/admin/bvc/");
+    await expect(async () => {
+      await page.getByRole("textbox", { name: "BVC number", exact: true }).fill(MATCH_BVC);
+      await page.getByLabel("Name (in Bangla, as BVC writes it)").fill("ডাঃ মোঃ পরীক্ষা রহমান");
+      await page.getByRole("button", { name: "Save to register" }).click();
+      await expect(page.getByText("Saved").first()).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 15_000 });
+    await page.goto(`/en/admin/bvc/?q=${MATCH_BVC}`);
+    await expect(
+      page.getByRole("main").getByText("ডাঃ মোঃ পরীক্ষা রহমান").filter({ visible: true }),
+    ).toBeVisible();
+
+    await page.goto(`/en/admin/vets/${vetId}/`);
+    await expect(card.getByText("Name matches", { exact: true })).toBeVisible();
+    await expect(card.getByText("ডাঃ মোঃ পরীক্ষা রহমান")).toBeVisible();
+    await expect(card.getByText("Added by an admin")).toBeVisible();
+
+    // The vets list badge and the "not in the list" filter agree.
+    await page.goto("/en/admin/vets/?bvc=missing");
+    await expect(page.getByRole("main").getByText("Dr. E2E Match")).toHaveCount(0);
+    await page.goto("/en/admin/vets/?bvc=check");
+    await expect(page.getByRole("main").getByText("Dr. E2E Match")).toHaveCount(0);
   });
 });

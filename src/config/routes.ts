@@ -70,6 +70,7 @@ export const ROUTES = {
   adminAudit: "/admin/audit",
   adminConsults: "/admin/consults",
   adminReferrals: "/admin/referrals",
+  adminBvc: "/admin/bvc",
   /** Design-system preview, development only (not in the sitemap; robots.txt disallows it). */
   dev: "/dev",
 } as const;

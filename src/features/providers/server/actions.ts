@@ -13,6 +13,7 @@ import type { MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
 import { audit } from "@/infrastructure/db/helpers";
 import { storage } from "@/infrastructure/storage";
+import { hasBangla, nameKey } from "@/lib/bangla-name";
 import { localeHref } from "@/lib/locale-href";
 import { payoutAccountSchema, type PayoutAccountInput } from "../payout-account";
 import { payoutAccountKey } from "./payout-account";
@@ -28,6 +29,7 @@ const profileSchema = z.object({
   bio: z.string().trim().max(2000).nullable().optional(),
   qualifications: z.string().trim().max(500).nullable().optional(),
   registrationNo: z.string().trim().max(40).nullable().optional(),
+  nameNidBn: z.string().trim().max(100).nullable().optional(),
   experienceYears: z.coerce.number().int().min(0).max(70).nullable().optional(),
   consultFee: money,
   visitFee: money,
@@ -54,6 +56,7 @@ async function myProvider(profileId: string) {
       slug: p.slug,
       displayName: p.displayName,
       registrationNo: p.registrationNo,
+      nameNidBn: p.nameNidBn,
     })
     .from(p)
     .where(eq(p.profileId, profileId))
@@ -101,6 +104,7 @@ async function writeProfile(
   const v = parsed.data;
   if (v.consultFee < business.consult.minFee || v.consultFee > business.consult.maxFee)
     return { ok: false, error: "vet.feeRange" };
+  if (v.nameNidBn && !hasBangla(v.nameNidBn)) return { ok: false, error: "vetui.err.nidName" };
   // A new photo must be one this person (the vet, or the admin editing) just uploaded.
   if (v.photoPath && v.photoPath !== mine.photoPath && !ownsUpload(v.photoPath, "vetPhoto", actorId))
     return { ok: false, error: "common.notAllowed" };
@@ -112,15 +116,17 @@ async function writeProfile(
         ? sql`(select extensions.st_setsrid(extensions.st_makepoint(lon, lat), 4326) from public.areas where id = ${v.areaId} and lat is not null)`
         : null;
 
-  // The name and BVC number are what an admin checked against the register:
-  // changing either sends a verified vet back to review.
+  // The names and BVC number are what an admin checked against the register:
+  // changing any of them sends a verified vet back to review.
   const same = (a: string | null | undefined, b: string | null | undefined) =>
     (a ?? "").replace(/\s+/g, " ").trim().toLowerCase() ===
     (b ?? "").replace(/\s+/g, " ").trim().toLowerCase();
   const recheck =
     !byAdmin &&
     mine.status === "verified" &&
-    (!same(mine.registrationNo, v.registrationNo) || !same(mine.displayName, v.displayName));
+    (!same(mine.registrationNo, v.registrationNo) ||
+      !same(mine.displayName, v.displayName) ||
+      !same(mine.nameNidBn, v.nameNidBn));
 
   await db()
     .update(p)
@@ -131,6 +137,8 @@ async function writeProfile(
       bio: v.bio || null,
       qualifications: v.qualifications || null,
       registrationNo: v.registrationNo || null,
+      nameNidBn: v.nameNidBn || null,
+      nameNidKey: nameKey(v.nameNidBn),
       experienceYears: v.experienceYears ?? null,
       consultFee: v.consultFee,
       visitFee: v.visitFee,
@@ -156,8 +164,8 @@ async function writeProfile(
   await refreshCompleteness(mine.id);
   if (recheck) {
     await audit(actorId, "vet.recheck", "provider", mine.id, {
-      from: { name: mine.displayName, bvc: mine.registrationNo },
-      to: { name: v.displayName, bvc: v.registrationNo },
+      from: { name: mine.displayName, bvc: mine.registrationNo, nidName: mine.nameNidBn },
+      to: { name: v.displayName, bvc: v.registrationNo, nidName: v.nameNidBn },
     });
     await notifyAdmins("vet.recheck", {
       title: "Vet changed name or BVC number",
@@ -207,6 +215,7 @@ export async function submitForReview(locale: string): Promise<VetResult> {
       id: p.id,
       status: p.status,
       registrationNo: p.registrationNo,
+      nameNidBn: p.nameNidBn,
       photoPath: p.photoPath,
       areaId: p.areaId,
       docs: sql<number>`(select count(*)::int from ${schema.providerDocuments} d where d.provider_id = "providers"."id")`,
@@ -218,6 +227,7 @@ export async function submitForReview(locale: string): Promise<VetResult> {
   if (!row || !["draft", "rejected"].includes(row.status)) return { ok: false, error: "common.notAllowed" };
   if (
     !row.registrationNo ||
+    !row.nameNidBn ||
     !row.photoPath ||
     !row.areaId ||
     Number(row.docs) === 0 ||
