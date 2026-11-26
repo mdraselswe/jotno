@@ -157,7 +157,10 @@ export async function onFirstPayment(userId: string): Promise<void> {
   const now = new Date();
   const [r] = await db()
     .update(RF)
-    .set({ firstPaidAt: now, activatedAt: sql`coalesce(${RF.activatedAt}, ${now})` })
+    .set({
+      firstPaidAt: now, // A JS Date inside raw sql is not serialised by the driver (it crashed payment approval).
+      activatedAt: sql`coalesce(${RF.activatedAt}, now())`,
+    })
     .where(and(eq(RF.refereeId, userId), sql`${RF.firstPaidAt} is null`, eq(RF.status, "ok")))
     .returning({ referrerId: RF.referrerId });
   if (!r) return;

@@ -97,7 +97,10 @@ export async function setInviteStatus(refereeId: string, status: "ok" | "flagged
     const restored = await db()
       .update(P)
       .set({
-        status: sql`case when ${P.kind} = 'signup' and ${row.activatedAt === null} then 'pending' else 'available' end`,
+        status:
+          row.activatedAt === null
+            ? sql`case when ${P.kind} = 'signup' then 'pending' else 'available' end`
+            : "available",
       })
       .where(and(ours, eq(P.status, "void")))
       .returning({ id: P.id });

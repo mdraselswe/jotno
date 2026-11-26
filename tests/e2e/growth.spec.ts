@@ -16,12 +16,25 @@ const people = (project: string) =>
   PEOPLE[project] ?? { owner: "mim@demo.jotno.test", vet: "nadia@demo.jotno.test" };
 const summaryFor = (project: string) =>
   `E2E: quick help (${project}), my dog has vomited three times since morning and won't eat.`;
+const INVITE_CODE = "E2EINVITE";
 
 async function cleanUp(project: string) {
   const SUMMARY = summaryFor(project);
   const VET = people(project).vet;
   const db = sql();
   try {
+    // The approval test: its invite, the reward it earned, its paid request.
+    const invited = await db<{ referee_id: string }[]>`
+      select referee_id from public.referrals where code = ${INVITE_CODE}`;
+    for (const r of invited)
+      await db`delete from public.points where ref_type = 'referral' and ref_id = ${r.referee_id}`;
+    await db`delete from public.referrals where code = ${INVITE_CODE}`;
+    const approved = await db<{ id: string; payment_id: string | null }[]>`
+      select id, payment_id from public.quick_requests where summary = ${`${SUMMARY} (approve)`}`;
+    await db`delete from public.quick_requests where summary = ${`${SUMMARY} (approve)`}`;
+    const approvedPayments = approved.flatMap((r) => (r.payment_id ? [r.payment_id] : []));
+    if (approvedPayments.length > 0)
+      await db`delete from public.payments where id in ${db(approvedPayments)}`;
     const consults = await db<{ id: string }[]>`select id from public.consults where summary = ${SUMMARY}`;
     const ids = consults.map((c) => c.id);
     const requests = await db<{ id: string; payment_id: string | null }[]>`
@@ -106,5 +119,62 @@ test.describe("invites and quick help", () => {
 
     await expect(page).toHaveURL(/\/chat\/[0-9a-f-]{36}\/$/, { timeout: 20_000 });
     await expect(page.getByText("Quick help chat")).toBeVisible();
+  });
+
+  test("an admin approves an invited owner's first payment and the inviter is rewarded", async ({
+    page,
+  }, info) => {
+    // One admin account: only one project signs it in.
+    test.skip(info.project.name !== "desktop", "the admin signs in from the desktop project only");
+    const { owner: OWNER, vet: INVITER } = people(info.project.name);
+    const TRX = "E2EAPPROVE1";
+    const db = sql();
+    let paymentId = "";
+    let ownerId = "";
+    try {
+      await db`delete from public.referrals where code = ${INVITE_CODE}`;
+      const [o] = await db<{ id: string }[]>`select id from public.profiles where email = ${OWNER}`;
+      const [v] = await db<{ id: string }[]>`select id from public.profiles where email = ${INVITER}`;
+      if (!o || !v) throw new Error("demo people missing");
+      ownerId = o.id;
+      const added = await db`
+        insert into public.referrals (referee_id, referrer_id, code) values (${o.id}, ${v.id}, ${INVITE_CODE})
+        on conflict (referee_id) do nothing returning referee_id`;
+      test.skip(added.length === 0, "this owner already came through a real invite");
+      const [q] = await db<{ id: string }[]>`
+        insert into public.quick_requests (owner_id, summary, fee, commission)
+        values (${o.id}, ${`${summaryFor(info.project.name)} (approve)`}, 9900, 2900) returning id`;
+      if (!q) throw new Error("could not create a quick-help request");
+      const [p] = await db<{ id: string }[]>`
+        insert into public.payments (user_id, purpose, ref_id, amount, gateway, status, gateway_tx_id, payer_phone, submitted_at)
+        values (${o.id}, 'quick', ${q.id}, 9900, 'manual', 'review', ${`bkash:${TRX}`}, '01700000000', now())
+        returning id`;
+      if (!p) throw new Error("could not create its payment");
+      paymentId = p.id;
+      await db`update public.quick_requests set payment_id = ${p.id} where id = ${q.id}`;
+    } finally {
+      await db.end();
+    }
+
+    await signIn(page, "admin@demo.jotno.test", "/en/admin/payments/");
+    await page.goto("/en/admin/payments/");
+    const row = page.locator("main li").filter({ hasText: TRX });
+    await row.getByRole("button", { name: "Found it, approve" }).click();
+    // Approving used to crash on the referral reward (a Date inside raw SQL).
+    await expect(page.getByText("Saved")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Something went wrong")).toHaveCount(0);
+
+    const check = sql();
+    try {
+      const [pay] = await check<
+        { status: string }[]
+      >`select status from public.payments where id = ${paymentId}`;
+      expect(pay?.status).toBe("paid");
+      const [ref] = await check<{ paid: boolean }[]>`
+        select first_paid_at is not null as paid from public.referrals where referee_id = ${ownerId}`;
+      expect(ref?.paid).toBe(true);
+    } finally {
+      await check.end();
+    }
   });
 });
