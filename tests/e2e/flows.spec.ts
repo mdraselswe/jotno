@@ -35,7 +35,7 @@ test.describe("public flows", () => {
     }).toPass({ timeout: 15_000 });
     await search.getByLabel("District").selectOption({ label: "Dhaka" });
     await search.getByRole("button", { name: "Find clinics" }).click();
-    await expect(page).toHaveURL(/\/en\/vets\/\?district=\d+$/);
+    await expect(page).toHaveURL(/\/en\/vets\/\?district=\d+$/, { timeout: 15_000 });
 
     await page.goto("/en/");
     await expect(async () => {

@@ -1,9 +1,10 @@
 import "server-only";
-import { and, desc, eq, gt, ilike, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, ilike, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { business } from "@/config";
 import { vetBalance } from "@/features/payments";
 import { db, schema } from "@/infrastructure/db";
 import { mediaUrl } from "@/infrastructure/storage";
+import { bvcKey } from "@/lib/bvc";
 import { RESTORE_ACTION } from "../restore";
 
 const P = schema.providers;
@@ -81,6 +82,20 @@ export async function providersByStatus(status: (typeof P.$inferSelect)["status"
     .offset(pageOffset(page));
 }
 
+/** `bvcKey` (lib/bvc.ts) in Postgres: Bangla digits to ASCII, digits only, no leading zeros. */
+const bvcKeySql = sql<string>`ltrim(regexp_replace(translate(coalesce(${P.registrationNo}, ''), '০১২৩৪৫৬৭৮৯', '0123456789'), '[^0-9]', '', 'g'), '0')`;
+
+/** Other profiles with the same BVC number, however it was typed (one number belongs to one vet). */
+async function sameBvc(id: string, registrationNo: string | null) {
+  const key = bvcKey(registrationNo);
+  if (!key) return [];
+  return db()
+    .select({ id: P.id, name: P.displayName, status: P.status, registrationNo: P.registrationNo })
+    .from(P)
+    .where(and(ne(P.id, id), sql`${bvcKeySql} = ${key}`))
+    .limit(5);
+}
+
 export async function providerForReview(id: string) {
   if (!/^[0-9a-f-]{36}$/.test(id)) return null;
   const [row] = await db()
@@ -98,7 +113,7 @@ export async function providerForReview(id: string) {
     .where(eq(P.id, id))
     .limit(1);
   if (!row) return null;
-  const [documents, history] = await Promise.all([
+  const [documents, history, twins] = await Promise.all([
     db().select().from(schema.providerDocuments).where(eq(schema.providerDocuments.providerId, id)),
     db()
       .select()
@@ -106,8 +121,9 @@ export async function providerForReview(id: string) {
       .where(and(eq(schema.auditLog.entity, "provider"), eq(schema.auditLog.entityId, id)))
       .orderBy(desc(schema.auditLog.createdAt))
       .limit(20),
+    sameBvc(id, row.p.registrationNo),
   ]);
-  return { ...row, photoUrl: mediaUrl(row.p.photoPath), documents, history };
+  return { ...row, photoUrl: mediaUrl(row.p.photoPath), documents, history, twins };
 }
 
 /** Vets with money ready to pay out (balance ≥ minimum). */

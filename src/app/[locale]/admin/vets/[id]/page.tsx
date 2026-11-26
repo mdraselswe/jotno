@@ -7,8 +7,10 @@ import {
   PencilLine,
   ShieldCheck,
   Stethoscope,
+  TriangleAlert,
 } from "lucide-react";
 import type { Route } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   EmptyState,
@@ -31,6 +33,8 @@ import {
   listHref,
   providerTone,
   ReviewActions,
+  VERIFY_CHECKS,
+  type VerifyCheck,
 } from "@/features/admin";
 import { providerForReview, vetConsultStats, adminMetadata } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
@@ -43,6 +47,12 @@ import { taka } from "@/lib/money";
 
 export async function generateMetadata() {
   return adminMetadata("adminui.meta.vet");
+}
+
+/** The checklist ticks saved with a verification (unknown or old entries are skipped). */
+function checksOf(meta: unknown): VerifyCheck[] {
+  const raw = meta && typeof meta === "object" && "checks" in meta ? meta.checks : null;
+  return Array.isArray(raw) ? VERIFY_CHECKS.filter((c) => raw.includes(c)) : [];
 }
 
 const DOC_KIND: Record<string, MessageKey> = {
@@ -112,6 +122,33 @@ async function Review({ params }: { params: Promise<{ id: string }> }) {
             <span className="font-semibold">{t("adminui.vet.lastReason")}</span> {p.rejectionReason}
           </span>
         </p>
+      ) : null}
+
+      {r.twins.length > 0 ? (
+        <div
+          role="alert"
+          className="grid gap-2 rounded-(--radius-xl) bg-warning/15 px-4 py-3 text-sm ring-1 ring-warning/30"
+        >
+          <p className="flex gap-2.5 font-semibold text-pretty">
+            <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+            {t("adminui.vet.dupTitle", { no: p.registrationNo ?? "" })}
+          </p>
+          <ul className="grid gap-1 ps-6.5">
+            {r.twins.map((o) => (
+              <li key={o.id} className="flex flex-wrap items-center gap-2">
+                <Link
+                  href={localeHref(locale, adminVetPath(o.id))}
+                  className="font-medium underline underline-offset-4"
+                >
+                  {o.name}
+                </Link>
+                <span className="font-mono text-xs text-muted-foreground">{o.registrationNo}</span>
+                <StatusBadge tone={providerTone(o.status)}>{t(`adminui.vetStatus.${o.status}`)}</StatusBadge>
+              </li>
+            ))}
+          </ul>
+          <p className="ps-6.5 text-pretty text-foreground/80">{t("adminui.vet.dupBody")}</p>
+        </div>
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
@@ -236,6 +273,17 @@ async function Review({ params }: { params: Promise<{ id: string }> }) {
                     </span>
                     {h.meta && typeof h.meta.reason === "string" && h.meta.reason ? (
                       <span className="text-pretty text-muted-foreground">{h.meta.reason}</span>
+                    ) : null}
+                    {h.action === "provider.verify" ? (
+                      <span className="text-pretty text-muted-foreground">
+                        {checksOf(h.meta).length > 0
+                          ? t("adminui.vet.checkedList", {
+                              list: checksOf(h.meta)
+                                .map((c) => t(`adminui.vet.checkShort.${c}`))
+                                .join(", "),
+                            })
+                          : t("adminui.vet.checkedNone")}
+                      </span>
                     ) : null}
                   </li>
                 ))}

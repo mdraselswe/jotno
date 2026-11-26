@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogClose,
@@ -59,7 +60,7 @@ import {
   type AdminResult,
 } from "../server/actions";
 import type { HiddenContent } from "../restore";
-import { verifyBlock } from "../status";
+import { VERIFY_CHECKS, verifyBlock, type VerifyCheck } from "../status";
 
 type Variant = "default" | "brand" | "outline" | "secondary" | "ghost" | "destructive";
 type Size = "default" | "sm" | "lg";
@@ -192,11 +193,40 @@ export function ReviewActions({
 }) {
   const t = useT();
   const id = useId();
+  const fmt = useFormatter();
   const reason = { label: t("admin.reason"), hint: t("admin.reasonHint"), min: 3, max: 300 };
   // Only a profile sent for review (or a suspended vet) can be verified; the server checks too.
   const block = status === "verified" ? null : verifyBlock(status);
+  const canVerify = !block && status !== "verified";
+  const [checks, setChecks] = useState<VerifyCheck[]>([]);
+  const toggle = (c: VerifyCheck, on: boolean) =>
+    setChecks((now) => (on ? [...now.filter((x) => x !== c), c] : now.filter((x) => x !== c)));
   return (
     <div className="grid gap-3">
+      {canVerify ? (
+        <fieldset className="grid gap-2.5 rounded-(--radius-lg) bg-muted/60 p-3">
+          <legend className="sr-only">{t("adminui.vet.checksTitle")}</legend>
+          <p aria-hidden="true" className="text-xs font-semibold text-muted-foreground uppercase">
+            {t("adminui.vet.checksTitle")}
+          </p>
+          {VERIFY_CHECKS.map((c) => {
+            const box = `${id}-check-${c}`;
+            return (
+              <div key={c} className="flex items-start gap-2.5">
+                <Checkbox
+                  id={box}
+                  className="mt-0.5"
+                  checked={checks.includes(c)}
+                  onCheckedChange={(on) => toggle(c, on)}
+                />
+                <Label htmlFor={box} className="text-sm leading-snug font-normal text-pretty">
+                  {t(`adminui.vet.check.${c}`)}
+                </Label>
+              </div>
+            );
+          })}
+        </fieldset>
+      ) : null}
       {block ? (
         <>
           <p id={`${id}-why`} className="rounded-(--radius-lg) bg-warning/15 px-3 py-2 text-sm text-pretty">
@@ -215,10 +245,13 @@ export function ReviewActions({
           size="default"
           className="w-full"
           title={t("adminui.vet.verifyTitle", { name })}
-          body={t("adminui.vet.verifyBody")}
+          body={`${t("adminui.vet.verifyBody")} ${t("adminui.vet.checksTicked", {
+            n: fmt.number(checks.length),
+            total: fmt.number(VERIFY_CHECKS.length),
+          })}`}
           confirm={t("adminui.vet.verifyConfirm")}
           confirmVariant="brand"
-          onConfirm={() => verifyProvider(providerId)}
+          onConfirm={() => verifyProvider(providerId, checks)}
         />
       ) : null}
       {status !== "rejected" ? (

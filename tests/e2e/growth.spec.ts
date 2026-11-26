@@ -17,12 +17,16 @@ const people = (project: string) =>
 const summaryFor = (project: string) =>
   `E2E: quick help (${project}), my dog has vomited three times since morning and won't eat.`;
 const INVITE_CODE = "E2EINVITE";
+/** The throwaway vet of the BVC check test (removed with its auth user afterwards). */
+const TWIN_EMAIL = "e2e-bvc-twin@demo.jotno.test";
 
 async function cleanUp(project: string) {
   const SUMMARY = summaryFor(project);
   const VET = people(project).vet;
   const db = sql();
   try {
+    // The BVC check test’s throwaway vet (profile, vet and documents go with the auth user).
+    await db`delete from auth.users where email = ${TWIN_EMAIL}`;
     // The approval test: its invite, the reward it earned, its paid request.
     const invited = await db<{ referee_id: string }[]>`
       select referee_id from public.referrals where code = ${INVITE_CODE}`;
@@ -65,7 +69,8 @@ async function cleanUp(project: string) {
 
 test.describe("invites and quick help", () => {
   // Both sign in demo people; two code requests for one email at once time out.
-  test.describe.configure({ mode: "serial" });
+  // Sign-in waits for an emailed code, which is slow on a busy machine.
+  test.describe.configure({ mode: "serial", timeout: 90_000 });
   test.beforeEach(async () => {
     test.skip(!(await localStackUp()), "needs the local Supabase stack");
   });
@@ -182,6 +187,63 @@ test.describe("invites and quick help", () => {
       const [ref] = await check<{ paid: boolean }[]>`
         select first_paid_at is not null as paid from public.referrals where referee_id = ${ownerId}`;
       expect(ref?.paid).toBe(true);
+    } finally {
+      await check.end();
+    }
+  });
+
+  test("the admin sees a duplicate BVC number and the ticked checks are logged", async ({ page }, info) => {
+    // One admin account: only one project signs it in (and only this serial group, so codes don’t cross).
+    test.skip(info.project.name !== "desktop", "the admin signs in from the desktop project only");
+    // A throwaway vet (its own auth user) sent for review with Dr. Nusrat Jahan’s BVC-4000 in Bangla digits.
+    const db = sql();
+    let vetId = "";
+    try {
+      await db`delete from auth.users where email = ${TWIN_EMAIL}`;
+      const [u] = await db<{ id: string }[]>`
+        insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at)
+        values (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+          ${TWIN_EMAIL}, '{"full_name":"E2E Twin"}'::jsonb, now(), now())
+        returning id`;
+      if (!u) throw new Error("could not create the test user");
+      const [v] = await db<{ id: string }[]>`
+        insert into public.providers (profile_id, status, slug, display_name, registration_no, submitted_at)
+        values (${u.id}, 'pending', 'e2e-bvc-twin', 'Dr. E2E Twin', ${"বিভিসি ০৪০০০"}, now())
+        returning id`;
+      if (!v) throw new Error("could not create the test vet");
+      vetId = v.id;
+    } finally {
+      await db.end();
+    }
+
+    await signIn(page, "admin@demo.jotno.test", `/en/admin/vets/${vetId}/`);
+    await page.goto(`/en/admin/vets/${vetId}/`);
+    const warning = page.getByRole("alert").filter({ hasText: "is also on another profile" });
+    await expect(warning).toBeVisible();
+    await expect(warning.getByRole("link", { name: "Dr. Nusrat Jahan" })).toBeVisible();
+
+    // A tick before hydration is lost: tick until it holds.
+    const certificate = page.getByRole("checkbox", { name: /name and number match this profile/ });
+    const nid = page.getByRole("checkbox", { name: /name on the NID matches/ });
+    for (const box of [certificate, nid]) {
+      await expect(async () => {
+        if (!(await box.isChecked())) await box.click();
+        await expect(box).toBeChecked({ timeout: 1_000 });
+      }).toPass({ timeout: 15_000 });
+    }
+    await page.getByRole("button", { name: "Verify (BVC checked)" }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toContainText("Checked: 2 of 4.");
+    await dialog.getByRole("button", { name: "Yes, verify" }).click();
+    await expect(page.getByText("Checked: certificate, NID")).toBeVisible({ timeout: 15_000 });
+
+    const check = sql();
+    try {
+      const [log] = await check<{ meta: { checks?: string[] } | null }[]>`
+        select meta from public.audit_log
+        where action = 'provider.verify' and entity_id = ${vetId}
+        order by created_at desc limit 1`;
+      expect(log?.meta?.checks).toEqual(["certificate", "nid"]);
     } finally {
       await check.end();
     }

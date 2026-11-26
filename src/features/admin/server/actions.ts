@@ -16,7 +16,7 @@ import { supabaseAdmin } from "@/infrastructure/supabase/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 import { RESTORE_ACTION, restorable, toCopy } from "../restore";
-import { VERIFIABLE_STATUSES, verifyBlock } from "../status";
+import { VERIFIABLE_STATUSES, VERIFY_CHECKS, verifyBlock } from "../status";
 
 const P = schema.providers;
 export type AdminResult = { ok: true } | { ok: false; error: MessageKey };
@@ -50,10 +50,20 @@ async function localeOf(profileId: string): Promise<string> {
 /** A reason the person sees (and the audit log keeps): 3 to 300 letters once trimmed. */
 const reasonSchema = z.string().trim().min(3).max(300);
 
-/** Verify a vet: only a profile sent for review, or a suspended vet coming back (see `verifyBlock`). */
-export async function verifyProvider(providerId: string): Promise<AdminResult> {
+const checksSchema = z.array(z.enum(VERIFY_CHECKS)).max(VERIFY_CHECKS.length);
+
+/**
+ * Verify a vet: only a profile sent for review, or a suspended vet coming back
+ * (see `verifyBlock`). `checks` are what the admin ticked; the audit log keeps them.
+ */
+export async function verifyProvider(
+  providerId: string,
+  checks: readonly string[] = [],
+): Promise<AdminResult> {
   const me = await admin();
-  if (!me || !uuid.safeParse(providerId).success) return { ok: false, error: "common.notAllowed" };
+  const ticked = checksSchema.safeParse([...new Set(checks)]);
+  if (!me || !uuid.safeParse(providerId).success || !ticked.success)
+    return { ok: false, error: "common.notAllowed" };
   const [current] = await db().select({ status: P.status }).from(P).where(eq(P.id, providerId)).limit(1);
   if (!current) return { ok: false, error: "common.notAllowed" };
   const block = verifyBlock(current.status);
@@ -65,7 +75,7 @@ export async function verifyProvider(providerId: string): Promise<AdminResult> {
     .returning({ id: P.id });
   // Someone changed the status in the meantime.
   if (!done) return { ok: false, error: "common.genericError" };
-  await audit(me.id, "provider.verify", "provider", providerId);
+  await audit(me.id, "provider.verify", "provider", providerId, { checks: ticked.data });
   const vet = await vetContact(providerId);
   if (vet) {
     const t = translator(vet.locale);

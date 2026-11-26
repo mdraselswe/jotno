@@ -37,6 +37,8 @@ export {
   providerTone,
   roleTone,
   VERIFIABLE_STATUSES,
+  VERIFY_CHECKS,
   verifyBlock,
+  type VerifyCheck,
   type AuditGroup,
 } from "./status";

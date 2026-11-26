@@ -27,6 +27,14 @@ export function providerTone(status: string): BadgeTone {
  */
 export const VERIFIABLE_STATUSES = ["pending", "suspended"] as const;
 
+/**
+ * What an admin can tick before verifying a vet. Optional, but what was ticked
+ * goes into the audit log with the verification, so the history shows how
+ * each vet was checked.
+ */
+export const VERIFY_CHECKS = ["certificate", "nid", "bvcSite", "call"] as const;
+export type VerifyCheck = (typeof VERIFY_CHECKS)[number];
+
 /** Why Verify is off for a vet in this status, or null when it can be verified. */
 export function verifyBlock(status: string): MessageKey | null {
   if ((VERIFIABLE_STATUSES as readonly string[]).includes(status)) return null;
