@@ -131,9 +131,11 @@ export async function appointmentsToRemind(hours = 3) {
       startsAt: A.startsAt,
       remindedAt: A.remindedAt,
       vetName: schema.providers.displayName,
+      locale: schema.profiles.locale,
     })
     .from(A)
     .innerJoin(schema.providers, eq(schema.providers.id, A.providerId))
+    .innerJoin(schema.profiles, eq(schema.profiles.id, A.ownerId))
     .where(and(eq(A.status, "confirmed"), gte(A.startsAt, now), lt(A.startsAt, until)))
     .then((rows) => rows.filter((r) => !r.remindedAt));
 }

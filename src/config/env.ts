@@ -129,6 +129,7 @@ function warnMissing(env: z.infer<typeof serverSchema>) {
     env.DATABASE_URL.includes("127.0.0.1") && "DATABASE_URL (still the local default)",
     !env.SUPABASE_SERVICE_ROLE_KEY && "SUPABASE_SERVICE_ROLE_KEY",
     !env.CRON_SECRET && "CRON_SECRET",
+    !env.VAPID_PRIVATE_KEY && "VAPID_PRIVATE_KEY (push alerts and reminders are off)",
     env.ADMIN_EMAILS.length === 0 && "ADMIN_EMAILS",
     !env.CLOUDFLARE_TURN_KEY_ID &&
       env.TURN_URLS.length === 0 &&
