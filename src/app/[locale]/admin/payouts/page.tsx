@@ -17,7 +17,7 @@ import { payoutQueue, recentPayouts, recentRefundable } from "@/features/admin/s
 import { requireRole } from "@/features/auth/server";
 import { PayoutAccountView } from "@/features/providers";
 import { payoutAccountsFor } from "@/features/providers/server";
-import type { MessageKey } from "@/i18n";
+import { plural, type MessageKey } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
@@ -109,7 +109,9 @@ async function Payouts() {
         <StatCard
           label={t("adminui.payout.readyTotal")}
           value={taka(fmt, readyTotal)}
-          hint={t("adminui.payout.readyVets", { n: fmt.number(ready.length) })}
+          hint={t(plural(locale, ready.length, "adminui.payout.readyVetsOne", "adminui.payout.readyVets"), {
+            n: fmt.number(ready.length),
+          })}
           icon={Wallet}
           tone={readyTotal > 0 ? "primary" : "default"}
         />

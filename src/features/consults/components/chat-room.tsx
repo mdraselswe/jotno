@@ -143,6 +143,9 @@ export function ChatRoom({
   const endedHere = messages.some(isEndLine);
   const open = status === "active" && !endedHere;
   const writable = canWrite && open;
+  const refunded =
+    status === "refunded" ||
+    messages.some((m) => m.senderId === null && (m.body?.startsWith("system:refunded") ?? false));
   const canCall = callable && open;
   // A call both sides talked on long enough counts as the reply (no text needed).
   const talked = messages.some((m) => {
@@ -514,7 +517,10 @@ export function ChatRoom({
                 <MessagesSquare aria-hidden="true" className="size-6" />
               </span>
               <p className="text-sm text-pretty text-muted-foreground">
-                {t(role === "vet" ? "chatui.emptyThreadVet" : "chatui.emptyThread")}
+                {/* Only an open chat invites a first message; a closed one says why it's empty. */}
+                {writable
+                  ? t(role === "vet" ? "chatui.emptyThreadVet" : "chatui.emptyThread")
+                  : t(refunded ? "chatui.emptyRefunded" : "chatui.emptyReadOnly")}
               </p>
             </div>
           ) : null}

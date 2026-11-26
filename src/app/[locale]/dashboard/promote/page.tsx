@@ -8,6 +8,7 @@ import { atLeast, GoldFeaturedButton, InvitePanel } from "@/features/referrals";
 import { inviteSummary, siteLink } from "@/features/referrals/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
+import { withTrailingSlash } from "@/lib/trailing-slash";
 
 export async function generateMetadata() {
   const t = await getT();
@@ -22,7 +23,7 @@ async function Promote() {
   const summary = await inviteSummary(viewer.id);
   const r = business.referral;
   const verified = provider.status === "verified";
-  const link = siteLink(localeHref(locale, vetPath(provider.slug)), summary.code);
+  const link = siteLink(withTrailingSlash(localeHref(locale, vetPath(provider.slug))), summary.code);
   const percent = (bps: number) => fmt.number(bps / 100);
 
   return (

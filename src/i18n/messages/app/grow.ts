@@ -139,6 +139,7 @@ export const grow = pack(
     "quick.notEmergency":
       "Bleeding, breathing trouble or poisoning? Go to the emergency page and a clinic now.",
     "quick.onDuty": "{n} vets on duty now",
+    "quick.onDutyOne": "{n} vet on duty now",
     "quick.nobodyOnDuty": "No vet is on duty right now.",
     "quick.nobodyHelp":
       "Quick help opens when a vet is on duty. Meanwhile, ask the community for free or see emergency steps.",
@@ -343,6 +344,7 @@ export const grow = pack(
     "quick.step4": "{n} মিনিটে উত্তর না এলে ফ্রি আবার জিজ্ঞেস করুন, বা টাকা ফেরত নিন।",
     "quick.notEmergency": "রক্তপাত, শ্বাসকষ্ট বা বিষক্রিয়া? এখনই জরুরি পাতায় যান আর ক্লিনিকে নিন।",
     "quick.onDuty": "এখন {n} জন ভেট ডিউটিতে",
+    "quick.onDutyOne": "এখন {n} জন ভেট ডিউটিতে",
     "quick.nobodyOnDuty": "এই মুহূর্তে কোনো ভেট ডিউটিতে নেই।",
     "quick.nobodyHelp": "ভেট ডিউটিতে এলে জরুরি পরামর্শ চালু হবে। এর মধ্যে ফ্রি প্রশ্ন করুন বা জরুরি করণীয় দেখুন।",
     "quick.askFree": "ফ্রি প্রশ্ন করুন",

@@ -233,6 +233,9 @@ async function Pay({ params }: { params: Promise<{ id: string }> }) {
         wallets={wallets}
         cod={methods.includes("cod")}
         note={p.note}
+        // A rejected TrxID keeps the wallet and number it was sent with (rejectPayment clears only the id).
+        lastMethod={p.note ? p.gateway : null}
+        lastPhone={p.note ? p.payerPhone : null}
         title={p.target.title}
         detail={p.target.detail}
         deadline={

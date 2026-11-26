@@ -17,7 +17,14 @@ import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
-export const metadata = { robots: { index: false } };
+export async function generateMetadata({ params }: PageProps<"/[locale]/vet/[slug]/consult">) {
+  const { slug } = await params;
+  const [t, vet] = await Promise.all([getT(), getProviderBySlug(slug)]);
+  return {
+    title: vet ? t("consult.startTitle", { name: vet.displayName }) : t("vets.title"),
+    robots: { index: false },
+  };
+}
 
 const CARD = "rounded-(--radius-2xl) bg-card shadow-(--shadow-card) ring-1 ring-foreground/6";
 

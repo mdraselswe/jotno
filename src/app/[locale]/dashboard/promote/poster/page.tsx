@@ -10,6 +10,7 @@ import { QrCode } from "@/features/share";
 import { PrintButton } from "@/features/shop";
 import { getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
+import { withTrailingSlash } from "@/lib/trailing-slash";
 
 export async function generateMetadata() {
   const t = await getT();
@@ -22,7 +23,7 @@ async function Poster() {
   const { viewer, provider } = await requireVet(locale, localeHref(locale, ROUTES.vetPoster));
   if (provider.status !== "verified") redirect(localeHref(locale, ROUTES.vetPromote));
   const code = await ensureCode(viewer.id);
-  const link = siteLink(localeHref(locale, vetPath(provider.slug)), code);
+  const link = siteLink(withTrailingSlash(localeHref(locale, vetPath(provider.slug))), code);
   const shown = siteLink(localeHref(locale, vetPath(provider.slug))).replace(/^https?:\/\//, "");
 
   return (

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/config/routes";
 import { useMounted } from "@/hooks/use-mounted";
+import { plural } from "@/i18n";
 import { useFormatter, useLocale, useT } from "@/i18n/client";
 import { localeHref } from "@/lib/locale-href";
 import { cn } from "@/lib/utils";
@@ -304,7 +305,11 @@ export function CartLink({ className }: { className?: string }) {
   return (
     <Link
       href={localeHref(locale, ROUTES.cart)}
-      aria-label={n > 0 ? t("shopui.cartWithCount", { n: fmt.number(n) }) : t("shop.cart")}
+      aria-label={
+        n > 0
+          ? t(plural(locale, n, "shopui.cartWithCountOne", "shopui.cartWithCount"), { n: fmt.number(n) })
+          : t("shop.cart")
+      }
       className={cn(
         "relative inline-grid size-(--control-h) shrink-0 place-items-center rounded-full text-foreground transition-colors duration-(--motion-fast) hover:bg-foreground/7 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
         className,

@@ -18,6 +18,7 @@ import {
   ProductThumb,
 } from "@/features/shop";
 import { myOrder, productThumbs } from "@/features/shop/server";
+import { plural } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
@@ -137,7 +138,9 @@ async function Order({ params }: { params: Promise<{ id: string }> }) {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <SectionCard
           title={t("shopui.items")}
-          description={t("shopui.itemsCount", { n: fmt.number(count) })}
+          description={t(plural(locale, count, "shopui.itemsCountOne", "shopui.itemsCount"), {
+            n: fmt.number(count),
+          })}
           icon={Receipt}
           bodyClassName="p-0 sm:p-0"
         >

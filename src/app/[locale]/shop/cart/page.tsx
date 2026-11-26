@@ -12,7 +12,10 @@ import { CartSkeleton, CartView } from "@/features/shop";
 import { getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 
-export const metadata = { robots: { index: false } };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("shop.cart"), robots: { index: false } };
+}
 
 async function Cart() {
   const locale = await getLocale();

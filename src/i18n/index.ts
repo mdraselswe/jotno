@@ -56,6 +56,16 @@ export function formatter(locale: string) {
 export type Formatter = ReturnType<typeof formatter>;
 
 /**
+ * Picks the singular or plural message for a count by the locale's own plural
+ * rules: t(plural(locale, n, "vets.resultsOne", "vets.results"), { n: fmt.number(n) }).
+ * Languages without a singular form (Bangla counts with "জন"/"টি") give both
+ * keys the same text.
+ */
+export function plural<K extends MessageKey>(locale: string, n: number, one: K, other: K): K {
+  return new Intl.PluralRules(locale).select(n) === "one" ? one : other;
+}
+
+/**
  * Picks the entry for a locale from localized content (`{ bn: …, en: … }`),
  * falling back to the default locale. Use for src/content files.
  */

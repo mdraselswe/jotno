@@ -7,6 +7,7 @@ import { InvitePanel } from "@/features/referrals";
 import { inviteSummary, siteLink } from "@/features/referrals/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
+import { withTrailingSlash } from "@/lib/trailing-slash";
 
 export async function generateMetadata() {
   const t = await getT();
@@ -19,7 +20,7 @@ async function Invite() {
   const fmt = await getFormatter();
   const viewer = await requireViewer(locale, localeHref(locale, ROUTES.invite));
   const summary = await inviteSummary(viewer.id);
-  const link = siteLink(localeHref(locale, ROUTES.home), summary.code);
+  const link = siteLink(withTrailingSlash(localeHref(locale, ROUTES.home)), summary.code);
   const m = business.referral.multiplierBps;
   const times = (bps: number) => fmt.number(bps / 10_000);
 

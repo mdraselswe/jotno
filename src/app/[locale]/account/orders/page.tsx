@@ -7,6 +7,7 @@ import { orderPath, ROUTES } from "@/config/routes";
 import { requireViewer } from "@/features/auth/server";
 import { OrderStatusBadge, ProductThumb } from "@/features/shop";
 import { myOrders, productThumbs } from "@/features/shop/server";
+import { plural } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
@@ -100,7 +101,9 @@ async function Orders() {
                         ) : null}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {t("shopui.itemsCount", { n: fmt.number(count) })}
+                        {t(plural(locale, count, "shopui.itemsCountOne", "shopui.itemsCount"), {
+                          n: fmt.number(count),
+                        })}
                       </span>
                     </span>
                     <span className="grid justify-items-end gap-0.5">

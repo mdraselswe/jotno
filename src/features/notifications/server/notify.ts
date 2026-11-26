@@ -2,19 +2,23 @@ import "server-only";
 import { eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/infrastructure/db";
 import { sendPush, type PushPayload } from "@/infrastructure/push";
+import { withTrailingSlash } from "@/lib/trailing-slash";
 
 const { notifications, pushSubscriptions } = schema;
 
 /**
  * Saves an in-app notification and pushes it to every device of the user.
  * Never throws: a failed push must not break the action that caused it.
+ * The link gets its trailing slash here (the site uses `trailingSlash`), so
+ * call sites can pass `localeHref(…)` as it is and a tap costs no redirect.
  */
 export async function notify(
   userId: string,
   kind: string,
-  push: PushPayload,
+  payload: PushPayload,
   data: Record<string, string | number> = {},
 ): Promise<void> {
+  const push = { ...payload, url: withTrailingSlash(payload.url) };
   try {
     await db()
       .insert(notifications)

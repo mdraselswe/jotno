@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_LOCALE, localePath, PREFIXED_LOCALES, splitLocale } from "@/config/locale";
-import { format, formatter, pickLocale, translator } from "./index";
+import { format, formatter, pickLocale, plural, translator } from "./index";
 import { CATALOGUE } from "./messages";
 
 describe("i18n", () => {
@@ -18,6 +18,17 @@ describe("i18n", () => {
     for (const [locale, messages] of Object.entries(CATALOGUE)) {
       expect(Object.keys(messages).sort(), locale).toEqual(keys);
     }
+  });
+
+  it("picks singular or plural messages by the locale's rules", () => {
+    const en = translator("en");
+    const key = (n: number) => plural("en", n, "vets.resultsOne", "vets.results");
+    expect(en(key(1), { n: 1 })).toBe("1 vet");
+    expect(en(key(0), { n: 0 })).toBe("0 vets");
+    expect(en(key(2), { n: 2 })).toBe("2 vets");
+    const bn = translator("bn");
+    expect(bn(plural("bn", 1, "vets.resultsOne", "vets.results"), { n: "১" })).toBe("১ জন ভেট");
+    expect(bn(plural("bn", 5, "vets.resultsOne", "vets.results"), { n: "৫" })).toBe("৫ জন ভেট");
   });
 
   it("falls back to the default locale for content", () => {

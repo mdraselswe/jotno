@@ -12,7 +12,10 @@ import { getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { cn } from "@/lib/utils";
 
-export const metadata = { robots: { index: false } };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("qa.ask"), robots: { index: false } };
+}
 
 async function Ask() {
   const locale = await getLocale();

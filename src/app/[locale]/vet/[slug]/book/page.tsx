@@ -18,7 +18,14 @@ import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 
-export const metadata = { robots: { index: false } };
+export async function generateMetadata({ params }: PageProps<"/[locale]/vet/[slug]/book">) {
+  const { slug } = await params;
+  const [t, vet] = await Promise.all([getT(), getProviderBySlug(slug)]);
+  return {
+    title: vet ? t("appt.bookTitle", { name: vet.displayName }) : t("vets.title"),
+    robots: { index: false },
+  };
+}
 
 async function Book({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

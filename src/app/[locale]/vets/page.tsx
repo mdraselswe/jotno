@@ -21,7 +21,7 @@ import {
   VETS_PAGE_SIZE,
 } from "@/features/providers";
 import { parseVetQuery, searchProviders, vetSearchOf } from "@/features/providers/server";
-import type { Translate } from "@/i18n";
+import { plural, type Translate } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { parseNear, parseRadius, widerRadius } from "@/lib/geo";
 import { localeHref } from "@/lib/locale-href";
@@ -106,6 +106,8 @@ async function Results({ searchParams }: { searchParams: Promise<Search> }) {
     offset: 0,
     limit: query.page * VETS_PAGE_SIZE,
   });
+  // Sponsored cards are matches too, so the count includes them.
+  const shownTotal = total + featured.length;
   const km = (n: number) => t("vets.km", { n: fmt.number(n) });
   const chips = activeChips(params, base, locale, t, km);
   const name = (x: { en: string; bn: string }) => (locale === "bn" ? x.bn : x.en);
@@ -119,7 +121,7 @@ async function Results({ searchParams }: { searchParams: Promise<Search> }) {
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="font-heading text-lg font-semibold" aria-live="polite">
-          {t("vets.results", { n: fmt.number(total) })}
+          {t(plural(locale, shownTotal, "vets.resultsOne", "vets.results"), { n: fmt.number(shownTotal) })}
         </p>
         <div className="flex items-center gap-2">
           <VetSortSelect />
@@ -210,17 +212,24 @@ async function Results({ searchParams }: { searchParams: Promise<Search> }) {
           <p className="text-xs text-muted-foreground">{t("vets.sponsoredNote")}</p>
         </section>
       ) : null}
-      {/* Keyed by the filters: a new search starts a fresh list (and drops loaded pages). */}
-      <VetResultsList
-        key={filterQs}
-        initial={results}
-        total={total}
-        areaId={area ? area.id : null}
-        areaTotal={areaTotal}
-        areaName={area ? name(area) : null}
-        districtName={district ? name(district) : null}
-        query={filterQs}
-      />
+      {total === 0 ? (
+        // Only sponsored vets match: say so instead of an empty "showing 0 of 0" list.
+        <p className="rounded-(--radius-xl) bg-muted/50 px-4 py-3 text-sm text-pretty text-muted-foreground">
+          {t("pubui.vets.onlySponsored")}
+        </p>
+      ) : (
+        // Keyed by the filters: a new search starts a fresh list (and drops loaded pages).
+        <VetResultsList
+          key={filterQs}
+          initial={results}
+          total={total}
+          areaId={area ? area.id : null}
+          areaTotal={areaTotal}
+          areaName={area ? name(area) : null}
+          districtName={district ? name(district) : null}
+          query={filterQs}
+        />
+      )}
     </div>
   );
 }

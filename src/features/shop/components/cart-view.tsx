@@ -33,6 +33,7 @@ import { DISTRICTS } from "@/content/geo";
 import { WalletMark } from "@/features/payments";
 import { codAllowed, type PayMethod, type Settings } from "@/features/settings";
 import { useMounted } from "@/hooks/use-mounted";
+import { plural } from "@/i18n";
 import { useFormatter, useLocale, useT } from "@/i18n/client";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
@@ -283,7 +284,9 @@ export function CartView({
         {/* 1. The items */}
         <SectionCard
           title={t("shopui.yourCart")}
-          description={t("shopui.itemsCount", { n: fmt.number(items) })}
+          description={t(plural(locale, items, "shopui.itemsCountOne", "shopui.itemsCount"), {
+            n: fmt.number(items),
+          })}
           icon={ShoppingBag}
           bodyClassName="p-0 sm:p-0"
           className="lg:col-start-1 lg:row-start-1"
@@ -697,6 +700,7 @@ export function CartView({
 function RemovedNote({ n }: { n: number }) {
   const t = useT();
   const fmt = useFormatter();
+  const locale = useLocale();
   return (
     <p
       role="status"
@@ -706,7 +710,7 @@ function RemovedNote({ n }: { n: number }) {
         aria-hidden="true"
         className="size-4 shrink-0 text-warning-foreground dark:text-warning"
       />
-      {t("shopui.removedGone", { n: fmt.number(n) })}
+      {t(plural(locale, n, "shopui.removedGoneOne", "shopui.removedGone"), { n: fmt.number(n) })}
     </p>
   );
 }

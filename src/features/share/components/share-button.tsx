@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useT } from "@/i18n/client";
 import { MY_REF_COOKIE, readCookie, withRef } from "@/lib/ref";
+import { withTrailingSlash } from "@/lib/trailing-slash";
 import { pageLink, SHARE_TARGETS, shareUrl, type ShareTarget } from "../links";
 
 const never = () => () => {};
@@ -52,7 +53,7 @@ export function ShareButton({
 
   function link(): string {
     const base = url ? new URL(url, window.location.origin).toString() : pageLink(window.location.href);
-    return withRef(base, readCookie(document.cookie, MY_REF_COOKIE));
+    return withRef(withTrailingSlash(base), readCookie(document.cookie, MY_REF_COOKIE));
   }
 
   function open(target: ShareTarget) {

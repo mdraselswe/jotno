@@ -154,6 +154,7 @@ export const adminui = pack(
     // Payouts and refunds
     "adminui.payout.readyTotal": "Ready to pay",
     "adminui.payout.readyVets": "{n} vets over the minimum",
+    "adminui.payout.readyVetsOne": "{n} vet over the minimum",
     "adminui.payout.pendingTotal": "Not available yet",
     "adminui.payout.pendingHint": "Still in the holding period",
     "adminui.payout.minimum": "Minimum payout",
@@ -485,6 +486,7 @@ export const adminui = pack(
 
     "adminui.payout.readyTotal": "দেওয়া যাবে",
     "adminui.payout.readyVets": "{n} জন ভেট সর্বনিম্নের বেশি",
+    "adminui.payout.readyVetsOne": "{n} জন ভেট সর্বনিম্নের বেশি",
     "adminui.payout.pendingTotal": "এখনো দেওয়া যাবে না",
     "adminui.payout.pendingHint": "অপেক্ষার সময় চলছে",
     "adminui.payout.minimum": "সর্বনিম্ন পেআউট",

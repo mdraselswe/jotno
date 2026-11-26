@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { DemoBanner } from "@/components/layout/demo-banner";
 import { TabBar } from "@/components/layout/tab-bar";
 import { ScrollScenes } from "@/components/motion/scroll-scenes";
+import { ViewTransitionGuard } from "@/components/motion/view-transition-guard";
 import { brandStyle, fontVariables, htmlDesignAttributes } from "@/components/layout/brand-style";
 import { ThemeScript } from "@/components/layout/theme-script";
 import { features, isProduction, site } from "@/config";
@@ -90,6 +91,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
     >
       <head>
         <ThemeScript />
+        <ViewTransitionGuard />
         {features.pwa ? <PwaScript serviceWorker={isProduction} /> : null}
       </head>
       <body className="flex min-h-full flex-col">

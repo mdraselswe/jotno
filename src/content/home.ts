@@ -234,7 +234,7 @@ export const homeContent: Record<string, HomeContent> = {
         goat: "ব্ল্যাক বেঙ্গলের যত্ন, পিপিআর আর ছানা",
         chicken: "খামারের স্বাস্থ্য, রানীক্ষেত আর খাবার",
       },
-      find: "{pet}র ভেট খুঁজুন",
+      find: "{pet}-এর ভেট খুঁজুন",
       badges: ["BVC যাচাইকৃত", "{reply} মিনিটে উত্তর", "না হলে টাকা ফেরত"],
     },
     marquee: [

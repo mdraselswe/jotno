@@ -5,6 +5,7 @@ import { db, schema } from "@/infrastructure/db";
 import { mediaUrl } from "@/infrastructure/storage";
 import { shortId, slugify } from "@/lib/slug";
 import { completeness, RANK } from "../ranking";
+import { withDoctorTitle } from "../vet-name";
 import { DEFAULT_VET_SORT, type VetSort } from "../vet-sort";
 
 const p = schema.providers;
@@ -213,22 +214,22 @@ export interface SearchResult {
  * database ("recommended" is `rankScore`).
  */
 export async function searchProviders(input: SearchInput): Promise<SearchResult> {
-  const conds: SQL[] = [eq(p.status, "verified")];
-  if (input.districtId) conds.push(eq(p.districtId, input.districtId));
+  // Filters on the vet itself: sponsored cards must match them too (district is the slot's scope there).
+  const filters: SQL[] = [];
   if (input.species) {
-    conds.push(
+    filters.push(
       sql`exists (select 1 from ${schema.providerSpecies} ps join ${schema.species} s on s.id = ps.species_id where ps.provider_id = ${p.id} and s.slug = ${input.species})`,
     );
   }
   if (input.emergency) {
     const either = or(availableSql, eq(p.emergency24x7, true));
-    if (either) conds.push(either);
+    if (either) filters.push(either);
   }
-  if (input.onlyAvailable) conds.push(availableSql);
+  if (input.onlyAvailable) filters.push(availableSql);
   const q = input.q?.trim();
   if (q) {
     const like = or(ilike(p.displayName, `%${q}%`), ilike(p.clinicName, `%${q}%`));
-    if (like) conds.push(like);
+    if (like) filters.push(like);
   }
 
   const near = input.near;
@@ -240,13 +241,17 @@ export async function searchProviders(input: SearchInput): Promise<SearchResult>
     : null;
   if (point) {
     // Only vets with a clinic location inside the radius (uses the location index).
-    conds.push(
+    filters.push(
       sql`extensions.st_dwithin(${p.location}::extensions.geography, ${point}, ${(input.radiusKm ?? 10) * 1000})`,
     );
   }
+  const conds: SQL[] = [eq(p.status, "verified"), ...filters];
+  if (input.districtId) conds.push(eq(p.districtId, input.districtId));
 
   // Sponsored vets show on their own, so the organic list leaves them out.
-  const featured = input.emergency ? [] : await featuredFor(input.districtId ?? null, input.species ?? null);
+  const featured = input.emergency
+    ? []
+    : await featuredFor(input.districtId ?? null, input.species ?? null, filters);
   if (featured.length > 0)
     conds.push(
       notInArray(
@@ -308,9 +313,24 @@ export async function searchProviders(input: SearchInput): Promise<SearchResult>
   };
 }
 
-async function featuredFor(districtId: number | null, speciesSlug: string | null): Promise<ProviderCard[]> {
+/**
+ * Sponsored vets for a search: a slot for this district (or every district)
+ * and species (or every species), and the vet must also pass the list's own
+ * filters (`filters`: search text, available now, near me, species), so an
+ * offline or non-matching vet never sits above "0 vets".
+ */
+async function featuredFor(
+  districtId: number | null,
+  speciesSlug: string | null,
+  filters: readonly SQL[],
+): Promise<ProviderCard[]> {
   const fs = schema.featuredSlots;
-  const conds: SQL[] = [eq(p.status, "verified"), lte(fs.startsAt, sql`now()`), gt(fs.endsAt, sql`now()`)];
+  const conds: SQL[] = [
+    eq(p.status, "verified"),
+    lte(fs.startsAt, sql`now()`),
+    gt(fs.endsAt, sql`now()`),
+    ...filters,
+  ];
   if (districtId) {
     const scope = or(isNull(fs.districtId), eq(fs.districtId, districtId));
     if (scope) conds.push(scope);
@@ -447,7 +467,7 @@ export async function ensureDraftProvider(
 ): Promise<string> {
   const existing = await providerIdForProfile(profileId);
   if (existing) return existing;
-  const name = displayName.startsWith("Dr") ? displayName : `Dr. ${displayName}`;
+  const name = withDoctorTitle(displayName);
   const [row] = await db()
     .insert(p)
     .values({ profileId, displayName: name, slug: `${slugify(name)}-${shortId()}`, districtId, areaId })

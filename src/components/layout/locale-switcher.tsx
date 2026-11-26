@@ -21,6 +21,11 @@ import { cn } from "@/lib/utils";
 /**
  * Links to the current page in the other languages. Hidden with one language,
  * a single link with two, a menu with more.
+ *
+ * Never prefetched: another language is another root layout (`app/[locale]`),
+ * so the click is a full page load anyway, and the prefetch of a
+ * default-language URL (`/vets/`, served through the proxy rewrite to
+ * `/bn/vets/`) answered 404 once and logged a console error on every /en page.
  */
 export function LocaleSwitcher() {
   return (
@@ -57,6 +62,7 @@ function Switcher({ path }: { path: string }) {
     return (
       <Link
         href={hrefFor(only)}
+        prefetch={false}
         hrefLang={only}
         lang={only}
         onClick={() => remember(only, locale)}
@@ -82,7 +88,7 @@ function Switcher({ path }: { path: string }) {
         {LOCALES.map((l) => (
           <DropdownMenuItem
             key={l}
-            render={<Link href={hrefFor(l)} hrefLang={l} lang={l} />}
+            render={<Link href={hrefFor(l)} prefetch={false} hrefLang={l} lang={l} />}
             onClick={() => remember(l, locale)}
             aria-current={l === locale ? "true" : undefined}
           >
@@ -122,6 +128,7 @@ function Segment({ path, onPick }: { path: string; onPick?: () => void }) {
           <Link
             key={l}
             href={localePath(l, path) as Route}
+            prefetch={false}
             hrefLang={l}
             lang={l}
             onClick={() => {

@@ -16,7 +16,7 @@ import { myQuickRequests, onDutyCount, unusedCredit } from "@/features/quick/ser
 import { maxPointsFor } from "@/features/referrals";
 import { pointsOf } from "@/features/referrals/server";
 import { ShareButton } from "@/features/share";
-import type { MessageKey } from "@/i18n";
+import { plural, type MessageKey } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { pageMetadata } from "@/lib/metadata";
@@ -85,7 +85,9 @@ async function Ask() {
           className={cn("size-5 shrink-0", onDuty > 0 ? "text-success" : "text-warning-foreground")}
         />
         <p className="text-sm font-medium text-pretty">
-          {onDuty > 0 ? t("quick.onDuty", { n: fmt.number(onDuty) }) : t("quick.nobodyOnDuty")}
+          {onDuty > 0
+            ? t(plural(locale, onDuty, "quick.onDutyOne", "quick.onDuty"), { n: fmt.number(onDuty) })
+            : t("quick.nobodyOnDuty")}
         </p>
       </div>
 

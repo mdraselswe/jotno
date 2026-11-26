@@ -6,6 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ROUTES, vetPath } from "@/config/routes";
 import { getHours } from "@/features/appointments/server";
 import {
+  readyForReview,
+  SubmitForReviewButton,
   VetChecklist,
   vetChecklist,
   VetDocuments,
@@ -39,6 +41,8 @@ async function Profile() {
   const hours = await getHours(p.id);
   const locked = p.status === "pending";
   const verified = p.status === "verified";
+  // Same rule as the dashboard: a draft or a rejected profile can be sent (again).
+  const canSubmit = p.status === "draft" || p.status === "rejected";
   const pill = PILL[p.status] ?? { key: "vetui.status.draft", tone: "neutral" };
   const checklist = vetChecklist({
     ...p,
@@ -103,6 +107,14 @@ async function Profile() {
             actions={<StatusBadge tone={pill.tone}>{t(pill.key)}</StatusBadge>}
           >
             <VetChecklist items={checklist} locale={locale} t={t} />
+            {canSubmit ? (
+              <div className="mt-4 grid gap-3 border-t pt-4">
+                <p className="text-sm text-pretty text-muted-foreground">
+                  {t(readyForReview(checklist) ? "vetui.check.submitHint" : "vet.submitMissing")}
+                </p>
+                <SubmitForReviewButton />
+              </div>
+            ) : null}
           </SectionCard>
         </aside>
       </div>

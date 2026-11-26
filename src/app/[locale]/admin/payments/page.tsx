@@ -12,7 +12,7 @@ import {
 import { Private, PrivateHeading } from "@/components/layout/private-page";
 import { ROUTES } from "@/config/routes";
 import { requireRole } from "@/features/auth/server";
-import { AutoRefresh, RefundSent, ReviewPayment, WalletMark } from "@/features/payments";
+import { AutoRefresh, refundReasonKey, RefundSent, ReviewPayment, WalletMark } from "@/features/payments";
 import { paymentQueues, type QueuedPayment } from "@/features/payments/server";
 import { getSettings } from "@/features/settings/server";
 import type { Translate } from "@/i18n";
@@ -59,6 +59,11 @@ async function Payments() {
   const [{ review, refunds, recent }, settings] = await Promise.all([paymentQueues(locale), getSettings()]);
   const toCheck = review.reduce((n, p) => n + p.amount + p.fee, 0);
   const toRefund = refunds.reduce((n, p) => n + p.amount + p.fee, 0);
+  // Codes the app writes ("vet_no_reply") read as text; an admin's own words stay as they are.
+  const reasonText = (note: string) => {
+    const key = refundReasonKey(note);
+    return key ? t(key) : note;
+  };
 
   const recentCols: Column<QueuedPayment>[] = [
     {
@@ -206,7 +211,7 @@ async function Payments() {
                   </div>
                   {p.note ? (
                     <p className="rounded-(--radius-md) bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-                      {t("payAdmin.reason")}: {p.note}
+                      {t("payAdmin.reason")}: {reasonText(p.note)}
                     </p>
                   ) : null}
                   <RefundSent id={p.id} />

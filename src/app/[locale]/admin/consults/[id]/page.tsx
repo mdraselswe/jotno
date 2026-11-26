@@ -40,6 +40,7 @@ import { consultForAdmin, consultTimeline, type TimelineItem, adminMetadata } fr
 import { requireRole } from "@/features/auth/server";
 import { clock } from "@/features/consults";
 import { READ_GRANT_MINUTES } from "@/features/consults/server";
+import { refundReasonKey } from "@/features/payments";
 import type { MessageKey } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -117,6 +118,11 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   };
 
   const replyTone: BadgeTone = slow ? "warning" : "success";
+  // Refund codes ("vet_no_reply") read as text; an admin's own words stay as they are.
+  const refundText = (reason: string | null) => {
+    const key = refundReasonKey(reason);
+    return key ? t(key) : (reason ?? "—");
+  };
   const facts = [
     { label: t("monitor.vet"), value: c.vet },
     { label: t("monitor.owner"), value: [c.owner, c.ownerEmail].filter(Boolean).join(" · ") || "—" },
@@ -127,7 +133,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
       value:
         c.closeReason === "vet" || c.closeReason === "time"
           ? t(`monitor.closeReason.${c.closeReason}`)
-          : (c.closeReason ?? "—"),
+          : refundText(c.closeReason),
     },
     { label: t("adminui.consult.photos"), value: t("monitor.photos", { n: fmt.number(c.photos) }) },
   ];

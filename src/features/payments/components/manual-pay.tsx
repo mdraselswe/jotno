@@ -120,6 +120,8 @@ export function ManualPay({
   detail,
   deadline,
   footer,
+  lastMethod = null,
+  lastPhone = null,
 }: {
   paymentId: string;
   amount: number;
@@ -134,6 +136,9 @@ export function ManualPay({
   deadline: string | null;
   /** Shown under the summary (help line). */
   footer?: ReactNode;
+  /** The wallet and number of the last (rejected) try, chosen again so a retry is only the TrxID. */
+  lastMethod?: string | null;
+  lastPhone?: string | null;
 }) {
   const t = useT();
   const fmt = useFormatter();
@@ -141,8 +146,10 @@ export function ManualPay({
   const router = useRouter();
   const reduce = useReducedMotion();
   const methods: PayMethod[] = [...wallets.map((w) => w.method), ...(cod ? (["cod"] as const) : [])];
-  const [method, setMethod] = useState<PayMethod | undefined>(methods[0]);
-  const [phone, setPhone] = useState("");
+  const [method, setMethod] = useState<PayMethod | undefined>(
+    methods.find((m) => m === lastMethod) ?? methods[0],
+  );
+  const [phone, setPhone] = useState(lastPhone ?? "");
   const [trx, setTrx] = useState("");
   const [touched, setTouched] = useState({ phone: false, trx: false });
   const [error, setError] = useState<string | null>(null);
