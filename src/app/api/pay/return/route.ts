@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { site } from "@/config";
 import { DEFAULT_LOCALE, isLocale } from "@/config/locale";
 import { afterPaymentPath, settlePayment } from "@/features/payments/server";
+import { publicOrigin } from "@/lib/public-origin";
 
 /**
  * The gateway sends the browser back here (POST form for SSLCommerz, GET for
@@ -25,7 +27,10 @@ async function handle(request: NextRequest) {
   const localeParam = fields.locale ?? DEFAULT_LOCALE;
   const locale = isLocale(localeParam) ? localeParam : DEFAULT_LOCALE;
   const result = await settlePayment(fields, locale);
-  return NextResponse.redirect(new URL(afterPaymentPath(result, locale), url.origin), 303);
+  return NextResponse.redirect(
+    new URL(afterPaymentPath(result, locale), publicOrigin(request.headers, url, site.url)),
+    303,
+  );
 }
 
 export const GET = handle;
