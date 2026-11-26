@@ -278,6 +278,8 @@ export async function searchProviders(input: SearchInput): Promise<SearchResult>
     case "recommended":
       // Near me: nearest first (to the half km), best ranked among equals.
       if (distanceSql) order.push(sql`round(${distanceSql} * 2) asc`);
+      // No place given: the owner wants a chat, so vets online now come first.
+      else if (!input.districtId) order.push(sql`${availableSql} desc`);
       break;
   }
   order.push(sql`${score} desc`, asc(p.id));

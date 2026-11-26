@@ -224,6 +224,7 @@ export function VetFilterPanel({ idPrefix = "vf" }: { idPrefix?: string }) {
       </Group>
 
       <Group title={t("pubui.vets.where")}>
+        <p className="-mt-1 text-xs text-muted-foreground">{t("pubui.vets.whereHint")}</p>
         <NearMeButton update={update} className="justify-self-start" />
         {near ? (
           <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t("vets.radius")}>

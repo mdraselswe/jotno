@@ -22,6 +22,29 @@ test.describe("public flows", () => {
     await expect(signIn).toBeVisible();
   });
 
+  test("the home search has an online path without a place and a clinic path with one", async ({ page }) => {
+    await page.goto("/en/");
+    const search = page.getByRole("search");
+    const online = search.getByRole("button", { name: "Online now" });
+    await expect(online).toHaveAttribute("aria-pressed", "true");
+    await expect(search.getByLabel("District")).toHaveCount(0);
+    // A tap before hydration is lost: tap until the district box shows.
+    await expect(async () => {
+      await search.getByRole("button", { name: "Clinic visit" }).click();
+      await expect(search.getByLabel("District")).toBeVisible({ timeout: 1_000 });
+    }).toPass({ timeout: 15_000 });
+    await search.getByLabel("District").selectOption({ label: "Dhaka" });
+    await search.getByRole("button", { name: "Find clinics" }).click();
+    await expect(page).toHaveURL(/\/en\/vets\/\?district=\d+$/);
+
+    await page.goto("/en/");
+    await expect(async () => {
+      await search.getByRole("button", { name: "Online now" }).click();
+      await search.getByRole("button", { name: "Find a vet to chat" }).click();
+      await expect(page).toHaveURL(/\/en\/vets\/?$/, { timeout: 2_000 });
+    }).toPass({ timeout: 15_000 });
+  });
+
   test("filter links change the results on default-locale pages (client navigation)", async ({ page }) => {
     // Regression: with a next.config rewrite for unprefixed URLs, the router
     // reused the first page's payload for every ?species= link.
