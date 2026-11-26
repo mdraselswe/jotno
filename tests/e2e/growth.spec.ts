@@ -33,8 +33,10 @@ async function cleanUp(project: string) {
       select id, payment_id from public.quick_requests where summary = ${`${SUMMARY} (approve)`}`;
     await db`delete from public.quick_requests where summary = ${`${SUMMARY} (approve)`}`;
     const approvedPayments = approved.flatMap((r) => (r.payment_id ? [r.payment_id] : []));
-    if (approvedPayments.length > 0)
+    if (approvedPayments.length > 0) {
+      await db`delete from public.ledger_entries where payment_id in ${db(approvedPayments)}`;
       await db`delete from public.payments where id in ${db(approvedPayments)}`;
+    }
     const consults = await db<{ id: string }[]>`select id from public.consults where summary = ${SUMMARY}`;
     const ids = consults.map((c) => c.id);
     const requests = await db<{ id: string; payment_id: string | null }[]>`
@@ -42,7 +44,11 @@ async function cleanUp(project: string) {
     const payments = requests.flatMap((r) => (r.payment_id ? [r.payment_id] : []));
     if (ids.length > 0) await db`delete from public.ledger_entries where ref_id in ${db(ids)}`;
     await db`delete from public.quick_requests where summary = ${SUMMARY}`;
-    if (payments.length > 0) await db`delete from public.payments where id in ${db(payments)}`;
+    // A paid request's ledger lines point at its payment too.
+    if (payments.length > 0) {
+      await db`delete from public.ledger_entries where payment_id in ${db(payments)}`;
+      await db`delete from public.payments where id in ${db(payments)}`;
+    }
     if (ids.length > 0) {
       await db`delete from public.consults where id in ${db(ids)}`;
       await db`
@@ -109,10 +115,13 @@ test.describe("invites and quick help", () => {
     await expect(card).toBeVisible();
     // A fill before hydration is reset by the controlled textarea: fill until the button wakes up.
     const answer = card.getByRole("button", { name: "Answer" });
+    // Clear first: React ignores a fill that matches the value it saw at hydration.
     await expect(async () => {
-      await card
-        .getByLabel("Your answer")
-        .fill("Hold food for 6 hours, offer small sips of water, and see a vet today if it continues.");
+      const box = card.getByLabel("Your answer");
+      await box.fill("");
+      await box.fill(
+        "Hold food for 6 hours, offer small sips of water, and see a vet today if it continues.",
+      );
       await expect(answer).toBeEnabled({ timeout: 1_000 });
     }).toPass({ timeout: 15_000 });
     await answer.click();

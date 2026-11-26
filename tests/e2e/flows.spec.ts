@@ -101,8 +101,11 @@ test.describe("public flows", () => {
     // On phones the filters fold away behind a button.
     const show = page.getByRole("button", { name: "Show filters" });
     if (await show.isVisible()) await show.click();
-    await page.getByRole("checkbox", { name: /^Food/ }).check();
-    await expect(page).toHaveURL(/category=food/);
+    // A tick before hydration is lost: tick until the filter reaches the URL.
+    await expect(async () => {
+      await page.getByRole("checkbox", { name: /^Food/ }).check();
+      await expect(page).toHaveURL(/category=food/, { timeout: 2_000 });
+    }).toPass({ timeout: 15_000 });
     // The phone filter sheet closes with its "Show N products" button.
     const done = page.getByRole("button", { name: /^Show \d+ products/ });
     if (await done.isVisible()) await done.click();
