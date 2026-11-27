@@ -3,6 +3,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 import { questionPath } from "@/config/routes";
 import { actionViewer } from "@/features/auth/server";
@@ -12,6 +13,7 @@ import { ownsUpload } from "@/features/uploads/server";
 import type { MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
 import { audit, rateLimit } from "@/infrastructure/db/helpers";
+import { announcePages } from "@/infrastructure/indexnow";
 import { localeHref } from "@/lib/locale-href";
 import { answeringVet } from "./queries";
 
@@ -93,6 +95,8 @@ export async function answerQuestion(
     tag: `q-${q.id}`,
   });
   revalidatePath("/[locale]/questions/[id]", "page");
+  // An answered question is a public, indexable page now.
+  after(() => announcePages([questionPath(q.id)]));
   return { ok: true };
 }
 

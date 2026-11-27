@@ -19,7 +19,7 @@ import { pageMetadata } from "@/lib/metadata";
 
 export async function generateMetadata() {
   const t = await getT();
-  return pageMetadata(t("qa.title"), t("qa.sub"), ROUTES.questions, await getLocale());
+  return pageMetadata(t("pubui.seo.qaTitle"), t("pubui.seo.qaDesc"), ROUTES.questions, await getLocale());
 }
 
 type Search = Record<string, string | string[] | undefined>;

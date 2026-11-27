@@ -57,7 +57,7 @@ export const homeContent: Record<string, HomeContent> = {
     hero: {
       eyebrow: "Verified vets across Bangladesh",
       title: "Care for your pet, [any time]",
-      body: "Find a BVC-verified vet near you, chat with one in minutes, book a clinic visit, and never miss a vaccine.",
+      body: "Find a BVC-verified vet near you, chat with a vet online in minutes, book a clinic visit, and never miss a vaccine.",
     },
     steps: [
       {
@@ -182,9 +182,9 @@ export const homeContent: Record<string, HomeContent> = {
   },
   bn: {
     hero: {
-      eyebrow: "সারা বাংলাদেশের যাচাইকৃত ভেট",
+      eyebrow: "সারা বাংলাদেশের যাচাইকৃত পশু ডাক্তার",
       title: "আপনার পোষা প্রাণীর যত্ন, [যেকোনো সময়]",
-      body: "কাছের BVC-যাচাইকৃত ভেট খুঁজুন, কয়েক মিনিটে চ্যাট করুন, চেম্বারে ভিজিট বুক করুন, আর কোনো টিকা মিস করবেন না।",
+      body: "কাছের BVC-যাচাইকৃত ভেট খুঁজুন, কয়েক মিনিটে অনলাইনে চ্যাট করুন, চেম্বারে ভিজিট বুক করুন, আর কোনো টিকা মিস করবেন না।",
     },
     steps: [
       {

@@ -5,12 +5,15 @@ import { SocialIcon } from "@/components/brand/social-icon";
 import { ButtonLink } from "@/components/ui/button-link";
 import { business, features, site } from "@/config";
 import { FOOTER_LINKS, NAV_LINKS } from "@/config/navigation";
-import { ROUTES } from "@/config/routes";
+import { ROUTES, speciesPath } from "@/config/routes";
+import { SPECIES_PAGE_SLUGS, speciesPages } from "@/content/species-pages";
 import { telHref } from "@/features/providers";
 import { InstallLink } from "@/features/pwa";
 import { ShareButton } from "@/features/share";
+import { pickLocale } from "@/i18n";
 import { getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
+import { stripAccent } from "@/lib/rich-text";
 import { cn } from "@/lib/utils";
 
 const NETWORK_NAMES: Record<string, string> = {
@@ -41,12 +44,13 @@ export async function SiteFooter() {
   const hotline = telHref(business.emergencyHotline);
   const locale = await getLocale();
   const word = locale === "bn" ? "যত্ন" : "Jotno";
+  const animals = pickLocale(speciesPages, locale);
   return (
     <footer
       data-site-footer
       className="relative mt-auto overflow-hidden surface-sun pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0 print:hidden"
     >
-      <div className="container-page grid gap-8 pt-16 pb-2 text-sm sm:grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr]">
+      <div className="container-page grid gap-8 pt-16 pb-2 text-sm sm:grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div className="grid content-start gap-4 sm:col-span-2 md:col-span-1">
           <p className="flex items-center gap-2 font-heading text-2xl font-bold tracking-tight">
             <LogoMark className="size-9" />
@@ -125,6 +129,19 @@ export async function SiteFooter() {
             </Link>
           ))}
           {features.pwa ? <InstallLink className="text-start font-medium hover:underline" /> : null}
+        </nav>
+        {/* Animal landing pages: plain links so search engines find them from every page. */}
+        <nav aria-label={t("pubui.species.footer")} className="grid content-start gap-2.5">
+          <p className="text-xs font-bold tracking-wide uppercase">{t("pubui.species.footer")}</p>
+          {SPECIES_PAGE_SLUGS.map((slug) => (
+            <Link
+              key={slug}
+              href={localeHref(locale, speciesPath(slug))}
+              className="justify-self-start text-muted-foreground underline-offset-4 transition-colors duration-(--motion-fast) hover:text-primary hover:underline"
+            >
+              {stripAccent(animals[slug].h1)}
+            </Link>
+          ))}
         </nav>
         <nav aria-label={t("nav.footer")} className="grid content-start gap-2.5">
           <p className="text-xs font-bold tracking-wide uppercase">{t("footer.company")}</p>

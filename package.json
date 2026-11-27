@@ -31,6 +31,7 @@
     "mode": "node scripts/set-mode.ts",
     "locales": "node scripts/set-locales.ts",
     "freshness": "node scripts/freshness.ts",
+    "indexnow": "node scripts/indexnow.ts",
     "auto-upgrade": "node scripts/auto-upgrade.ts",
     "setup-project": "node scripts/setup-project.ts",
     "github-setup": "node scripts/github-setup.ts",

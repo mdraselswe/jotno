@@ -25,7 +25,9 @@ import { answeringVet, getQuestion } from "@/features/questions/server";
 import { ShareButton } from "@/features/share";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
+import { pageAlternates } from "@/lib/metadata";
 import { ogImages } from "@/lib/og";
+import { breadcrumbLd } from "@/lib/structured-data";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/questions/[id]">): Promise<Metadata> {
   const { id, locale } = await params;
@@ -35,7 +37,7 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/question
   return {
     title: q.title,
     description: q.excerpt,
-    alternates: { canonical: url },
+    alternates: pageAlternates(questionPath(id), locale),
     robots: q.answerCount > 0 ? undefined : { index: false },
     openGraph: { title: q.title, description: q.excerpt, url, type: "article", images: ogImages() },
   };
@@ -83,7 +85,11 @@ async function Question({ params }: { params: Promise<{ id: string }> }) {
               text: q.answers[0].body,
               upvoteCount: q.answers[0].helpfulCount,
               dateCreated: q.answers[0].createdAt.toISOString(),
-              author: { "@type": "Person", name: q.answers[0].vet.name },
+              author: {
+                "@type": "Person",
+                name: q.answers[0].vet.name,
+                jobTitle: t("pubui.vet.jobTitle"),
+              },
             },
           }
         : {}),
@@ -93,6 +99,13 @@ async function Question({ params }: { params: Promise<{ id: string }> }) {
   return (
     <article>
       {q.answerCount > 0 ? <JsonLd data={ld} /> : null}
+      <JsonLd
+        data={breadcrumbLd(locale, [
+          { name: t("nav.home"), route: ROUTES.home },
+          { name: t("qa.title"), route: ROUTES.questions },
+          { name: q.title, route: questionPath(q.id) },
+        ])}
+      />
       <header data-no-reveal className="surface-soft dots">
         <div className="container-page grid gap-4 pt-6 pb-10 md:pt-8 md:pb-12">
           <nav>

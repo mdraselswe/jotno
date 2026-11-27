@@ -1,8 +1,19 @@
 import { site } from "@/config";
 import { LOCALES, localePath } from "@/config/locale";
-import { articlePath, pageUrl, productPath, questionPath, vetPath } from "@/config/routes";
+import {
+  articlePath,
+  districtPath,
+  pageUrl,
+  productPath,
+  questionPath,
+  speciesPath,
+  vetPath,
+} from "@/config/routes";
+import { DISTRICTS } from "@/content/geo";
+import { districtSlug } from "@/content/places";
+import { SPECIES_PAGE_SLUGS } from "@/content/species-pages";
 import { publishedArticleSlugs } from "@/features/articles/server";
-import { verifiedVetSlugs } from "@/features/providers/server";
+import { vetCountsByDistrict, vetCountsBySpecies, verifiedVetSlugs } from "@/features/providers/server";
 import { answeredQuestionIds } from "@/features/questions/server";
 import { activeProductSlugs } from "@/features/shop/server";
 
@@ -14,14 +25,25 @@ import { activeProductSlugs } from "@/features/shop/server";
 const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 export async function GET() {
-  const [vets, questions, articles, products] = await Promise.all([
+  const [vets, districts, species, questions, articles, products] = await Promise.all([
     verifiedVetSlugs(),
+    vetCountsByDistrict(),
+    vetCountsBySpecies(),
     answeredQuestionIds(),
     publishedArticleSlugs(),
     activeProductSlugs(),
   ]);
   const routes: { route: string; lastmod?: Date }[] = [
     ...vets.map((v) => ({ route: vetPath(v.slug), lastmod: v.updatedAt })),
+    // District pages with at least one real vet (the others are noindex).
+    ...districts.flatMap((row) => {
+      const d = DISTRICTS.find((x) => x.id === row.districtId);
+      return d ? [{ route: districtPath(districtSlug(d)), lastmod: row.updatedAt }] : [];
+    }),
+    // Animal pages with at least one real vet.
+    ...species
+      .filter((row) => (SPECIES_PAGE_SLUGS as readonly string[]).includes(row.slug))
+      .map((row) => ({ route: speciesPath(row.slug), lastmod: row.updatedAt })),
     ...questions.map((q) => ({ route: questionPath(q.id), lastmod: q.createdAt })),
     ...articles.map((a) => ({ route: articlePath(a.slug), lastmod: a.updatedAt })),
     ...products.map((p) => ({ route: productPath(p.slug) })),
@@ -29,10 +51,12 @@ export async function GET() {
   const base = site.url.replace(/\/$/, "");
   const urls = routes.flatMap(({ route, lastmod }) =>
     LOCALES.map((locale) => {
-      const alternates = LOCALES.map(
-        (l) =>
-          `<xhtml:link rel="alternate" hreflang="${l}" href="${escape(base + pageUrl(localePath(l, route)))}"/>`,
-      ).join("");
+      const alternates = [...LOCALES, "x-default"]
+        .map((l) => {
+          const href = base + pageUrl(localePath(l === "x-default" ? site.i18n.defaultLocale : l, route));
+          return `<xhtml:link rel="alternate" hreflang="${l}" href="${escape(href)}"/>`;
+        })
+        .join("");
       return `<url><loc>${escape(base + pageUrl(localePath(locale, route)))}</loc>${lastmod ? `<lastmod>${lastmod.toISOString()}</lastmod>` : ""}${alternates}</url>`;
     }),
   );

@@ -10,8 +10,8 @@ import { ViewTransitionGuard } from "@/components/motion/view-transition-guard";
 import { brandStyle, fontVariables, htmlDesignAttributes } from "@/components/layout/brand-style";
 import { ThemeScript } from "@/components/layout/theme-script";
 import { features, isProduction, site } from "@/config";
-import { LOCALES, localeDir, localePath } from "@/config/locale";
-import { pageUrl } from "@/config/routes";
+import { LOCALES, localeDir } from "@/config/locale";
+import { ogLocale, pageAlternates } from "@/lib/metadata";
 import { OG_IMAGE_PATH, ogImages } from "@/lib/og";
 import { Toaster } from "@/components/ui/sonner";
 import { ConnectionBanner } from "@/features/connection";
@@ -30,26 +30,41 @@ export function generateStaticParams() {
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
-  const description = (await getT())("meta.description");
+  const t = await getT();
+  const title = t("meta.title");
+  const description = t("meta.description");
   return {
     metadataBase: new URL(site.url),
-    title: { default: site.seo.title, template: `%s · ${site.name}` },
+    title: { default: title, template: `%s · ${site.name}` },
     description,
     keywords: site.seo.keywords,
     applicationName: site.name,
-    alternates: {
-      canonical: pageUrl(localePath(locale, "/")),
-      languages: Object.fromEntries(LOCALES.map((l) => [l, pageUrl(localePath(l, "/"))])),
+    authors: [{ name: site.name, url: site.url }],
+    publisher: site.name,
+    category: "health",
+    // Let search engines and AI answers show full snippets and large images.
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
     },
+    alternates: pageAlternates("/", locale),
     openGraph: {
       type: "website",
       siteName: site.name,
-      title: site.seo.title,
+      title,
       description,
-      locale,
+      locale: ogLocale(locale),
+      alternateLocale: LOCALES.filter((l) => l !== locale).map(ogLocale),
       images: ogImages(),
     },
-    twitter: { card: "summary_large_image", title: site.seo.title, description, images: [OG_IMAGE_PATH] },
+    twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE_PATH] },
     // Icons and the manifest are generated from config by scripts/generate-assets.ts.
     icons: {
       icon: [

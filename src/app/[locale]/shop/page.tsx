@@ -15,13 +15,17 @@ import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { EmptyState } from "@/components/layout/app-ui";
 import { ShopScene } from "@/components/illustrations/shop-scene";
+import { FaqList } from "@/components/marketing/faq-list";
 import { PageTransition } from "@/components/motion/page-transition";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
+import { JsonLd } from "@/components/ui/json-ld";
 import { Skeleton } from "@/components/ui/skeleton";
+import { business } from "@/config";
 import { ROUTES } from "@/config/routes";
 import { SPECIES } from "@/content/geo";
+import { shopFaq } from "@/content/shop-faq";
 import {
   categoryLabel,
   defaultSort,
@@ -43,15 +47,17 @@ import {
   type ShopFilters,
 } from "@/features/shop";
 import { HeaderCart, shopCatalog, shopCategories } from "@/features/shop/server";
-import type { Formatter, Translate } from "@/i18n";
+import { format, pickLocale, type Formatter, type Translate } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { pageMetadata } from "@/lib/metadata";
+import { taka } from "@/lib/money";
+import { faqLd } from "@/lib/structured-data";
 import { cn } from "@/lib/utils";
 
 export async function generateMetadata() {
   const t = await getT();
-  return pageMetadata(t("shop.title"), t("shop.sub"), ROUTES.shop, await getLocale());
+  return pageMetadata(t("pubui.seo.shopTitle"), t("pubui.seo.shopDesc"), ROUTES.shop, await getLocale());
 }
 
 type SP = Record<string, string | string[] | undefined>;
@@ -555,6 +561,34 @@ async function Catalog({ searchParams }: { searchParams: Promise<SP> }) {
   );
 }
 
+/** Delivery, payment and returns, answered from business.shop (FAQPage data too). */
+async function ShopQuestions() {
+  const locale = await getLocale();
+  const fmt = await getFormatter();
+  const faq = pickLocale(shopFaq, locale);
+  const { deliveryInside, deliveryOutside, freeDeliveryFrom, deliveryDays, returnDays } = business.shop;
+  const vars = {
+    inside: taka(fmt, deliveryInside),
+    outside: taka(fmt, deliveryOutside),
+    free: taka(fmt, freeDeliveryFrom),
+    inMin: fmt.number(deliveryDays.inside.min),
+    inMax: fmt.number(deliveryDays.inside.max),
+    outMin: fmt.number(deliveryDays.outside.min),
+    outMax: fmt.number(deliveryDays.outside.max),
+    returns: fmt.number(returnDays),
+  };
+  const items = faq.items.map((item) => ({ q: item.q, a: format(item.a, vars) }));
+  return (
+    <section className="grid max-w-3xl gap-4 pt-4" aria-labelledby="shop-faq">
+      <JsonLd data={faqLd(items)} />
+      <h2 id="shop-faq" className="font-heading text-2xl font-bold tracking-tight">
+        {faq.title}
+      </h2>
+      <FaqList items={items} />
+    </section>
+  );
+}
+
 function CatalogSkeleton() {
   return (
     <div role="status" className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-8">
@@ -614,6 +648,7 @@ export default async function ShopPage({ searchParams }: PageProps<"/[locale]/sh
         <Suspense fallback={<CatalogSkeleton />}>
           <Catalog searchParams={searchParams} />
         </Suspense>
+        <ShopQuestions />
       </div>
     </PageTransition>
   );

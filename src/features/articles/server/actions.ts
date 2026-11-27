@@ -3,12 +3,14 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
-import { ROUTES, vetArticlePath } from "@/config/routes";
+import { articlePath, ROUTES, vetArticlePath } from "@/config/routes";
 import { actionViewer } from "@/features/auth/server";
 import type { MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
 import { rateLimit } from "@/infrastructure/db/helpers";
+import { announcePages } from "@/infrastructure/indexnow";
 import { localeHref } from "@/lib/locale-href";
 import { shortId, slugify } from "@/lib/slug";
 
@@ -57,7 +59,7 @@ export async function saveArticle(
   let savedId = id;
   if (id) {
     const [existing] = await db()
-      .select({ publishedAt: AR.publishedAt })
+      .select({ publishedAt: AR.publishedAt, slug: AR.slug })
       .from(AR)
       .where(and(eq(AR.id, id), eq(AR.providerId, vet.id)))
       .limit(1);
@@ -70,6 +72,10 @@ export async function saveArticle(
         updatedAt: new Date(),
       })
       .where(and(eq(AR.id, id), eq(AR.providerId, vet.id)));
+    if (parsed.data.publish) {
+      const slug = existing.slug;
+      after(() => announcePages([articlePath(slug)]));
+    }
   } else {
     const [row] = await db()
       .insert(AR)
@@ -79,8 +85,10 @@ export async function saveArticle(
         slug: `${slugify(parsed.data.title, "article")}-${shortId()}`,
         publishedAt: parsed.data.publish ? new Date() : null,
       })
-      .returning({ id: AR.id });
+      .returning({ id: AR.id, slug: AR.slug });
     savedId = row?.id ?? null;
+    const slug = row?.slug;
+    if (parsed.data.publish && slug) after(() => announcePages([articlePath(slug)]));
   }
   revalidatePath("/[locale]/articles", "layout");
   revalidatePath("/[locale]/dashboard/articles", "layout");

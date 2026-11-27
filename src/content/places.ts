@@ -18,6 +18,15 @@ export const breedName = (id: number | null | undefined, locale: string) =>
     BREEDS.find((b) => b.id === id),
     locale,
   );
+/** URL slug of a district: "Cox's Bazar" → "coxs-bazar" (its page is `districtPath(slug)`). */
+export const districtSlug = (d: { en: string }) =>
+  d.en
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+export const districtBySlug = (slug: string) => DISTRICTS.find((d) => districtSlug(d) === slug);
+
 export const speciesSlug = (id: number | null | undefined) => SPECIES.find((s) => s.id === id)?.slug ?? null;
 
 /** Area names need the big list: server-side only (import cost is fine there). */

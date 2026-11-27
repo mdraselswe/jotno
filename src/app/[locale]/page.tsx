@@ -1,5 +1,4 @@
 import { ArrowRight, BadgeCheck, CircleCheck, Siren, Truck, Zap } from "lucide-react";
-import type { Route } from "next";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
@@ -11,9 +10,12 @@ import { SquishyPricing, type PricingCard } from "@/components/marketing/squishy
 import { NumberTicker } from "@/components/motion/number-ticker";
 import { PageTransition } from "@/components/motion/page-transition";
 import { ButtonLink } from "@/components/ui/button-link";
+import { FaqList } from "@/components/marketing/faq-list";
+import { JsonLd } from "@/components/ui/json-ld";
 import { Skeleton } from "@/components/ui/skeleton";
 import { business } from "@/config";
-import { articlePath, ROUTES } from "@/config/routes";
+import { articlePath, ROUTES, speciesPath } from "@/config/routes";
+import { faqContent } from "@/content/faq";
 import { SPECIES } from "@/content/geo";
 import { homeContent, ORBIT_PETS, type StepIcon } from "@/content/home";
 import { listArticles } from "@/features/articles/server";
@@ -27,6 +29,7 @@ import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 import { splitAccent } from "@/lib/rich-text";
+import { faqLd, organizationLd, websiteLd } from "@/lib/structured-data";
 
 const STEP_ART: Record<StepIcon, SpotName> = { search: "search", chat: "chat", heart: "care" };
 
@@ -173,7 +176,7 @@ export default async function HomePage() {
       name,
       line: c.orbit.pets[slug],
       find: format(c.orbit.find, { pet: locale === "bn" ? name : name.toLowerCase() }),
-      href: `${vets}/?species=${slug}` as Route,
+      href: localeHref(locale, speciesPath(slug)),
     };
   });
 
@@ -201,9 +204,24 @@ export default async function HomePage() {
   }));
   const keep = 100 - business.consult.commissionBps / 100;
   const title = splitAccent(c.hero.title);
+  const description = t("meta.description");
+  const faq = pickLocale(faqContent, locale);
+  const faqVars = {
+    ...replyVars,
+    chat: priceVars.chat,
+    booking: priceVars.booking,
+    quick: taka(fmt, business.quick.fee),
+    keep: fmt.number(keep),
+  };
+  const faqItems = faq.items
+    .filter((item) => item.when !== "quick" || business.quick.enabled)
+    .map((item) => ({ q: item.q, a: format(item.a, faqVars) }));
 
   return (
     <PageTransition>
+      <JsonLd data={organizationLd(description)} />
+      <JsonLd data={websiteLd(locale, description)} />
+      <JsonLd data={faqLd(faqItems)} />
       <HeroOrbit
         pets={pets}
         label={c.orbit.label}
@@ -365,6 +383,14 @@ export default async function HomePage() {
           </section>
         </WhenShopOpen>
       </Suspense>
+
+      {/* Questions people (and search engines, and AI assistants) ask most */}
+      <section className="container-page grid gap-10 py-20 md:grid-cols-[minmax(0,22rem)_1fr] md:py-28">
+        <div className="md:sticky md:top-24 md:self-start">
+          <SectionTitle eyebrow={faq.eyebrow} title={faq.title} sub={faq.sub} />
+        </div>
+        <FaqList items={faqItems} />
+      </section>
 
       {/* Emergency: a stacked card on phones (icon + title, text, full-width
           actions), one row from md up. */}

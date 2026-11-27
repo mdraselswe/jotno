@@ -20,7 +20,13 @@ import {
   VetSortSelect,
   VETS_PAGE_SIZE,
 } from "@/features/providers";
-import { parseVetQuery, searchProviders, vetSearchOf } from "@/features/providers/server";
+import {
+  DistrictLinks,
+  parseVetQuery,
+  SpeciesLinks,
+  searchProviders,
+  vetSearchOf,
+} from "@/features/providers/server";
 import { plural, type Translate } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { parseNear, parseRadius, widerRadius } from "@/lib/geo";
@@ -31,7 +37,7 @@ import { splitAccent } from "@/lib/rich-text";
 
 export async function generateMetadata() {
   const t = await getT();
-  return pageMetadata(t("vets.title"), t("vets.sub"), ROUTES.vets, await getLocale());
+  return pageMetadata(t("pubui.seo.vetsTitle"), t("pubui.seo.vetsDesc"), ROUTES.vets, await getLocale());
 }
 
 type Search = Record<string, string | string[] | undefined>;
@@ -335,6 +341,12 @@ export default async function VetsPage({ searchParams }: PageProps<"/[locale]/ve
           <Results searchParams={searchParams} />
         </Suspense>
       </div>
+      <Suspense fallback={null}>
+        <div className="container-page grid gap-10 pb-12 md:pb-16">
+          <SpeciesLinks title={t("pubui.species.browse")} />
+          <DistrictLinks title={t("pubui.district.browse")} />
+        </div>
+      </Suspense>
     </PageTransition>
   );
 }

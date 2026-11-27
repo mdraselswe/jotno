@@ -25,7 +25,9 @@ import { getProduct, shopCategories } from "@/features/shop/server";
 import { ShareButton } from "@/features/share";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
+import { pageAlternates } from "@/lib/metadata";
 import { ogImages } from "@/lib/og";
+import { absoluteUrl, breadcrumbLd, ORGANIZATION_ID } from "@/lib/structured-data";
 import { taka } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +39,7 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/shop/[sl
   return {
     title: p.name,
     description: p.description ?? p.name,
-    alternates: { canonical: url },
+    alternates: pageAlternates(productPath(slug), locale),
     openGraph: { title: p.name, url, images: ogImages(p.imageUrl) },
   };
 }
@@ -85,6 +87,13 @@ async function Product({ params }: { params: Promise<{ slug: string }> }) {
   return (
     <div className="grid gap-10 md:gap-14">
       <JsonLd
+        data={breadcrumbLd(locale, [
+          { name: t("nav.home"), route: ROUTES.home },
+          { name: t("shop.title"), route: ROUTES.shop },
+          { name: p.name, route: productPath(slug) },
+        ])}
+      />
+      <JsonLd
         data={{
           "@context": "https://schema.org",
           "@type": "Product",
@@ -94,6 +103,8 @@ async function Product({ params }: { params: Promise<{ slug: string }> }) {
           sku: p.sku ?? undefined,
           offers: {
             "@type": "Offer",
+            url: absoluteUrl(productPath(slug), locale),
+            seller: { "@id": ORGANIZATION_ID() },
             priceCurrency: "BDT",
             price: (p.price / 100).toFixed(2),
             availability: p.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",

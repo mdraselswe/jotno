@@ -2,9 +2,12 @@
 
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import { business } from "@/config";
-import { ROUTES } from "@/config/routes";
+import { articlePath, districtPath, ROUTES, vetPath } from "@/config/routes";
+import { DISTRICTS } from "@/content/geo";
+import { districtSlug } from "@/content/places";
 import { actionViewer, setRole, type Role } from "@/features/auth/server";
 import { notify } from "@/features/notifications/server";
 import { canPayout, vetBalance } from "@/features/payments";
@@ -13,6 +16,7 @@ import { missingDocs } from "@/features/providers";
 import { formatter, translator, type MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
 import { audit } from "@/infrastructure/db/helpers";
+import { announcePages } from "@/infrastructure/indexnow";
 import { supabaseAdmin } from "@/infrastructure/supabase/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
@@ -85,9 +89,15 @@ export async function verifyProvider(
     .update(P)
     .set({ status: "verified", verifiedAt: new Date(), rejectionReason: null })
     .where(and(eq(P.id, providerId), inArray(P.status, [...VERIFIABLE_STATUSES])))
-    .returning({ id: P.id });
+    .returning({ id: P.id, slug: P.slug, districtId: P.districtId, isDemo: P.isDemo });
   // Someone changed the status in the meantime.
   if (!done) return { ok: false, error: "common.genericError" };
+  if (!done.isDemo) {
+    // A new public profile (and maybe a district page that now has a vet): tell search engines.
+    const district = DISTRICTS.find((d) => d.id === done.districtId);
+    const routes = [vetPath(done.slug), ...(district ? [districtPath(districtSlug(district))] : [])];
+    after(() => announcePages(routes));
+  }
   await audit(me.id, "provider.verify", "provider", providerId, {
     checks: ticked.data,
     ...(override.length ? { override, missingDocs: missing } : {}),
@@ -513,8 +523,9 @@ export async function setArticlePublished(articleId: string, publish: boolean): 
         : { status: "draft" },
     )
     .where(eq(AR.id, articleId))
-    .returning({ providerId: AR.providerId, title: AR.title });
+    .returning({ providerId: AR.providerId, title: AR.title, slug: AR.slug });
   if (!row) return { ok: false, error: "common.notAllowed" };
+  if (publish) after(() => announcePages([articlePath(row.slug)]));
   await audit(me.id, publish ? "article.publish" : "article.unpublish", "article", articleId);
   if (!publish) {
     const vet = await vetContact(row.providerId);

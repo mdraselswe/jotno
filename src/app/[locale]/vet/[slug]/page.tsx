@@ -22,7 +22,7 @@ import { ButtonLink } from "@/components/ui/button-link";
 import { JsonLd } from "@/components/ui/json-ld";
 import { Skeleton } from "@/components/ui/skeleton";
 import { business, site } from "@/config";
-import { LOCALES, localePath } from "@/config/locale";
+import { localePath } from "@/config/locale";
 import { bookPath, consultStartPath, pageUrl, ROUTES, vetPath } from "@/config/routes";
 import { getHours } from "@/features/appointments/server";
 import { speciesNames, VetContactButtons, VetOfflineNotice, VetPhoto, vetPlace } from "@/features/providers";
@@ -32,6 +32,8 @@ import type { Formatter, Translate } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { dhakaDay, dhakaWeekday } from "@/lib/dhaka";
 import { localeHref } from "@/lib/locale-href";
+import { pageAlternates } from "@/lib/metadata";
+import { breadcrumbLd, ORGANIZATION_ID } from "@/lib/structured-data";
 import { ogImages } from "@/lib/og";
 import { taka } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -44,13 +46,13 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/vet/[slu
   const place = vetPlace(vet, locale);
   const description = [vet.title, place, vet.bio?.slice(0, 120)].filter(Boolean).join(" · ");
   const url = pageUrl(localePath(locale, vetPath(slug)));
+  // "Dr. Rahim, Veterinarian, Mirpur, Dhaka": what people search for.
+  const t = await getT();
+  const title = [vet.displayName, vet.title ?? t("pubui.vet.jobTitle"), place].filter(Boolean).join(", ");
   return {
-    title: vet.displayName,
+    title,
     description,
-    alternates: {
-      canonical: url,
-      languages: Object.fromEntries(LOCALES.map((l) => [l, pageUrl(localePath(l, vetPath(slug)))])),
-    },
+    alternates: pageAlternates(vetPath(slug), locale),
     openGraph: {
       title: vet.displayName,
       description,
@@ -176,12 +178,17 @@ async function VetProfile({ params }: { params: Promise<{ slug: string }> }) {
   const chatHref = localeHref(locale, consultStartPath(vet.slug));
   const bookHref = localeHref(locale, bookPath(vet.slug));
   const chatLabel = t("vets.startChat", { fee: taka(fmt, vet.consultFee) });
+  const profileUrl = `${site.url}${pageUrl(localePath(locale, vetPath(vet.slug)))}`;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "VeterinaryCare",
+    "@id": `${profileUrl}#vet`,
     name: vet.clinicName ?? vet.displayName,
-    url: `${site.url}${pageUrl(localePath(locale, vetPath(vet.slug)))}`,
+    url: profileUrl,
+    description: vet.bio ?? undefined,
     image: vet.photoUrl ?? undefined,
+    isPartOf: { "@id": ORGANIZATION_ID() },
+    knowsLanguage: ["bn", "en"],
     telephone: vet.phonePublic ?? undefined,
     address: vet.address
       ? { "@type": "PostalAddress", streetAddress: vet.address, addressLocality: place, addressCountry: "BD" }
@@ -190,7 +197,13 @@ async function VetProfile({ params }: { params: Promise<{ slug: string }> }) {
       vet.lat !== null && vet.lon !== null
         ? { "@type": "GeoCoordinates", latitude: vet.lat, longitude: vet.lon }
         : undefined,
-    employee: { "@type": "Person", name: vet.displayName, jobTitle: vet.title ?? "Veterinarian" },
+    employee: {
+      "@type": "Person",
+      name: vet.displayName,
+      jobTitle: vet.title ?? t("pubui.vet.jobTitle"),
+    },
+    areaServed: place || "Bangladesh",
+    ...(animals.length > 0 ? { knowsAbout: animals } : {}),
     aggregateRating:
       vet.ratingCount > 0 && vet.rating !== null
         ? { "@type": "AggregateRating", ratingValue: vet.rating, reviewCount: vet.ratingCount }
@@ -241,9 +254,16 @@ async function VetProfile({ params }: { params: Promise<{ slug: string }> }) {
     </>
   );
 
+  const crumbs = breadcrumbLd(locale, [
+    { name: t("nav.home"), route: ROUTES.home },
+    { name: t("nav.vets"), route: ROUTES.vets },
+    { name: vet.displayName, route: vetPath(vet.slug) },
+  ]);
+
   return (
     <article>
       <JsonLd data={jsonLd} />
+      <JsonLd data={crumbs} />
 
       {/* Profile hero */}
       <header data-no-reveal className="surface-soft dots">

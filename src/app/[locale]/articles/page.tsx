@@ -15,7 +15,7 @@ import { pageMetadata } from "@/lib/metadata";
 
 export async function generateMetadata() {
   const t = await getT();
-  return pageMetadata(t("art.title"), t("art.sub"), ROUTES.articles, await getLocale());
+  return pageMetadata(t("pubui.seo.artTitle"), t("pubui.seo.artDesc"), ROUTES.articles, await getLocale());
 }
 
 type Search = Record<string, string | string[] | undefined>;

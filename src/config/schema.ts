@@ -96,9 +96,17 @@ export const siteSchema = z.object({
   }),
   socials: z.array(z.object({ kind: z.enum(SOCIAL_KINDS), url: z.url() })),
   seo: z.object({
-    /** Default page title (home page). */
+    /** Fallback title (the home page title per language is `meta.title` in src/i18n/messages). */
     title: z.string().min(1),
     keywords: z.array(z.string()),
+    /**
+     * IndexNow key (Bing, Yandex, Seznam, Naver; Bing feeds ChatGPT search and
+     * Copilot): served at /<key>.txt, new pages are announced with it. Public by design.
+     */
+    indexNowKey: z
+      .string()
+      .regex(/^[a-zA-Z0-9-]{8,128}$/)
+      .optional(),
   }),
 });
 

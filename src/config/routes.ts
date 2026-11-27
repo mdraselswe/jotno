@@ -100,6 +100,10 @@ export const pageUrl = (route: string) => (route.endsWith("/") ? route : `${rout
 
 // Dynamic pages
 export const vetPath = (slug: string) => `/vet/${slug}`;
+/** Vets in one district (a landing page for "vet in Dhaka" searches). */
+export const districtPath = (slug: string) => `/vets/in/${slug}`;
+/** Vets for one animal ("বিড়ালের ডাক্তার", "cattle vet"). */
+export const speciesPath = (slug: string) => `/vets/for/${slug}`;
 export const questionPath = (id: string) => `/questions/${id}`;
 export const articlePath = (slug: string) => `/articles/${slug}`;
 export const productPath = (slug: string) => `/shop/${slug}`;

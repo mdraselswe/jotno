@@ -9,8 +9,9 @@ import { APP_EN } from "./app";
 export const en = {
   ...APP_EN,
   "a11y.skip": "Skip to content",
+  "meta.title": "Jotno: verified vets and online vet chat in Bangladesh",
   "meta.description":
-    "Find verified vets near you in Bangladesh, ask pet questions for free and chat with a vet. Bangla first.",
+    "Find BVC-verified vets near you anywhere in Bangladesh. Chat online with a vet about your cat, dog, bird, cow or goat, book a clinic visit and ask pet questions for free.",
   "nav.main": "Main",
   "nav.mobile": "Mobile",
   "nav.footer": "Footer",

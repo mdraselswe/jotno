@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/layout/app-ui";
 import { ButtonLink } from "@/components/ui/button-link";
 import { JsonLd } from "@/components/ui/json-ld";
 import { Skeleton } from "@/components/ui/skeleton";
+import { site } from "@/config";
 import { localePath } from "@/config/locale";
 import { articlePath, consultStartPath, pageUrl, ROUTES, vetPath } from "@/config/routes";
 import { speciesName } from "@/content/places";
@@ -22,7 +23,9 @@ import { getArticle, listArticles } from "@/features/articles/server";
 import { ShareButton } from "@/features/share";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
-import { ogImages } from "@/lib/og";
+import { pageAlternates } from "@/lib/metadata";
+import { OG_IMAGE_PATH, ogImages } from "@/lib/og";
+import { absoluteUrl, breadcrumbLd, ORGANIZATION_ID } from "@/lib/structured-data";
 import { cn } from "@/lib/utils";
 
 export async function generateMetadata({
@@ -36,7 +39,7 @@ export async function generateMetadata({
   return {
     title: a.title,
     description,
-    alternates: { canonical: url },
+    alternates: pageAlternates(articlePath(slug), locale),
     openGraph: {
       title: a.title,
       description,
@@ -115,10 +118,27 @@ async function Article({ params }: { params: Promise<{ slug: string }> }) {
           "@context": "https://schema.org",
           "@type": "Article",
           headline: a.title,
+          description: a.excerpt ?? a.body.slice(0, 160),
+          image: `${site.url}${OG_IMAGE_PATH}`,
+          mainEntityOfPage: absoluteUrl(articlePath(slug), locale),
           datePublished: a.publishedAt?.toISOString(),
           dateModified: a.updatedAt.toISOString(),
-          author: { "@type": "Person", name: a.vetName },
+          // Written by a vet: the author's credentials are what make a health guide trustworthy.
+          author: {
+            "@type": "Person",
+            name: a.vetName,
+            jobTitle: a.vet.title ?? t("pubui.vet.jobTitle"),
+            url: absoluteUrl(vetPath(a.vet.slug), locale),
+          },
+          publisher: { "@id": ORGANIZATION_ID() },
         }}
+      />
+      <JsonLd
+        data={breadcrumbLd(locale, [
+          { name: t("nav.home"), route: ROUTES.home },
+          { name: t("art.title"), route: ROUTES.articles },
+          { name: a.title, route: articlePath(slug) },
+        ])}
       />
       <header data-no-reveal className="surface-warm dots">
         <div className="container-page grid max-w-4xl gap-5 pt-6 pb-10 md:pt-8 md:pb-14">

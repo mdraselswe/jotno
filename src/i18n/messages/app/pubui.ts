@@ -46,6 +46,42 @@ export const pubui = pack(
     "pubui.card.treats": "Treats: {list}",
     // Vet profile
     "pubui.vet.back": "All vets",
+    "pubui.vet.jobTitle": "Veterinarian",
+    "pubui.district.title": "Vets in [{district}]",
+    "pubui.district.metaTitle": "Vets in {district}, Bangladesh: verified veterinarians and clinics",
+    "pubui.district.metaDescription":
+      "Find BVC-verified vets in {district}. See clinic address, fees and hours, book a visit or chat online with a vet, from {chat}.",
+    "pubui.district.sub":
+      "BVC-verified vets in {district} district. Book a clinic visit or chat online, from {chat}.",
+    "pubui.district.filter": "Search with filters",
+    "pubui.district.seeAll": "See all vets in {district}",
+    "pubui.district.emptyTitle": "No vets listed in {district} yet",
+    "pubui.district.emptyBody": "You can still chat online with a verified vet from anywhere in Bangladesh.",
+    "pubui.district.online": "Chat with a vet online",
+    "pubui.district.others": "Vets in other districts",
+    "pubui.district.browse": "Find vets by district",
+    "pubui.species.faq": "Common questions",
+    "pubui.species.others": "Vets for other animals",
+    "pubui.species.browse": "Find vets by animal",
+    "pubui.species.footer": "Vets by animal",
+    "pubui.seo.vetsTitle": "Find a vet near you: verified veterinarians in Bangladesh",
+    "pubui.seo.vetsDesc":
+      "Verified vets for cats, dogs, birds, rabbits, cows, goats and chickens in Dhaka, Chattogram and every district. Compare fees, clinic hours and ratings, chat online or book a visit.",
+    "pubui.seo.qaTitle": "Ask a vet online for free: pet and livestock health answers",
+    "pubui.seo.qaDesc":
+      "Ask about your cat, dog, cow or goat's illness, food or vaccines for free. Verified vets in Bangladesh answer in public, in Bangla and English.",
+    "pubui.seo.artTitle": "Pet and livestock care guides written by vets",
+    "pubui.seo.artDesc":
+      "Cat and dog care, vaccine schedules, deworming, food, and cow and goat diseases: practical guides by verified vets in Bangladesh.",
+    "pubui.seo.shopTitle": "Pet shop in Bangladesh: cat food, dog food, litter and supplies",
+    "pubui.seo.shopDesc":
+      "Buy cat and dog food, cat litter, toys, beds and grooming supplies online. Checked by our team, cash on delivery, delivered across Bangladesh.",
+    "pubui.seo.emgTitle": "Pet emergency first aid and 24-hour vets in Bangladesh",
+    "pubui.seo.emgDesc":
+      "What to do right now if your cat or dog is poisoned, bleeding, choking, has heatstroke, a seizure or an accident, step by step. Find vets who take emergencies 24/7.",
+    "pubui.seo.aboutTitle": "About Jotno: verified vets for every pet and farm in Bangladesh",
+    "pubui.seo.aboutDesc":
+      "Jotno is a Bangla-first vet platform: every vet is checked against the Bangladesh Veterinary Council register. Find vets, chat online, book visits and keep your pets' vaccines on time.",
     "pubui.vet.noRating": "No ratings yet",
     "pubui.vet.chatCard": "Online chat",
     "pubui.vet.chatCardSub":
@@ -196,6 +232,42 @@ export const pubui = pack(
     "pubui.card.treats": "দেখেন: {list}",
     // Vet profile
     "pubui.vet.back": "সব ভেট",
+    "pubui.vet.jobTitle": "পশু ডাক্তার",
+    "pubui.district.title": "[{district}] জেলার পশু ডাক্তার",
+    "pubui.district.metaTitle": "{district} জেলার পশু ডাক্তার ও ভেট ক্লিনিক (যাচাইকৃত)",
+    "pubui.district.metaDescription":
+      "{district} জেলার BVC-যাচাইকৃত পশু ডাক্তার (ভেট) খুঁজুন। চেম্বারের ঠিকানা, ফি আর সময় দেখুন, ভিজিট বুক করুন বা অনলাইনে ভেটের সাথে চ্যাট করুন, শুরু {chat} থেকে।",
+    "pubui.district.sub":
+      "{district} জেলার BVC-যাচাইকৃত ভেট। চেম্বারে ভিজিট বুক করুন বা অনলাইনে চ্যাট করুন, শুরু {chat} থেকে।",
+    "pubui.district.filter": "ফিল্টার দিয়ে খুঁজুন",
+    "pubui.district.seeAll": "{district} জেলার সব ভেট দেখুন",
+    "pubui.district.emptyTitle": "{district} জেলায় এখনো কোনো ভেট যুক্ত হননি",
+    "pubui.district.emptyBody": "তবু সারা বাংলাদেশ থেকে যাচাইকৃত ভেটের সাথে অনলাইনে চ্যাট করতে পারেন।",
+    "pubui.district.online": "অনলাইনে ভেটের সাথে চ্যাট",
+    "pubui.district.others": "অন্য জেলার ভেট",
+    "pubui.district.browse": "জেলা অনুযায়ী ভেট খুঁজুন",
+    "pubui.species.faq": "সাধারণ প্রশ্ন",
+    "pubui.species.others": "অন্য প্রাণীর ডাক্তার",
+    "pubui.species.browse": "প্রাণী অনুযায়ী ভেট খুঁজুন",
+    "pubui.species.footer": "প্রাণীর ডাক্তার",
+    "pubui.seo.vetsTitle": "পশু ডাক্তার খুঁজুন: কাছের যাচাইকৃত ভেট ও ভেট ক্লিনিক",
+    "pubui.seo.vetsDesc":
+      "ঢাকা, চট্টগ্রামসহ সারা বাংলাদেশে বিড়াল, কুকুর, পাখি, খরগোশ, গরু, ছাগল আর মুরগির যাচাইকৃত পশু ডাক্তার। ফি, চেম্বারের সময় আর রেটিং দেখুন, অনলাইনে চ্যাট বা ভিজিট বুক করুন।",
+    "pubui.seo.qaTitle": "ফ্রিতে ভেটকে প্রশ্ন করুন: পোষা প্রাণী ও গবাদিপশুর রোগের উত্তর",
+    "pubui.seo.qaDesc":
+      "বিড়াল, কুকুর, গরু বা ছাগলের অসুখ, খাবার আর টিকা নিয়ে বিনা খরচে প্রশ্ন করুন। বাংলাদেশের যাচাইকৃত পশু ডাক্তাররা বাংলায় উত্তর দেন।",
+    "pubui.seo.artTitle": "পোষা প্রাণী ও গবাদিপশু পালনের গাইড: ভেটদের লেখা",
+    "pubui.seo.artDesc":
+      "বিড়াল ও কুকুর পালন, টিকার সময়সূচি, কৃমিনাশক, খাবার আর গরু-ছাগলের রোগ নিয়ে বাংলাদেশের যাচাইকৃত ভেটদের লেখা কাজের গাইড।",
+    "pubui.seo.shopTitle": "পেট শপ: ক্যাট ফুড, ডগ ফুড, ক্যাট লিটার ও পোষা প্রাণীর জিনিস",
+    "pubui.seo.shopDesc":
+      "বিড়াল ও কুকুরের খাবার, ক্যাট লিটার, খেলনা, বেড আর গ্রুমিংয়ের জিনিস অনলাইনে কিনুন। আমাদের টিমের যাচাই করা, ক্যাশ অন ডেলিভারি, সারা বাংলাদেশে ডেলিভারি।",
+    "pubui.seo.emgTitle": "পোষা প্রাণীর জরুরি প্রাথমিক চিকিৎসা ও ২৪ ঘণ্টার ভেট",
+    "pubui.seo.emgDesc":
+      "বিড়াল বা কুকুর বিষ খেলে, রক্তপাত, গলায় আটকালে, হিটস্ট্রোক, খিঁচুনি বা দুর্ঘটনায় এখনই কী করবেন, ধাপে ধাপে। ২৪/৭ জরুরি সেবা দেন এমন ভেট খুঁজুন।",
+    "pubui.seo.aboutTitle": "যত্ন সম্পর্কে: বাংলাদেশের সব পোষা প্রাণী ও খামারের যাচাইকৃত ভেট",
+    "pubui.seo.aboutDesc":
+      "যত্ন একটি বাংলা ভেট প্ল্যাটফর্ম: প্রতিটি ভেটকে বাংলাদেশ ভেটেরিনারি কাউন্সিলের রেজিস্টারের সাথে মিলিয়ে যাচাই করা হয়। ভেট খুঁজুন, অনলাইনে চ্যাট করুন, ভিজিট বুক করুন আর টিকার সময় মনে রাখুন।",
     "pubui.vet.noRating": "এখনো রেটিং নেই",
     "pubui.vet.chatCard": "অনলাইন চ্যাট",
     "pubui.vet.chatCardSub": "ছবি পাঠিয়ে পরামর্শ নিন। ভেট {window} মিনিটের মধ্যে উত্তর না দিলে টাকা ফেরত পাবেন।",

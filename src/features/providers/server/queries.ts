@@ -611,13 +611,50 @@ export async function myFeatured(providerId: string) {
     .limit(20);
 }
 
-/** Verified vet slugs for the sitemap. */
+/** Verified vet slugs for the sitemap (demo profiles left out: they are not real vets). */
 export async function verifiedVetSlugs() {
   return db()
     .select({ slug: schema.providers.slug, updatedAt: schema.providers.updatedAt })
     .from(schema.providers)
-    .where(eq(schema.providers.status, "verified"))
+    .where(and(eq(schema.providers.status, "verified"), eq(schema.providers.isDemo, false)))
     .limit(10_000);
+}
+
+/**
+ * Real verified vets per district, for the district pages and the sitemap: a
+ * district page is indexed only while it has at least one.
+ */
+export async function vetCountsByDistrict(): Promise<
+  { districtId: number; count: number; updatedAt: Date }[]
+> {
+  const rows = await db()
+    .select({
+      districtId: p.districtId,
+      count: sql<number>`count(*)::int`,
+      updatedAt: sql<string>`max(${p.updatedAt})`,
+    })
+    .from(p)
+    .where(and(eq(p.status, "verified"), eq(p.isDemo, false), sql`${p.districtId} is not null`))
+    .groupBy(p.districtId);
+  return rows.flatMap((r) =>
+    r.districtId === null
+      ? []
+      : [{ districtId: r.districtId, count: Number(r.count), updatedAt: new Date(r.updatedAt) }],
+  );
+}
+
+/** Real verified vets per animal (species slug), for the animal pages and the sitemap. */
+export async function vetCountsBySpecies(): Promise<{ slug: string; count: number; updatedAt: Date }[]> {
+  const s = schema.species;
+  const ps = schema.providerSpecies;
+  const rows = await db()
+    .select({ slug: s.slug, count: sql<number>`count(*)::int`, updatedAt: sql<string>`max(${p.updatedAt})` })
+    .from(ps)
+    .innerJoin(p, eq(p.id, ps.providerId))
+    .innerJoin(s, eq(s.id, ps.speciesId))
+    .where(and(eq(p.status, "verified"), eq(p.isDemo, false)))
+    .groupBy(s.slug);
+  return rows.map((r) => ({ slug: r.slug, count: Number(r.count), updatedAt: new Date(r.updatedAt) }));
 }
 
 /**

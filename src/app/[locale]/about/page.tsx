@@ -11,7 +11,7 @@ import { pageMetadata } from "@/lib/metadata";
 
 export async function generateMetadata() {
   const t = await getT();
-  return pageMetadata(t("about.title"), t("about.sub"), ROUTES.about, await getLocale());
+  return pageMetadata(t("pubui.seo.aboutTitle"), t("pubui.seo.aboutDesc"), ROUTES.about, await getLocale());
 }
 
 /** One icon per value card, in content order (verified, fair to owners, fair to vets). */

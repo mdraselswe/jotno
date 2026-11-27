@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 
 export async function generateMetadata() {
   const t = await getT();
-  return pageMetadata(t("emg.title"), t("emg.sub"), ROUTES.emergency, await getLocale());
+  return pageMetadata(t("pubui.seo.emgTitle"), t("pubui.seo.emgDesc"), ROUTES.emergency, await getLocale());
 }
 
 /** An icon for each first-aid card (by its id in src/content/emergency.ts). */
