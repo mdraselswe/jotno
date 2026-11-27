@@ -4,6 +4,9 @@
   "private": true,
   "description": "Jotno: verified vets near you, pet Q&A and paid chat with a vet, in Bangla.",
   "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
   "packageManager": "pnpm@12.18.0",
   "engines": {
     "node": ">=24"

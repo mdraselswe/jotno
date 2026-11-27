@@ -9,7 +9,7 @@ import { business } from "@/config";
 import { chatPath } from "@/config/routes";
 import { useAuthUser } from "@/features/auth/components/use-auth-user";
 import { useLocale, useT } from "@/i18n/client";
-import { supabaseBrowser } from "@/infrastructure/supabase/browser";
+import { loadSupabaseBrowser } from "@/infrastructure/supabase/browser-lazy";
 import { localeHref } from "@/lib/locale-href";
 import { cn } from "@/lib/utils";
 import { answerUrl, isChatPage, type CallMedia } from "../../calls";
@@ -93,10 +93,12 @@ export function IncomingCall() {
 
   useEffect(() => {
     if (!userId || !business.consult.call.enabled) return;
-    const supabase = supabaseBrowser();
     let alive = true;
     let ch: RealtimeChannel | null = null;
+    let supabase: Awaited<ReturnType<typeof loadSupabaseBrowser>> | null = null;
     void (async () => {
+      supabase = await loadSupabaseBrowser();
+      if (!alive) return;
       await supabase.realtime.setAuth();
       if (!alive) return;
       ch = supabase
@@ -111,7 +113,7 @@ export function IncomingCall() {
     })();
     return () => {
       alive = false;
-      if (ch) void supabase.removeChannel(ch);
+      if (ch && supabase) void supabase.removeChannel(ch);
     };
   }, [userId]);
 

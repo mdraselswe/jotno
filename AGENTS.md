@@ -49,7 +49,7 @@ Stack: Next.js 16 (App Router, Turbopack, React Compiler, typed routes) · React
 - `src/config/` all configuration · `src/content/` page content · `src/i18n/` UI text
 - `src/components/ui` shadcn primitives (+ `button-link`, `rich-text`, `inline-script`) · `src/components/layout` header, footer, theme, page shell · `src/components/motion` page transition, suspense reveal, spotlight, parallax, number ticker · `src/components/illustrations` hairline SVGs
 - `src/features/<name>/` self-contained features with an `index.ts` (examples: `pwa`, `connection` for the offline / back-online banner); server logic in `features/<name>/server/`; vendor SDKs only in `src/infrastructure/<vendor>/` (docs/structure.md)
-- `src/i18n/` `index.ts` (translator, formatter), `server.ts` (`getT`, `getLocale`), `client.tsx` (`useT`, `LocaleProvider`), `messages/`
+- `src/i18n/` `index.ts` (translator, formatter; server only, it loads every language), `core.ts` (helpers safe in client code: `plural`, `formatter`, `format`), `server.ts` (`getT`, `getLocale`), `client.tsx` (`useT`, `LocaleProvider`), `messages/`, `client-messages.ts` (generated: the keys client code can use, docs/adr/0012)
 - `src/hooks/`, `src/lib/` shared hooks and pure helpers
 - `scripts/` build helpers run by Node directly (TypeScript type stripping)
 - `tests/e2e/` Playwright

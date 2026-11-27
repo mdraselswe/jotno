@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/config/routes";
 import { useMounted } from "@/hooks/use-mounted";
-import { plural } from "@/i18n";
+import { plural } from "@/i18n/core";
 import { useFormatter, useLocale, useT } from "@/i18n/client";
 import { localeHref } from "@/lib/locale-href";
 import { cn } from "@/lib/utils";

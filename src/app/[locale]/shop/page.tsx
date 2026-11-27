@@ -446,7 +446,8 @@ async function Catalog({ searchParams }: { searchParams: Promise<SP> }) {
           </nav>
 
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-            <p aria-live="polite" className="min-w-0 font-heading text-base font-bold sm:text-lg">
+            {/* The grid's heading (each product is an h3 under it). */}
+            <h2 aria-live="polite" className="min-w-0 font-heading text-base font-bold sm:text-lg">
               {f.q
                 ? t("shop.f.resultsFor", { n: fmt.number(total), q: f.q })
                 : t("shop.f.results", { n: fmt.number(total) })}
@@ -458,7 +459,7 @@ async function Catalog({ searchParams }: { searchParams: Promise<SP> }) {
                   })}
                 </span>
               ) : null}
-            </p>
+            </h2>
             <div className="flex min-w-0 items-center gap-2 max-sm:w-full">
               <FilterButton badge={active > 0 ? fmt.number(active) : null} />
               <div className="min-w-0 max-sm:ms-auto">

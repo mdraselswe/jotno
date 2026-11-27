@@ -33,7 +33,7 @@ import { DISTRICTS } from "@/content/geo";
 import { WalletMark } from "@/features/payments";
 import { codAllowed, type PayMethod, type Settings } from "@/features/settings";
 import { useMounted } from "@/hooks/use-mounted";
-import { plural } from "@/i18n";
+import { plural } from "@/i18n/core";
 import { useFormatter, useLocale, useT } from "@/i18n/client";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";

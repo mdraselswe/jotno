@@ -3,7 +3,7 @@
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { publicEnv } from "@/config/env";
-import { supabaseBrowser } from "@/infrastructure/supabase/browser";
+import { hasSessionCookie, loadSupabaseBrowser } from "@/infrastructure/supabase/browser-lazy";
 import { headerProfile, type HeaderProfile } from "../server/actions";
 
 export interface AuthUser {
@@ -51,53 +51,63 @@ export function useAuthUser(): AuthUser | null | undefined {
     let alive = true;
     // Reloads the name and photo from the database for the current person.
     let merge: (() => void) | null = null;
-    const { data } = supabaseBrowser().auth.onAuthStateChange(
-      (_event: AuthChangeEvent, session: Session | null) => {
-        const u = session?.user;
-        if (!u) {
-          setUser(null);
-          return;
-        }
-        const role: unknown = u.app_metadata.role;
-        const meta = u.user_metadata as Record<string, unknown>;
-        const name =
-          typeof meta.full_name === "string"
-            ? meta.full_name
-            : typeof meta.name === "string"
-              ? meta.name
-              : null;
-        const google = typeof meta.avatar_url === "string" ? meta.avatar_url : meta.picture;
-        const avatarPath = typeof meta.avatar_path === "string" ? meta.avatar_path : "";
-        const avatarUrl = avatarPath
-          ? `${publicEnv.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${avatarPath}`
-          : typeof google === "string" && google.startsWith("https://")
-            ? google
+    let unsubscribe: (() => void) | null = null;
+    const onSession = (_event: AuthChangeEvent, session: Session | null) => {
+      const u = session?.user;
+      if (!u) {
+        setUser(null);
+        return;
+      }
+      const role: unknown = u.app_metadata.role;
+      const meta = u.user_metadata as Record<string, unknown>;
+      const name =
+        typeof meta.full_name === "string"
+          ? meta.full_name
+          : typeof meta.name === "string"
+            ? meta.name
             : null;
-        const next: AuthUser = {
-          id: u.id,
-          email: u.email ?? null,
-          name,
-          avatarUrl,
-          role: role === "vet" || role === "admin" ? role : "owner",
-        };
-        setUser(next);
-        merge = () =>
-          void loadProfile(`${u.id}:${avatarPath}`).then((p) => {
-            if (!alive || !p) return;
-            setUser((cur) =>
-              cur && cur.id === next.id
-                ? { ...cur, name: p.name ?? cur.name, avatarUrl: p.avatarUrl ?? cur.avatarUrl }
-                : cur,
-            );
-          });
-        merge();
-      },
-    );
+      const google = typeof meta.avatar_url === "string" ? meta.avatar_url : meta.picture;
+      const avatarPath = typeof meta.avatar_path === "string" ? meta.avatar_path : "";
+      const avatarUrl = avatarPath
+        ? `${publicEnv.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${avatarPath}`
+        : typeof google === "string" && google.startsWith("https://")
+          ? google
+          : null;
+      const next: AuthUser = {
+        id: u.id,
+        email: u.email ?? null,
+        name,
+        avatarUrl,
+        role: role === "vet" || role === "admin" ? role : "owner",
+      };
+      setUser(next);
+      merge = () =>
+        void loadProfile(`${u.id}:${avatarPath}`).then((p) => {
+          if (!alive || !p) return;
+          setUser((cur) =>
+            cur && cur.id === next.id
+              ? { ...cur, name: p.name ?? cur.name, avatarUrl: p.avatarUrl ?? cur.avatarUrl }
+              : cur,
+          );
+        });
+      merge();
+    };
+    // No session cookie: signed out, and the SDK isn't loaded at all (signing
+    // in reloads the page). Otherwise the SDK reads the session.
+    void (hasSessionCookie() ? loadSupabaseBrowser() : Promise.resolve(null)).then((supabase) => {
+      if (!alive) return;
+      if (!supabase) {
+        setUser(null);
+        return;
+      }
+      const { data } = supabase.auth.onAuthStateChange(onSession);
+      unsubscribe = () => data.subscription.unsubscribe();
+    });
     const onChanged = () => merge?.();
     window.addEventListener(PROFILE_CHANGED, onChanged);
     return () => {
       alive = false;
-      data.subscription.unsubscribe();
+      unsubscribe?.();
       window.removeEventListener(PROFILE_CHANGED, onChanged);
     };
   }, []);

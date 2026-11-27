@@ -15,7 +15,7 @@ import { pageUrl } from "@/config/routes";
 import { OG_IMAGE_PATH, ogImages } from "@/lib/og";
 import { Toaster } from "@/components/ui/sonner";
 import { ConnectionBanner } from "@/features/connection";
-import { IncomingCall, VetWaitingAlert } from "@/features/consults";
+import { SignedInAlerts } from "@/features/consults";
 import { PaymentNotice } from "@/features/payments";
 import { HeaderCart } from "@/features/shop/server";
 import { InstallCard, PwaScript } from "@/features/pwa";
@@ -113,7 +113,9 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
               </Suspense>
             }
           />
-          <main id="content" className="flex-1">
+          {/* At least a screen tall: while a page streams in (its loading skeleton is shorter than
+              the page), the footer stays below the fold instead of being pushed down (layout shift). */}
+          <main id="content" className="min-h-svh flex-1">
             {children}
           </main>
           <SiteFooter />
@@ -121,10 +123,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
             <ScrollScenes />
           </Suspense>
           <TabBar />
-          <Suspense fallback={null}>
-            <IncomingCall />
-            <VetWaitingAlert />
-          </Suspense>
+          <SignedInAlerts />
           {features.offlineBanner ? <ConnectionBanner /> : null}
           {features.toaster.enabled ? <Toaster /> : null}
           <Suspense fallback={null}>

@@ -2,21 +2,46 @@
 
 import { createContext, use, type ReactNode } from "react";
 import { DEFAULT_LOCALE } from "@/config/locale";
-import { formatter, translator } from "./index";
+import { CLIENT_MESSAGES } from "./client-messages";
+import { formatter, makeTranslator, type Translate } from "./core";
 
-const LocaleContext = createContext(DEFAULT_LOCALE);
+interface LocaleValue {
+  locale: string;
+  t: Translate;
+}
 
-/** Set once in the root layout; client components read it with the hooks below. */
+const translators = new Map<string, Translate>();
+
+/**
+ * Client text for a locale: only the keys client components use
+ * (src/i18n/client-messages.ts, generated), so the browser never downloads
+ * the whole catalogue (docs/adr/0012).
+ */
+function clientTranslator(locale: string): Translate {
+  let t = translators.get(locale);
+  if (!t) {
+    t = makeTranslator(CLIENT_MESSAGES[locale] ?? CLIENT_MESSAGES[DEFAULT_LOCALE] ?? {}, locale);
+    translators.set(locale, t);
+  }
+  return t;
+}
+
+const LocaleContext = createContext<LocaleValue>({
+  locale: DEFAULT_LOCALE,
+  t: clientTranslator(DEFAULT_LOCALE),
+});
+
+/** Set once in the root layout with the visitor's language. */
 export function LocaleProvider({ locale, children }: { locale: string; children: ReactNode }) {
-  return <LocaleContext value={locale}>{children}</LocaleContext>;
+  return <LocaleContext value={{ locale, t: clientTranslator(locale) }}>{children}</LocaleContext>;
 }
 
 export function useLocale(): string {
-  return use(LocaleContext);
+  return use(LocaleContext).locale;
 }
 
-export function useT() {
-  return translator(useLocale());
+export function useT(): Translate {
+  return use(LocaleContext).t;
 }
 
 export function useFormatter() {

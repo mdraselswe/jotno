@@ -1,7 +1,6 @@
 export { ChatRoom } from "./components/chat-room";
 export { dayKey as chatDayKey } from "./components/chat-thread";
-export { IncomingCall } from "./components/call/incoming-call";
-export { VetWaitingAlert } from "./components/vet-waiting-alert";
+export { SignedInAlerts } from "./components/signed-in-alerts";
 export { ReportConsultButton } from "./components/report-consult";
 export { RxEditor } from "./components/rx/rx-editor";
 export { RxBuyButton, RxPrintButton } from "./components/rx/rx-actions-bar";

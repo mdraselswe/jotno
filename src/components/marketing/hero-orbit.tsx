@@ -43,6 +43,10 @@ const photo = (slug: string) => ({
   srcSet: `/images/pets/${slug}-400.webp 400w, /images/pets/${slug}-800.webp 800w`,
 });
 
+/** The big plate is 60% of the stage (at most 32rem wide); a small plate 17%. */
+const PHOTO_SIZES = "(min-width: 640px) 19.2rem, 50vw";
+const PLATE_SIZES = "(min-width: 640px) 5.5rem, 16vw";
+
 /**
  * Badge spots, in the gaps between the plates' resting places (the ring
  * always stops with a plate at the top, so the seven spots never change).
@@ -84,6 +88,8 @@ export function HeroOrbit({
   const [offscreen, setOffscreen] = useState(false);
   const [focused, setFocused] = useState(false);
   const [webgl, setWebgl] = useState(false);
+  // The other big photos load once the page has (they're hidden until their turn).
+  const [rest, setRest] = useState(false);
   const turns = useRef(0);
   const n = pets.length;
   const current = pets[active] ?? pets[0];
@@ -92,6 +98,19 @@ export function HeroOrbit({
   useEffect(() => {
     const id = window.setTimeout(() => setWebgl(canAffordWebGL()), 900);
     return () => window.clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    let id = 0;
+    const later = () => {
+      id = window.setTimeout(() => setRest(true), 1500);
+    };
+    if (document.readyState === "complete") later();
+    else window.addEventListener("load", later, { once: true });
+    return () => {
+      window.removeEventListener("load", later);
+      window.clearTimeout(id);
+    };
   }, []);
 
   // Autoplay (also waits while the tab is hidden: timers there are throttled
@@ -206,7 +225,10 @@ export function HeroOrbit({
     { scope: root, dependencies: [active, n] },
   );
 
-  const go = (i: number) => setActive(((i % n) + n) % n);
+  const go = (i: number) => {
+    setRest(true);
+    setActive(((i % n) + n) % n);
+  };
 
   return (
     <section
@@ -284,6 +306,8 @@ export function HeroOrbit({
                     {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized local photo */}
                     <img
                       src={`/images/pets/${p.slug}-400.webp`}
+                      srcSet={`/images/pets/${p.slug}-160.webp 160w, /images/pets/${p.slug}-400.webp 400w`}
+                      sizes={PLATE_SIZES}
                       alt=""
                       width={400}
                       height={400}
@@ -300,15 +324,15 @@ export function HeroOrbit({
           {/* The big plate: every photo stacked; GSAP shows the active one. */}
           <div className="absolute inset-[20%] overflow-hidden rounded-full bg-card shadow-(--shadow-card) ring-6 ring-card/70">
             {pets.map((p, i) => {
-              const img = photo(p.slug);
+              const img = i === 0 || i === active || rest ? photo(p.slug) : null;
               return (
                 // eslint-disable-next-line @next/next/no-img-element -- pre-sized local photo, srcset included
                 <img
                   key={p.slug}
                   data-orbit-photo={i}
-                  src={img.src}
-                  srcSet={img.srcSet}
-                  sizes="(min-width: 1024px) 20rem, 60vw"
+                  src={img?.src}
+                  srcSet={img?.srcSet}
+                  sizes={PHOTO_SIZES}
                   alt={i === active ? p.name : ""}
                   aria-hidden={i === active ? undefined : true}
                   width={800}

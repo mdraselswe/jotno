@@ -123,11 +123,12 @@ async function Results({ searchParams }: { searchParams: Promise<Search> }) {
         />
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-heading text-lg font-semibold" aria-live="polite">
+        {/* The list's heading (the questions are h3s under it). */}
+        <h2 className="font-heading text-lg font-semibold" aria-live="polite">
           {q
             ? t("pubui.qa.resultsFor", { n: fmt.number(total), q })
             : t("pubui.qa.results", { n: fmt.number(total) })}
-        </p>
+        </h2>
         {q ? (
           <Link
             href={hrefWith({ q: null })}

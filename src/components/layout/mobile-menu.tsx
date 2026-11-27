@@ -25,7 +25,7 @@ import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { features, site, THEME_MODES, type ThemeMode } from "@/config";
+import { features, THEME_MODES, type ThemeMode } from "@/config";
 import { FOOTER_LINKS } from "@/config/navigation";
 import { ROUTES, type AppRoute } from "@/config/routes";
 import { ROLE_LABEL, UserAvatar, useAuthUser } from "@/features/auth";
@@ -132,7 +132,7 @@ export function MobileMenu() {
           {/* Top bar */}
           <div className="flex items-center justify-between gap-2 border-b px-3 pt-[max(env(safe-area-inset-top),0.5rem)] pb-2">
             <SheetTitle render={<div />}>
-              <Link href={home} aria-label={site.name} className="flex rounded-(--radius-md) p-1">
+              <Link href={home} className="flex rounded-(--radius-md) p-1">
                 <Logo locale={locale} />
               </Link>
             </SheetTitle>

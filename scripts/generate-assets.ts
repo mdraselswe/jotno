@@ -17,6 +17,7 @@ import { features, site } from "../src/config/index.ts";
 import { DEFAULT_LOCALE, LOCALES, localeDir, localePath, privatePathVariants } from "../src/config/locale.ts";
 import { pageUrl, ROUTES, SITEMAP_ROUTES } from "../src/config/routes.ts";
 import { SECURITY_HEADERS } from "../src/config/security.ts";
+import { clientMessagesModule, loadCatalogue, scanClientKeys } from "./lib/client-keys.ts";
 import { toHexColor } from "./lib/color.ts";
 
 const PUBLIC = path.resolve("public");
@@ -155,6 +156,21 @@ if (features.pwa) {
   rmSync(path.join(PUBLIC, "sw.js"), { force: true });
 }
 
+// The UI text the browser may need, per language (src/i18n/client-messages.ts,
+// committed; a test checks it's current). Written only when it changed.
+const clientMessagesFile = path.resolve("src/i18n/client-messages.ts");
+const clientMessages = clientMessagesModule(
+  await loadCatalogue(process.cwd()),
+  scanClientKeys(process.cwd()),
+);
+let currentMessages = "";
+try {
+  currentMessages = readFileSync(clientMessagesFile, "utf8");
+} catch {
+  // Not there yet: written below.
+}
+if (currentMessages !== clientMessages) writeFileSync(clientMessagesFile, clientMessages);
+
 process.stdout.write(
-  `generate-assets: robots, sitemap, _headers, icons${features.pwa ? ", manifest, sw" : ""} (${site.render} mode)\n`,
+  `generate-assets: robots, sitemap, _headers, icons${features.pwa ? ", manifest, sw" : ""}, client text (${site.render} mode)\n`,
 );

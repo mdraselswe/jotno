@@ -120,7 +120,7 @@ test.describe("public flows", () => {
 
   test("shop filters, search and sort work together", async ({ page }) => {
     await page.goto("/en/shop/");
-    const count = page.locator("main p[aria-live]");
+    const count = page.locator("main h2[aria-live]");
     await expect(count).toContainText(/\d+ products/);
     // On phones the filters fold away behind a button.
     const show = page.getByRole("button", { name: "Show filters" });

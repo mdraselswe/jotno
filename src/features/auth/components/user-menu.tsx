@@ -31,7 +31,7 @@ import { forgetPushOnThisDevice } from "@/features/notifications";
 import { clearOfflineCache } from "@/features/pwa";
 import type { MessageKey } from "@/i18n";
 import { useLocale, useT } from "@/i18n/client";
-import { supabaseBrowser } from "@/infrastructure/supabase/browser";
+import { loadSupabaseBrowser } from "@/infrastructure/supabase/browser-lazy";
 import { localeHref } from "@/lib/locale-href";
 import { cn } from "@/lib/utils";
 import { useAuthUser, type AuthUser } from "./use-auth-user";
@@ -50,7 +50,7 @@ export function useSignOut() {
   return async () => {
     // First, while still signed in: this device stops getting this person's notifications.
     await forgetPushOnThisDevice();
-    await supabaseBrowser().auth.signOut();
+    await (await loadSupabaseBrowser()).auth.signOut();
     await clearOfflineCache();
     router.replace(localeHref(locale, ROUTES.home));
     router.refresh();
