@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 import { buildCpus, isProduction, site } from "./src/config/index.ts";
 import { DEFAULT_LOCALE, PREFIXED_LOCALES } from "./src/config/locale.ts";
-import { SECURITY_HEADERS } from "./src/config/security.ts";
+import { SECURITY_HEADERS, SERVER_HEADERS } from "./src/config/security.ts";
 
 /**
  * One codebase, two build modes (src/config/site.ts → `render`, or RENDER_MODE):
@@ -90,7 +90,7 @@ const config: NextConfig = {
         cacheComponents: true,
         partialPrefetching: true,
         async headers() {
-          return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+          return [{ source: "/:path*", headers: [...SECURITY_HEADERS, ...SERVER_HEADERS] }];
         },
         // The unprefixed → default-locale rewrite lives in src/proxy.ts here: a
         // next.config rewrite drops the query from the router payload's

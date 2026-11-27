@@ -18,3 +18,13 @@ export const SECURITY_HEADERS: { key: string; value: string }[] = [
   },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
 ];
+
+/**
+ * Sent only by our own server (server mode). The host's CDN (Hostinger's
+ * hcdn) offers HTTP/3, and Chrome on some networks here gets stuck on it:
+ * JavaScript chunks hang for ~45 s and then fail with ERR_QUIC_PROTOCOL_ERROR,
+ * so links stop responding and navigations end on the error page. Over
+ * HTTP/2 the same files arrive in well under a second. `clear` tells the
+ * browser to forget the HTTP/3 offer and stay on HTTP/2.
+ */
+export const SERVER_HEADERS: { key: string; value: string }[] = [{ key: "Alt-Svc", value: "clear" }];
