@@ -215,7 +215,7 @@ export const vetJoinContent: Record<string, VetJoinContent> = {
   en: {
     eyebrow: "For veterinarians",
     title: "Grow your practice with [Jotno]",
-    body: "Get found by pet owners nearby, earn from chats on your phone, fill your clinic hours. Free to join.",
+    body: "Pet owners nearby find you, you earn from chats on your phone, and more patients book visits to your chamber. Free to join.",
     cta: "Join as a vet, it's free",
     secondary: "See what you could earn",
     trust: ["You keep {keep}% of every chat", "No monthly fee", "Paid weekly"],
@@ -290,7 +290,7 @@ export const vetJoinContent: Record<string, VetJoinContent> = {
   bn: {
     eyebrow: "ভেটেরিনারিয়ানদের জন্য",
     title: "আপনার প্র্যাকটিস বাড়ান [যত্ন দিয়ে]",
-    body: "কাছের মালিকরা আপনাকে খুঁজে পাবে, ফোনে চ্যাট করে আয়, চেম্বারের সময় ভরবে। যোগ দেওয়া ফ্রি।",
+    body: "কাছের পোষা প্রাণীর মালিকরা আপনাকে খুঁজে পাবেন, ফোনে চ্যাট করেই আয় করবেন, আর চেম্বারে আরও বেশি রোগী ভিজিট বুক করবে। যোগ দেওয়া ফ্রি।",
     cta: "ভেট হিসেবে যোগ দিন, ফ্রি",
     secondary: "কত আয় হতে পারে দেখুন",
     trust: ["প্রতিটি চ্যাটের {keep}% আপনার", "কোনো মাসিক ফি নেই", "প্রতি সপ্তাহে পেমেন্ট"],

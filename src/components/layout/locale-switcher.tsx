@@ -104,19 +104,19 @@ function Switcher({ path }: { path: string }) {
  * Every language as one big segmented control (the mobile menu): the current
  * one is marked, each other one links to this same page in that language.
  */
-export function LocaleSegment({ onPick }: { onPick?: () => void }) {
+export function LocaleSegment({ onPick, compact = false }: { onPick?: () => void; compact?: boolean }) {
   return (
-    <Suspense fallback={<Segment path="/" onPick={onPick} />}>
-      <CurrentSegment onPick={onPick} />
+    <Suspense fallback={<Segment path="/" onPick={onPick} compact={compact} />}>
+      <CurrentSegment onPick={onPick} compact={compact} />
     </Suspense>
   );
 }
 
-function CurrentSegment({ onPick }: { onPick?: () => void }) {
-  return <Segment path={splitLocale(usePathname()).path} onPick={onPick} />;
+function CurrentSegment({ onPick, compact }: { onPick?: () => void; compact: boolean }) {
+  return <Segment path={splitLocale(usePathname()).path} onPick={onPick} compact={compact} />;
 }
 
-function Segment({ path, onPick }: { path: string; onPick?: () => void }) {
+function Segment({ path, onPick, compact }: { path: string; onPick?: () => void; compact: boolean }) {
   const locale = useLocale();
   const t = useT();
   if (LOCALES.length < 2) return null;
@@ -137,7 +137,8 @@ function Segment({ path, onPick }: { path: string; onPick?: () => void }) {
             }}
             aria-current={current ? "true" : undefined}
             className={cn(
-              "grid h-10 place-items-center rounded-(--radius-lg) text-sm font-semibold transition-[background-color,color,box-shadow] duration-(--motion-fast)",
+              "grid place-items-center rounded-(--radius-lg) font-semibold transition-[background-color,color,box-shadow] duration-(--motion-fast)",
+              compact ? "h-8 px-3 text-xs" : "h-10 text-sm",
               current
                 ? "bg-card text-foreground shadow-(--shadow-control) ring-1 ring-foreground/8"
                 : "text-muted-foreground hover:text-foreground",

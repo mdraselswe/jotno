@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { DemoBanner } from "@/components/layout/demo-banner";
+import { NavProgress } from "@/components/layout/nav-progress";
 import { TabBar } from "@/components/layout/tab-bar";
 import { ScrollScenes } from "@/components/motion/scroll-scenes";
 import { ViewTransitionGuard } from "@/components/motion/view-transition-guard";
@@ -16,6 +17,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ConnectionBanner } from "@/features/connection";
 import { IncomingCall, VetWaitingAlert } from "@/features/consults";
 import { PaymentNotice } from "@/features/payments";
+import { HeaderCart } from "@/features/shop/server";
 import { InstallCard, PwaScript } from "@/features/pwa";
 import { LocaleProvider } from "@/i18n/client";
 import { getLocale, getT, requireLocale } from "@/i18n/server";
@@ -102,8 +104,15 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
           >
             {t("a11y.skip")}
           </a>
+          <NavProgress />
           <DemoBanner />
-          <SiteHeader />
+          <SiteHeader
+            cart={
+              <Suspense fallback={null}>
+                <HeaderCart />
+              </Suspense>
+            }
+          />
           <main id="content" className="flex-1">
             {children}
           </main>

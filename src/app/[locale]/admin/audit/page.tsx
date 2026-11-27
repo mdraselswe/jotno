@@ -110,7 +110,7 @@ async function Audit({ searchParams }: { searchParams: Promise<SP> }) {
                 <span aria-hidden="true">{r.action}</span>
               </span>
             ) : null}
-            <span className="truncate text-xs font-normal text-muted-foreground">
+            <span className="max-w-full truncate text-xs font-normal text-muted-foreground">
               {r.entity}
               {r.entityId ? <span className="font-mono"> · {r.entityId}</span> : null}
             </span>

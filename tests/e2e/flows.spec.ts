@@ -105,9 +105,10 @@ test.describe("public flows", () => {
 
     await page.goto("/en/emergency/");
     await page.locator("main").getByRole("button", { name: "Share" }).first().click();
-    await expect(page.getByRole("menuitem", { name: /Facebook/ })).toBeVisible();
-    await expect(page.getByRole("menuitem", { name: /WhatsApp/ })).toBeVisible();
-    await expect(page.getByRole("menuitem", { name: /Copy link/ })).toBeVisible();
+    const sheet = page.getByRole("dialog", { name: "Share" });
+    await expect(sheet.getByRole("button", { name: /Facebook/ })).toBeVisible();
+    await expect(sheet.getByRole("button", { name: /WhatsApp/ })).toBeVisible();
+    await expect(sheet.getByRole("button", { name: /Copy link/ })).toBeVisible();
     await page.keyboard.press("Escape");
 
     const og = await page.locator("meta[property='og:image']").first().getAttribute("content");

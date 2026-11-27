@@ -116,7 +116,7 @@ export function SlotPicker({
     >
       <div className="grid min-w-0 gap-5">
         <Step n={1} title={t("ownerui.book.stepDay")}>
-          <div className="-mx-4 flex snap-x scroll-px-4 [scrollbar-width:thin] gap-2 overflow-x-auto px-4 pt-0.5 pb-2 sm:-mx-5 sm:scroll-px-5 sm:px-5">
+          <div className="-mx-4 flex snap-x scroll-px-4 [scrollbar-width:thin] gap-2 overflow-x-auto px-4 pt-1 pb-2 sm:-mx-5 sm:scroll-px-5 sm:px-5">
             {days.map((d) => {
               const on = d.day === day;
               const date = asDate(d.day);

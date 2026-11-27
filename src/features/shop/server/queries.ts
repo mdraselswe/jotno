@@ -82,7 +82,8 @@ export async function shopCatalog(
     locale,
     categories,
   );
-  return { ...result, items: result.items.map((p) => toProductCard(p, locale)) };
+  // `stocked`: how many active products there are at all, so an empty shop isn't "no match".
+  return { ...result, stocked: rows.length, items: result.items.map((p) => toProductCard(p, locale)) };
 }
 
 export async function getProduct(slug: string, locale: string) {
@@ -370,6 +371,12 @@ export async function ordersForExport(from: Date, to: Date) {
     .orderBy(desc(O.createdAt))
     .limit(5_000);
   return withItems(rows);
+}
+
+/** Whether the shop sells anything yet: at least one active product. */
+export async function shopIsOpen(): Promise<boolean> {
+  const [row] = await db().select({ id: PR.id }).from(PR).where(eq(PR.active, true)).limit(1);
+  return Boolean(row);
 }
 
 /** Active product slugs for the sitemap. */

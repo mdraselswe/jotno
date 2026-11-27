@@ -20,7 +20,14 @@ import { adminOrderPath, ROUTES } from "@/config/routes";
 import { districtName } from "@/content/places";
 import { requireRole } from "@/features/auth/server";
 import { WalletMark } from "@/features/payments";
-import { OrderControls, OrderNote, OrderStatusBadge, OrderTimeline, PrintButton } from "@/features/shop";
+import {
+  cancelReasonText,
+  OrderControls,
+  OrderNote,
+  OrderStatusBadge,
+  OrderTimeline,
+  PrintButton,
+} from "@/features/shop";
 import { adminOrder } from "@/features/shop/server";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -106,7 +113,7 @@ async function Order({ params }: { params: Promise<{ id: string }> }) {
                 status={o.status}
                 stoppedLabel={
                   o.status === "cancelled" || o.status === "returned"
-                    ? `${t(o.status === "cancelled" ? "shop.status.cancelled" : "shop.status.returned")}${o.cancelReason ? ` · ${o.cancelReason}` : ""}`
+                    ? `${t(o.status === "cancelled" ? "shop.status.cancelled" : "shop.status.returned")}${o.cancelReason ? ` · ${cancelReasonText(o.cancelReason, t)}` : ""}`
                     : undefined
                 }
                 labels={{

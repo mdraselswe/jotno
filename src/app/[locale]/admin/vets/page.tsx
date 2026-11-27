@@ -74,7 +74,7 @@ async function Vets({ searchParams }: { searchParams: Promise<SP> }) {
               <span className="text-xs font-normal text-muted-foreground">{t("common.demo")}</span>
             ) : null}
           </span>
-          <span className="truncate text-xs font-normal text-muted-foreground">{v.email}</span>
+          <span className="max-w-full truncate text-xs font-normal text-muted-foreground">{v.email}</span>
         </span>
       ),
     },

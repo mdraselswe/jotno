@@ -54,6 +54,8 @@ export const store = pack(
     "shop.status.shipped": "On the way",
     "shop.status.delivered": "Delivered",
     "shop.status.cancelled": "Cancelled",
+    "shop.cancel.unpaid": "the payment wasn't completed in time",
+    "shop.cancel.byCustomer": "cancelled by the customer",
     "shop.markShipped": "Mark shipped",
     "shop.markDelivered": "Mark delivered",
     "shop.cancelConfirm":
@@ -117,6 +119,9 @@ export const store = pack(
     "shop.f.remove": "Remove filter: {name}",
     "shop.f.noMatch": "Nothing matches these filters.",
     "shop.f.noMatchHint": "Try another word, or take a filter off.",
+    "shop.soon.title": "The shop opens soon",
+    "shop.soon.body":
+      "We're adding food, medicine and care products from trusted sellers. Until then, a vet can tell you what your pet needs.",
     "shop.f.prev": "Previous page",
     "shop.f.next": "Next page",
     "shop.f.page": "Page {n} of {total}",
@@ -194,6 +199,8 @@ export const store = pack(
     "shop.status.shipped": "পথে আছে",
     "shop.status.delivered": "পৌঁছেছে",
     "shop.status.cancelled": "বাতিল",
+    "shop.cancel.unpaid": "সময়মতো পেমেন্ট হয়নি",
+    "shop.cancel.byCustomer": "ক্রেতা বাতিল করেছেন",
     "shop.markShipped": "পাঠানো হয়েছে",
     "shop.markDelivered": "পৌঁছেছে",
     "shop.cancelConfirm": "এই অর্ডার বাতিল করবেন? স্টক ফিরে যাবে; পেইড অর্ডারের টাকা ফেরত পেমেন্ট পাতায় যোগ হবে।",
@@ -256,6 +263,9 @@ export const store = pack(
     "shop.f.remove": "ফিল্টার সরান: {name}",
     "shop.f.noMatch": "এই ফিল্টারে কিছু মেলেনি।",
     "shop.f.noMatchHint": "অন্য শব্দে খুঁজুন, বা একটা ফিল্টার সরান।",
+    "shop.soon.title": "শপ শিগগিরই চালু হচ্ছে",
+    "shop.soon.body":
+      "বিশ্বস্ত বিক্রেতাদের খাবার, ওষুধ আর যত্নের জিনিস যোগ করা হচ্ছে। ততদিন আপনার পোষা প্রাণীর কী লাগবে, একজন ভেট বলে দিতে পারবেন।",
     "shop.f.prev": "আগের পাতা",
     "shop.f.next": "পরের পাতা",
     "shop.f.page": "পাতা {n} / {total}",

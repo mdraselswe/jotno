@@ -29,10 +29,22 @@ export function messagesFor(locale: string): Messages {
   return CATALOGUE[locale] ?? CATALOGUE[DEFAULT_LOCALE] ?? (Object.values(CATALOGUE)[0] as Messages);
 }
 
-/** Typed translator for one locale: translator("bn")("nav.home"). */
+/**
+ * Typed translator for one locale: translator("bn")("nav.home"). A number in
+ * `vars` is written in the locale's digits ("60 মিনিট" → "৬০ মিনিট"), grouped
+ * from five digits up; pass a string to keep it as it is.
+ */
 export function translator(locale: string): Translate {
   const messages = messagesFor(locale);
-  return (key, vars) => format(messages[key], vars);
+  const digits = new Intl.NumberFormat(locale, { useGrouping: "min2" });
+  const localize = (vars: TranslateVars): TranslateVars =>
+    Object.fromEntries(
+      Object.entries(vars).map(([k, v]) => [
+        k,
+        typeof v === "number" && Number.isFinite(v) ? digits.format(v) : v,
+      ]),
+    );
+  return (key, vars) => format(messages[key], vars && localize(vars));
 }
 
 /** Number, money and date formatting for a locale, in the site's time zone and currency. */

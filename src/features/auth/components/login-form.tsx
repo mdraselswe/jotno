@@ -150,6 +150,11 @@ export function LoginForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                // Typed (or autofilled) before the page finished loading: keep it,
+                // so "Send me a code" isn't stuck greyed out.
+                ref={(el) => {
+                  if (el?.value && !email) setEmail(el.value);
+                }}
                 placeholder="you@example.com"
                 className="h-(--control-h-lg)"
                 aria-invalid={error ? true : undefined}

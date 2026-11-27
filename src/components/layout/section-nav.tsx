@@ -105,7 +105,10 @@ function ChipNav({ links, label }: { links: readonly SectionLink[]; label: Messa
       aria-label={t(label)}
       className="sticky top-[4.25rem] z-30 -mx-4 min-w-0 bg-background/85 px-4 py-2 backdrop-blur-md lg:hidden"
     >
-      <ul ref={row} className="flex [scrollbar-width:none] gap-1.5 overflow-x-auto scroll-smooth">
+      <ul
+        ref={row}
+        className="-my-1 flex [scrollbar-width:none] gap-1.5 overflow-x-auto scroll-smooth px-0.5 py-1"
+      >
         {links.map((link) => {
           const Icon = SECTION_ICONS[link.icon ?? "list"];
           return (

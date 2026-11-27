@@ -449,6 +449,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* A safety net: nothing (a wide skeleton, a long word, an animation's
+       start position) may make a phone page scroll sideways or zoom out.
+       clip, not hidden, so position: sticky keeps working. */
+    overflow-x: clip;
   }
   html {
     @apply font-sans;
@@ -603,6 +607,7 @@ svg.lucide {
 @utility skeleton {
   position: relative;
   overflow: hidden;
+  max-width: 100%;
   background-color: var(--muted);
   animation: skeleton-in var(--motion-base) var(--ease-out-quart) var(--skeleton-delay, 150ms) both;
   &::after {
@@ -773,6 +778,69 @@ svg.lucide {
     &::before {
       animation: sos-ring 2.4s var(--ease-out-quart) infinite;
     }
+  }
+}
+
+/* Navigation progress (components/layout/nav-progress): creeps towards 85%
+   while the next page loads (after a short wait, so fast pages never show
+   it), then fills and fades. scale and opacity only. */
+@keyframes nav-progress {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 0.85 1;
+  }
+}
+@keyframes nav-progress-done {
+  from {
+    scale: 0.85 1;
+    opacity: 1;
+  }
+  to {
+    scale: 1 1;
+    opacity: 0;
+  }
+}
+@utility nav-progress {
+  animation: nav-progress 8s cubic-bezier(0.08, 0.7, 0.2, 1) 120ms both;
+  &[data-done] {
+    animation: nav-progress-done 320ms var(--ease-out-quart) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation-duration: 1ms;
+    &[data-done] {
+      animation-duration: 1ms;
+    }
+  }
+}
+
+/* The header logo waves its paw now and then: a short tilt every 9 seconds,
+   still the rest of the time (rotate and translate only, composited). */
+@keyframes logo-wave {
+  0%,
+  9%,
+  100% {
+    rotate: 0deg;
+    translate: 0 0;
+  }
+  2% {
+    rotate: -14deg;
+    translate: 0 -2px;
+  }
+  4.5% {
+    rotate: 9deg;
+    translate: 0 -1px;
+  }
+  6.5% {
+    rotate: -4deg;
+    translate: 0 0;
+  }
+}
+@utility logo-wave {
+  transform-origin: 50% 85%;
+  @media (prefers-reduced-motion: no-preference) {
+    animation: logo-wave 9s var(--ease-out-quart) 1.5s infinite;
   }
 }
 

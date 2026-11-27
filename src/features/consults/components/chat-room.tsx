@@ -360,7 +360,7 @@ export function ChatRoom({
   return (
     <section
       aria-label={other.name}
-      className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background sm:rounded-(--radius-2xl) sm:bg-card sm:shadow-(--shadow-card) sm:ring-1 sm:ring-foreground/6"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-(--radius-2xl) bg-background ring-1 ring-foreground/6 sm:rounded-(--radius-2xl) sm:bg-card sm:shadow-(--shadow-card)"
     >
       <ChatHeader
         backHref={backHref}

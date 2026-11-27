@@ -109,7 +109,7 @@ export function VetCard({
             <h3 className="flex min-w-0 items-center gap-1.5 font-heading text-lg leading-tight font-semibold">
               <Link
                 href={localeHref(locale, vetPath(vet.slug))}
-                className="truncate rounded-sm after:absolute after:inset-0 after:rounded-[inherit] after:content-[''] hover:text-primary focus-visible:outline-none focus-visible:after:ring-3 focus-visible:after:ring-ring/50"
+                className="line-clamp-2 rounded-sm break-words after:absolute after:inset-0 after:rounded-[inherit] after:content-[''] hover:text-primary focus-visible:outline-none focus-visible:after:ring-3 focus-visible:after:ring-ring/50"
               >
                 {vet.displayName}
               </Link>

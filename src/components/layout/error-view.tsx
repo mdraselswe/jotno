@@ -9,6 +9,7 @@ import { ButtonAnchor } from "@/components/ui/button-link";
 import { isProduction } from "@/config";
 import { useConnectionStatus } from "@/features/connection";
 import type { Translate } from "@/i18n";
+import { isStaleDeployError, STALE_RELOAD_GAP_MS, STALE_RELOAD_KEY } from "@/lib/stale-deploy";
 import { cn } from "@/lib/utils";
 
 /** How long the plug takes to slide in before the page is fetched again. */
@@ -62,6 +63,12 @@ export function ErrorView({
   useEffect(() => {
     // Hook for an error reporter (Sentry…): src/infrastructure/<vendor>.
     console.error(error);
+    // This tab runs an older build than the server (a deploy happened): reload once.
+    if (!isStaleDeployError(error)) return;
+    const last = Number(sessionStorage.getItem(STALE_RELOAD_KEY) ?? 0);
+    if (Date.now() - last < STALE_RELOAD_GAP_MS) return;
+    sessionStorage.setItem(STALE_RELOAD_KEY, String(Date.now()));
+    location.reload();
   }, [error]);
 
   const copy = async () => {

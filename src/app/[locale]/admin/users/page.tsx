@@ -72,7 +72,7 @@ async function Users({ searchParams }: { searchParams: Promise<SP> }) {
               {u.fullName ?? "—"}
               {u.isDemo ? <span className="text-xs text-muted-foreground">{t("common.demo")}</span> : null}
             </span>
-            <span className="truncate text-xs font-normal text-muted-foreground">
+            <span className="max-w-full truncate text-xs font-normal text-muted-foreground">
               {[u.email, u.phone].filter(Boolean).join(" · ") || "—"}
             </span>
           </span>

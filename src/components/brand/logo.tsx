@@ -32,11 +32,22 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-/** Mark + wordmark ("Jotno" in Latin, "যত্ন" in Bangla). */
-export function Logo({ locale, className }: { locale: string; className?: string }) {
+/**
+ * Mark + wordmark ("Jotno" in Latin, "যত্ন" in Bangla). `animated`: the paw
+ * waves every few seconds (the header only; still with reduced motion).
+ */
+export function Logo({
+  locale,
+  className,
+  animated = false,
+}: {
+  locale: string;
+  className?: string;
+  animated?: boolean;
+}) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
-      <LogoMark />
+      <LogoMark className={animated ? "logo-wave" : undefined} />
       <span className="font-heading text-xl leading-none font-bold tracking-tight">
         {locale === "bn" ? "যত্ন" : "Jotno"}
       </span>

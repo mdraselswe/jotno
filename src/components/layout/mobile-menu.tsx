@@ -52,8 +52,9 @@ const THEME_LABEL: Record<ThemeMode, MessageKey> = {
   system: "theme.optSystem",
 };
 
-const SEGMENTS = "grid auto-cols-fr grid-flow-col gap-1 rounded-(--radius-xl) bg-muted p-1";
+const SEGMENTS = "grid auto-cols-fr grid-flow-col gap-0.5 rounded-(--radius-lg) bg-muted p-0.5";
 
+/** Light / dark / system as three small icon buttons (named for screen readers and on hover). */
 function ThemeSegment() {
   const { mode, setMode } = useTheme();
   const t = useT();
@@ -68,16 +69,17 @@ function ThemeSegment() {
             type="button"
             role="radio"
             aria-checked={on}
+            aria-label={t(THEME_LABEL[m])}
+            title={t(THEME_LABEL[m])}
             onClick={() => setMode(m)}
             className={cn(
-              "flex h-10 items-center justify-center gap-1.5 rounded-(--radius-lg) text-sm font-semibold transition-[background-color,color,box-shadow] duration-(--motion-fast) outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              "grid h-8 w-9 place-items-center rounded-(--radius-md) transition-[background-color,color,box-shadow] duration-(--motion-fast) outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
               on
                 ? "bg-card text-foreground shadow-(--shadow-control) ring-1 ring-foreground/8"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             <Icon aria-hidden="true" className="size-4" />
-            {t(THEME_LABEL[m])}
           </button>
         );
       })}
@@ -85,11 +87,20 @@ function ThemeSegment() {
   );
 }
 
+/** A small grey heading over a group of rows. */
+function GroupLabel({ children }: { children: string }) {
+  return (
+    <p className="px-2 pb-1 text-[0.6875rem] font-semibold tracking-wide text-muted-foreground uppercase">
+      {children}
+    </p>
+  );
+}
+
 /**
- * The phone menu: a full-height drawer from the right. Language and theme sit
- * on top as big segmented controls; then the account card, the main pages as
- * clear rows (icon tile, label, chevron, current one marked), the smaller
- * pages, and the emergency button. Choosing anything closes the drawer.
+ * The phone menu: a drawer from the right. On top the account (or sign in),
+ * then the main pages and the smaller pages, one per row, and the emergency
+ * button. Language and theme sit in a slim bar pinned to the bottom.
+ * Choosing anything closes the drawer.
  */
 export function MobileMenu() {
   const [open, setOpen] = useState(false);
@@ -107,7 +118,7 @@ export function MobileMenu() {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger
         render={
-          <Button variant="ghost" size="icon" className="md:hidden" aria-label={t("nav.menu")}>
+          <Button variant="ghost" size="icon" className="lg:hidden" aria-label={t("nav.menu")}>
             <Menu aria-hidden="true" />
           </Button>
         }
@@ -115,13 +126,13 @@ export function MobileMenu() {
       <SheetContent
         side="right"
         showCloseButton={false}
-        className="w-[min(22rem,100vw)] gap-0 p-0 data-[side=right]:w-[min(22rem,100vw)] data-[side=right]:sm:max-w-none"
+        className="w-[min(20rem,88vw)] gap-0 p-0 data-[side=right]:w-[min(20rem,88vw)] data-[side=right]:sm:max-w-none"
       >
-        <div onClickCapture={closeOnLink} className="flex h-full flex-col">
+        <div onClickCapture={closeOnLink} className="flex h-full min-h-0 flex-col">
           {/* Top bar */}
-          <div className="flex items-center justify-between gap-2 border-b px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3">
+          <div className="flex items-center justify-between gap-2 border-b px-3 pt-[max(env(safe-area-inset-top),0.5rem)] pb-2">
             <SheetTitle render={<div />}>
-              <Link href={home} aria-label={site.name}>
+              <Link href={home} aria-label={site.name} className="flex rounded-(--radius-md) p-1">
                 <Logo locale={locale} />
               </Link>
             </SheetTitle>
@@ -134,78 +145,60 @@ export function MobileMenu() {
             />
           </div>
 
-          <div className="flex-1 overflow-y-auto overscroll-contain px-4 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
-            {/* Language and theme first, big and obvious. */}
-            <div className="grid gap-3 rounded-(--radius-2xl) bg-card p-3 shadow-(--shadow-card) ring-1 ring-foreground/6">
-              <div className="grid gap-1.5">
-                <p className="px-1 text-xs font-semibold text-muted-foreground">{t("menu.language")}</p>
-                <div className={SEGMENTS}>
-                  <LocaleSegment onPick={() => setOpen(false)} />
-                </div>
-              </div>
-              {features.themeToggle ? (
-                <div className="grid gap-1.5">
-                  <p className="px-1 text-xs font-semibold text-muted-foreground">{t("menu.theme")}</p>
-                  <ThemeSegment />
-                </div>
-              ) : null}
-            </div>
-
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3">
             {/* Account */}
-            <div className="mt-4">
-              {user ? (
-                <div className="grid gap-1 rounded-(--radius-2xl) bg-muted/60 p-2">
-                  <Link
-                    href={localeHref(locale, ROUTES.account)}
-                    className="flex items-center gap-3 rounded-(--radius-xl) p-2 transition-colors duration-(--motion-fast) hover:bg-card"
-                  >
-                    <UserAvatar user={user} className="size-11" />
-                    <span className="grid min-w-0 flex-1">
-                      <span className="truncate font-semibold">{user.name ?? user.email}</span>
-                      <span className="text-xs text-muted-foreground">{t(ROLE_LABEL[user.role])}</span>
-                    </span>
-                    <ChevronRight aria-hidden="true" className="size-4 text-muted-foreground" />
-                  </Link>
-                  {user.role !== "owner" ? (
-                    <div className="grid grid-cols-2 gap-1">
+            {user ? (
+              <div className="grid gap-1 rounded-(--radius-xl) bg-muted/60 p-1">
+                <Link
+                  href={localeHref(locale, ROUTES.account)}
+                  className="flex items-center gap-3 rounded-(--radius-lg) px-2 py-1.5 transition-colors duration-(--motion-fast) hover:bg-card"
+                >
+                  <UserAvatar user={user} className="size-9" />
+                  <span className="grid min-w-0 flex-1">
+                    <span className="truncate text-sm font-semibold">{user.name ?? user.email}</span>
+                    <span className="text-xs text-muted-foreground">{t(ROLE_LABEL[user.role])}</span>
+                  </span>
+                  <ChevronRight aria-hidden="true" className="size-4 text-muted-foreground" />
+                </Link>
+                {user.role !== "owner" ? (
+                  <div className="grid auto-cols-fr grid-flow-col gap-1">
+                    <Link
+                      href={localeHref(locale, ROUTES.dashboard)}
+                      className="flex h-9 items-center gap-2 rounded-(--radius-md) bg-card px-2.5 text-sm font-semibold shadow-(--shadow-control)"
+                    >
+                      <LayoutDashboard aria-hidden="true" className="size-4 text-primary" />
+                      <span className="truncate">{t("nav.dashboard")}</span>
+                    </Link>
+                    {user.role === "admin" ? (
                       <Link
-                        href={localeHref(locale, ROUTES.dashboard)}
-                        className="flex items-center gap-2 rounded-(--radius-lg) bg-card px-3 py-2.5 text-sm font-semibold shadow-(--shadow-control)"
+                        href={localeHref(locale, ROUTES.admin)}
+                        className="flex h-9 items-center gap-2 rounded-(--radius-md) bg-card px-2.5 text-sm font-semibold shadow-(--shadow-control)"
                       >
-                        <LayoutDashboard aria-hidden="true" className="size-4 text-primary" />
-                        <span className="truncate">{t("nav.dashboard")}</span>
+                        <ShieldCheck aria-hidden="true" className="size-4 text-primary" />
+                        <span className="truncate">{t("nav.admin")}</span>
                       </Link>
-                      {user.role === "admin" ? (
-                        <Link
-                          href={localeHref(locale, ROUTES.admin)}
-                          className="flex items-center gap-2 rounded-(--radius-lg) bg-card px-3 py-2.5 text-sm font-semibold shadow-(--shadow-control)"
-                        >
-                          <ShieldCheck aria-hidden="true" className="size-4 text-primary" />
-                          <span className="truncate">{t("nav.admin")}</span>
-                        </Link>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              ) : user === null ? (
-                <div className="grid gap-3 rounded-(--radius-2xl) bg-primary/8 p-4">
-                  <p className="flex items-center gap-2 font-semibold">
-                    <UserRound aria-hidden="true" className="size-5 text-primary" />
-                    {t("menu.account")}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{t("menu.signInSub")}</p>
-                  <ButtonLink href={localeHref(locale, ROUTES.login)} variant="brand" className="w-full">
-                    <LogIn aria-hidden="true" />
-                    {t("nav.signIn")}
-                  </ButtonLink>
-                </div>
-              ) : null}
-            </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ) : user === null ? (
+              <div className="grid gap-2.5 rounded-(--radius-xl) bg-primary/8 p-3">
+                <p className="flex items-center gap-2 text-sm font-semibold">
+                  <UserRound aria-hidden="true" className="size-4.5 text-primary" />
+                  {t("menu.account")}
+                </p>
+                <p className="text-xs text-pretty text-muted-foreground">{t("menu.signInSub")}</p>
+                <ButtonLink href={localeHref(locale, ROUTES.login)} variant="brand" className="w-full">
+                  <LogIn aria-hidden="true" />
+                  {t("nav.signIn")}
+                </ButtonLink>
+              </div>
+            ) : null}
 
             {/* Main pages */}
-            <nav aria-label={t("nav.mobile")} className="mt-5">
-              <p className="px-1 pb-2 text-xs font-semibold text-muted-foreground">{t("menu.explore")}</p>
-              <ul className="grid gap-1">
+            <nav aria-label={t("nav.mobile")} className="mt-3">
+              <GroupLabel>{t("menu.explore")}</GroupLabel>
+              <ul className="grid gap-0.5">
                 {MAIN.map(({ href: route, label, icon: Icon }) => {
                   const href = localeHref(locale, route);
                   return (
@@ -215,7 +208,7 @@ export function MobileMenu() {
                         match={href === home ? "exact" : "prefix"}
                         className={(active) =>
                           cn(
-                            "group flex min-h-13 items-center gap-3 rounded-(--radius-xl) px-2 py-2 text-base font-semibold transition-[background-color,color] duration-(--motion-fast) active:scale-[0.99]",
+                            "flex h-11 items-center gap-3 rounded-(--radius-lg) px-2 text-[0.9375rem] font-semibold transition-[background-color,color] duration-(--motion-fast)",
                             active ? "bg-primary/10 text-primary" : "hover:bg-muted",
                           )
                         }
@@ -224,19 +217,16 @@ export function MobileMenu() {
                           <>
                             <span
                               className={cn(
-                                "grid size-10 shrink-0 place-items-center rounded-(--radius-lg) transition-colors duration-(--motion-fast)",
-                                active
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-foreground/80 group-hover:bg-card",
+                                "grid size-8 shrink-0 place-items-center rounded-(--radius-md) transition-colors duration-(--motion-fast)",
+                                active ? "bg-primary text-primary-foreground" : "bg-muted text-foreground/75",
                               )}
                             >
-                              <Icon aria-hidden="true" className="size-5" />
+                              <Icon aria-hidden="true" className="size-4" />
                             </span>
                             <span className="min-w-0 flex-1 truncate">{t(label)}</span>
-                            <ChevronRight
-                              aria-hidden="true"
-                              className={cn("size-4", active ? "text-primary" : "text-muted-foreground")}
-                            />
+                            {active ? (
+                              <span aria-hidden="true" className="size-1.5 rounded-full bg-primary" />
+                            ) : null}
                           </>
                         )}
                       </ActiveLink>
@@ -247,16 +237,16 @@ export function MobileMenu() {
             </nav>
 
             {/* Smaller pages */}
-            <nav aria-label={t("nav.footer")} className="mt-5">
-              <p className="px-1 pb-2 text-xs font-semibold text-muted-foreground">{t("menu.more")}</p>
-              <ul className="grid grid-cols-2 gap-1">
+            <nav aria-label={t("nav.footer")} className="mt-3 border-t pt-3">
+              <GroupLabel>{t("menu.more")}</GroupLabel>
+              <ul className="grid gap-0.5">
                 {FOOTER_LINKS.filter((l) => l.href !== ROUTES.emergency).map((link) => (
                   <li key={link.href}>
                     <ActiveLink
                       href={localeHref(locale, link.href)}
                       className={(active) =>
                         cn(
-                          "flex min-h-10 items-center rounded-(--radius-lg) px-3 py-2 text-sm transition-colors duration-(--motion-fast)",
+                          "flex h-9 items-center justify-between gap-2 rounded-(--radius-md) px-2 text-sm transition-colors duration-(--motion-fast)",
                           active
                             ? "bg-muted font-semibold text-foreground"
                             : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -264,6 +254,7 @@ export function MobileMenu() {
                       }
                     >
                       {t(link.label)}
+                      <ChevronRight aria-hidden="true" className="size-3.5 opacity-50" />
                     </ActiveLink>
                   </li>
                 ))}
@@ -273,12 +264,27 @@ export function MobileMenu() {
             <ButtonLink
               href={localeHref(locale, ROUTES.emergency)}
               variant="destructive"
-              size="lg"
-              className="mt-6 w-full"
+              className="mt-3 w-full"
             >
               <Siren aria-hidden="true" />
               {t("nav.emergency")}
             </ButtonLink>
+          </div>
+
+          {/* Language and theme: a slim bar pinned to the bottom. */}
+          <div className="grid gap-2 border-t bg-muted/30 px-3 pt-2.5 pb-[max(env(safe-area-inset-bottom),0.625rem)]">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-semibold text-muted-foreground">{t("menu.language")}</span>
+              <div className={SEGMENTS}>
+                <LocaleSegment compact onPick={() => setOpen(false)} />
+              </div>
+            </div>
+            {features.themeToggle ? (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-semibold text-muted-foreground">{t("menu.theme")}</span>
+                <ThemeSegment />
+              </div>
+            ) : null}
           </div>
         </div>
       </SheetContent>

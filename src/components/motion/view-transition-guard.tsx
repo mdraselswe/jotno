@@ -11,10 +11,11 @@ import { InlineScript } from "@/components/ui/inline-script";
  *
  * This wraps `document.startViewTransition` once, before hydration: an
  * aborted or skipped transition (AbortError, InvalidStateError) reaches React
- * as the abort message it already ignores, and `finished` no longer rejects
- * for it. Any other error passes through unchanged.
+ * as the abort message it already ignores (and never as an unhandled
+ * rejection: React reads `ready` without a handler in some paths), `finished` and
+ * `updateCallbackDone` no longer reject for it (an unhandled rejection). Any other error passes through unchanged.
  */
-const code = `(function(){var d=document,s=d.startViewTransition;if(typeof s!=="function"||s.__guarded)return;var M="Transition was aborted because of invalid state";function ab(e){return!!e&&(e.name==="AbortError"||e.name==="InvalidStateError")}function g(){var v=s.apply(d,arguments);try{var r=v.ready,f=v.finished;Object.defineProperty(v,"ready",{configurable:true,value:r.catch(function(e){throw ab(e)?new DOMException(M,"InvalidStateError"):e})});Object.defineProperty(v,"finished",{configurable:true,value:f.catch(function(e){if(!ab(e))throw e})})}catch(e){}return v}g.__guarded=true;d.startViewTransition=g})()`;
+const code = `(function(){var d=document,s=d.startViewTransition;if(typeof s!=="function"||s.__guarded)return;var M="Transition was aborted because of invalid state";function ab(e){return!!e&&(e.name==="AbortError"||e.name==="InvalidStateError")}function g(){var v=s.apply(d,arguments);try{var r=v.ready,f=v.finished;var rr=r.catch(function(e){throw ab(e)?new DOMException(M,"InvalidStateError"):e});rr.catch(function(){});Object.defineProperty(v,"ready",{configurable:true,value:rr});Object.defineProperty(v,"finished",{configurable:true,value:f.catch(function(e){if(!ab(e))throw e})});v.updateCallbackDone.catch(function(e){if(!ab(e))throw e})}catch(e){}return v}g.__guarded=true;d.startViewTransition=g})()`;
 
 export function ViewTransitionGuard() {
   return <InlineScript html={code} />;

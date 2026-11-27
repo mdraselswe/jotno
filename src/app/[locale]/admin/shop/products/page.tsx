@@ -90,7 +90,7 @@ async function Products({
           />
           <span className="grid min-w-0">
             <span className="truncate font-medium">{locale === "bn" ? p.nameBn : p.nameEn}</span>
-            <span className="truncate text-xs font-normal text-muted-foreground">
+            <span className="max-w-full truncate text-xs font-normal text-muted-foreground">
               {[p.sku, p.unit].filter(Boolean).join(" · ") || "—"}
             </span>
           </span>

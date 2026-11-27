@@ -164,7 +164,7 @@ function ChatSkeleton() {
   return (
     <div
       role="status"
-      className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background sm:rounded-(--radius-2xl) sm:bg-card sm:ring-1 sm:ring-foreground/6"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-(--radius-2xl) bg-background ring-1 ring-foreground/6 sm:rounded-(--radius-2xl) sm:bg-card"
     >
       <div className="flex items-center gap-2 border-b px-2 py-2">
         <Skeleton className="size-10 rounded-full" />
@@ -198,7 +198,7 @@ export default function ChatPage({ params }: PageProps<"/[locale]/chat/[id]">) {
   return (
     <div
       data-app-fullscreen
-      className="container-page flex h-[calc(100dvh-4rem)] flex-col max-sm:px-0 sm:h-[calc(100dvh-4.25rem)] sm:py-3 md:py-4"
+      className="container-page flex h-[calc(100dvh-4rem)] flex-col max-sm:px-2 max-sm:pt-2 sm:h-[calc(100dvh-4.25rem)] sm:py-3 md:py-4"
     >
       <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
         <Suspense fallback={<ChatSkeleton />}>

@@ -40,6 +40,7 @@ export {
 } from "./cart";
 export { couponDiscount, type CouponRule } from "./cart";
 export {
+  cancelReasonText,
   customerCanCancel,
   ORDER_STATUS,
   ORDER_STATUSES,

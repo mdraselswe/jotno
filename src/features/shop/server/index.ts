@@ -19,12 +19,14 @@ export {
   productThumbs,
   shopCatalog,
   shopCategories,
+  shopIsOpen,
   shopReport,
   usableCoupon,
   type OrderDetail,
   type ProductCard,
   type ProductThumbInfo,
 } from "./queries";
+export { HeaderCart, WhenShopOpen } from "./header-cart";
 export { notifyLowStock } from "./jobs";
 export {
   adjustStock,

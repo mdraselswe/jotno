@@ -73,12 +73,15 @@ async function MoreGuides({ slug, speciesId }: { slug: string; speciesId: number
   return (
     <section className="grid gap-5" aria-labelledby="more-guides">
       <div className="flex items-end justify-between gap-3">
-        <h2 id="more-guides" className="font-heading text-2xl font-bold tracking-tight md:text-3xl">
+        <h2
+          id="more-guides"
+          className="min-w-0 font-heading text-2xl font-bold tracking-tight text-balance md:text-3xl"
+        >
           {t("pubui.art.more")}
         </h2>
         <Link
           href={localeHref(locale, ROUTES.articles)}
-          className="text-sm font-medium text-primary hover:underline"
+          className="shrink-0 pb-1 text-sm font-medium whitespace-nowrap text-primary hover:underline"
         >
           {t("common.seeAll")}
         </Link>

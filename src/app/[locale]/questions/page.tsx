@@ -58,11 +58,15 @@ async function QuestionSearch({ searchParams }: { searchParams: Promise<Search> 
         defaultValue={q}
         maxLength={80}
         placeholder={t("pubui.qa.searchPlaceholder")}
-        className="h-(--control-h-lg) bg-card ps-11 pe-24 text-base"
+        className="h-12 bg-card ps-11 pe-24 text-base shadow-(--shadow-card) [&::-webkit-search-cancel-button]:hidden"
       />
       {species ? <input type="hidden" name="species" value={species} /> : null}
       {show ? <input type="hidden" name="show" value={show} /> : null}
-      <Button type="submit" variant="brand" className="absolute end-1.5 top-1/2 -translate-y-1/2">
+      <Button
+        type="submit"
+        variant="brand"
+        className="absolute inset-y-1.5 end-1.5 h-auto rounded-[max(calc(var(--control-radius)-0.375rem),0.375rem)] px-4"
+      >
         {t("common.search")}
       </Button>
     </Form>

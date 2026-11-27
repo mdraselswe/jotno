@@ -66,3 +66,10 @@ describe("locale paths", () => {
     expect(splitLocale(`/${l}`)).toEqual({ locale: l, path: "/" });
   });
 });
+
+describe("numbers in messages", () => {
+  it("writes numbers in the locale's digits", () => {
+    expect(translator("bn")("quick.step2", { n: 60 })).toContain("৬০");
+    expect(translator("en")("quick.step2", { n: 60 })).toContain("60");
+  });
+});

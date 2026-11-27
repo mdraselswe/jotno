@@ -129,9 +129,15 @@ function SearchForm({ initial, onSearch }: { initial: string; onSearch: (q: stri
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder={t("vets.searchPlaceholder")}
-        className="h-(--control-h-lg) flex-1 bg-card ps-11 pe-24 text-base"
+        className="h-12 flex-1 bg-card ps-11 pe-26 text-base shadow-(--shadow-card) [&::-webkit-search-cancel-button]:hidden"
       />
-      <Button type="submit" variant="brand" className="absolute end-1.5 top-1/2 -translate-y-1/2">
+      {/* Sits inside the field, the same gap on every side, its corners following the field's. */}
+      <Button
+        type="submit"
+        variant="brand"
+        className="absolute inset-y-1.5 end-1.5 h-auto rounded-[max(calc(var(--control-radius)-0.375rem),0.375rem)] px-4"
+      >
+        <Search aria-hidden="true" className="max-[380px]:hidden" />
         {t("common.search")}
       </Button>
     </form>
@@ -152,7 +158,7 @@ export function VetSearchBar() {
     >
       {/* Re-mount when the URL's search changes (a chip removed it), so the box shows it. */}
       <SearchForm key={q} initial={q} onSearch={(value) => update({ q: value })} />
-      <NearMeButton update={update} size="lg" className="sm:min-w-36" />
+      <NearMeButton update={update} size="lg" className="h-12 shadow-(--shadow-card) sm:min-w-36" />
     </div>
   );
 }

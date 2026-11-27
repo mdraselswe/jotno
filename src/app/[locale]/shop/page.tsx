@@ -1,4 +1,15 @@
-import { BadgeCheck, Banknote, ChevronLeft, ChevronRight, Search, Smartphone, Truck, X } from "lucide-react";
+import {
+  BadgeCheck,
+  Banknote,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Smartphone,
+  Stethoscope,
+  Store,
+  Truck,
+  X,
+} from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
@@ -12,7 +23,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ROUTES } from "@/config/routes";
 import { SPECIES } from "@/content/geo";
 import {
-  CartLink,
   categoryLabel,
   defaultSort,
   FilterButton,
@@ -32,7 +42,7 @@ import {
   toggle,
   type ShopFilters,
 } from "@/features/shop";
-import { shopCatalog, shopCategories } from "@/features/shop/server";
+import { HeaderCart, shopCatalog, shopCategories } from "@/features/shop/server";
 import type { Formatter, Translate } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -182,7 +192,23 @@ async function Catalog({ searchParams }: { searchParams: Promise<SP> }) {
     getT(),
     getFormatter(),
   ]);
-  const { items, total, pages, page, facets } = await shopCatalog(f, locale, categories);
+  const { items, total, pages, page, facets, stocked } = await shopCatalog(f, locale, categories);
+  // Nothing for sale yet: say the shop is coming, not "no match".
+  if (stocked === 0) {
+    return (
+      <EmptyState
+        icon={Store}
+        title={t("shop.soon.title")}
+        body={t("shop.soon.body")}
+        action={
+          <ButtonLink href={localeHref(locale, ROUTES.vets)} variant="brand">
+            <Stethoscope aria-hidden="true" />
+            {t("home.findVet")}
+          </ButtonLink>
+        }
+      />
+    );
+  }
   const tk = (n: number) => fmt.money(n, { maximumFractionDigits: 0 });
   const fresh = { ...f, page: 1 };
   const active =
@@ -388,7 +414,7 @@ async function Catalog({ searchParams }: { searchParams: Promise<SP> }) {
           {/* Quick category row: one tap, one category. */}
           <nav
             aria-label={t("shop.category")}
-            className="-mx-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-1 md:-mx-1 md:px-1"
+            className="-mx-4 -my-1 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 py-1 md:-mx-1 md:px-1"
           >
             {[
               { slug: null, label: t("common.all") },
@@ -566,7 +592,9 @@ export default async function ShopPage({ searchParams }: PageProps<"/[locale]/sh
           className="relative grid items-center gap-5 overflow-hidden rounded-(--radius-3xl) surface-warm dots p-5 sm:p-8 md:grid-cols-[1.4fr_1fr] md:p-10"
         >
           <div className="absolute top-3 right-3 z-10 sm:top-5 sm:right-5">
-            <CartLink className="bg-card shadow-(--shadow-control)" />
+            <Suspense fallback={null}>
+              <HeaderCart className="bg-card shadow-(--shadow-control)" />
+            </Suspense>
           </div>
           <div className="grid gap-5">
             <div className="grid max-w-xl gap-2.5 pe-12 md:pe-0">

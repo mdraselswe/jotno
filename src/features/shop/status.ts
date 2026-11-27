@@ -71,3 +71,17 @@ export function orderStep(status: OrderStatus): number {
       return -1;
   }
 }
+
+/**
+ * Why an order was cancelled, for people: the reasons the app writes itself
+ * become translated text; a reason an admin typed is shown as it is.
+ */
+const SYSTEM_CANCEL_REASONS: Record<string, MessageKey> = {
+  "payment not completed": "shop.cancel.unpaid",
+  "cancelled by customer": "shop.cancel.byCustomer",
+};
+export function cancelReasonText(reason: string | null, t: (key: MessageKey) => string): string | null {
+  if (!reason) return null;
+  const key = SYSTEM_CANCEL_REASONS[reason];
+  return key ? t(key) : reason;
+}

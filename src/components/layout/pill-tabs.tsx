@@ -13,7 +13,10 @@ export function PillTabs({
   tabs: readonly { href: Route; label: string; exact?: boolean }[];
 }) {
   return (
-    <nav aria-label={label} className="-mx-1 overflow-x-auto print:hidden">
+    <nav
+      aria-label={label}
+      className="-mx-1 -my-1 [scrollbar-width:none] overflow-x-auto px-1 py-1 print:hidden"
+    >
       <ul className="flex w-max gap-1 rounded-full bg-muted/70 p-1">
         {tabs.map((tab) => (
           <li key={tab.href}>

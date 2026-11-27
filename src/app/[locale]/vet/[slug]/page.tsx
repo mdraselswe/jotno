@@ -231,6 +231,16 @@ async function VetProfile({ params }: { params: Promise<{ slug: string }> }) {
       : null,
   ].filter((s) => s !== null);
 
+  const badges = (
+    <>
+      <StatusBadge tone="primary">{t("common.verified")}</StatusBadge>
+      {vet.availableNow ? <StatusBadge tone="success">{t("vets.onlineNow")}</StatusBadge> : null}
+      {vet.emergency24x7 ? <StatusBadge tone="danger">{t("vets.emergency")}</StatusBadge> : null}
+      {vet.featured ? <StatusBadge tone="warning">{t("common.sponsored")}</StatusBadge> : null}
+      {vet.isDemo ? <StatusBadge>{t("common.demo")}</StatusBadge> : null}
+    </>
+  );
+
   return (
     <article>
       <JsonLd data={jsonLd} />
@@ -247,28 +257,32 @@ async function VetProfile({ params }: { params: Promise<{ slug: string }> }) {
               {t("pubui.vet.back")}
             </Link>
           </nav>
-          <div className="grid gap-6 md:grid-cols-[auto_minmax(0,1fr)] md:items-center md:gap-8">
-            <div className="relative w-fit">
-              <VetPhoto vet={vet} className="size-28 shadow-(--shadow-card) ring-4 ring-card md:size-36" />
+          {/* Phones: photo and name side by side, the rest full width under them.
+              From md: the big photo on the left, everything else beside it. */}
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-4 md:gap-x-8 md:gap-y-3">
+            <div className="relative w-fit md:row-span-2 md:self-center">
+              <VetPhoto
+                vet={vet}
+                className="size-22 shadow-(--shadow-card) ring-4 ring-card sm:size-28 md:size-36"
+              />
               {vet.availableNow ? (
-                <span className="absolute end-1.5 bottom-1.5 size-5 rounded-full border-3 border-card bg-success md:end-2.5 md:bottom-2.5">
+                <span className="absolute end-0.5 bottom-0.5 size-4.5 rounded-full border-3 border-card bg-success sm:end-1.5 sm:bottom-1.5 md:end-2.5 md:bottom-2.5 md:size-5">
                   <span className="absolute inset-0 live-ping rounded-full bg-success" />
                   <span className="sr-only">{t("vets.onlineNow")}</span>
                 </span>
               ) : null}
             </div>
-            <div className="grid min-w-0 gap-3">
-              <div className="flex flex-wrap gap-2">
-                <StatusBadge tone="primary">{t("common.verified")}</StatusBadge>
-                {vet.availableNow ? <StatusBadge tone="success">{t("vets.onlineNow")}</StatusBadge> : null}
-                {vet.emergency24x7 ? <StatusBadge tone="danger">{t("vets.emergency")}</StatusBadge> : null}
-                {vet.featured ? <StatusBadge tone="warning">{t("common.sponsored")}</StatusBadge> : null}
-                {vet.isDemo ? <StatusBadge>{t("common.demo")}</StatusBadge> : null}
-              </div>
-              <h1 className="font-heading text-3xl leading-tight font-bold tracking-tight text-balance md:text-5xl">
+            <div className="grid min-w-0 gap-1.5 md:gap-3 md:self-end">
+              <div className="flex flex-wrap gap-2 max-md:hidden">{badges}</div>
+              <h1 className="font-heading text-2xl leading-tight font-bold tracking-tight text-balance sm:text-3xl md:text-5xl">
                 {vet.displayName}
               </h1>
-              {vet.title ? <p className="text-lg text-pretty text-foreground/80">{vet.title}</p> : null}
+              {vet.title ? (
+                <p className="text-sm text-pretty text-foreground/80 sm:text-base md:text-lg">{vet.title}</p>
+              ) : null}
+            </div>
+            <div className="col-span-2 grid min-w-0 gap-3 md:col-span-1 md:col-start-2 md:self-start">
+              <div className="flex flex-wrap gap-1.5 md:hidden">{badges}</div>
               {place || vet.clinicName ? (
                 <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
                   <MapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
@@ -303,7 +317,9 @@ async function VetProfile({ params }: { params: Promise<{ slug: string }> }) {
                   key={s.key}
                   className="grid gap-0.5 rounded-(--radius-xl) bg-card px-3 py-3 shadow-(--shadow-card) ring-1 ring-foreground/6 sm:px-4"
                 >
-                  <dt className="order-2 truncate text-xs text-muted-foreground">{s.label}</dt>
+                  <dt className="order-2 text-xs leading-snug text-pretty text-muted-foreground">
+                    {s.label}
+                  </dt>
                   <dd className="flex items-center gap-1.5 font-heading text-xl font-bold tabular-nums sm:text-2xl">
                     <s.icon
                       aria-hidden="true"

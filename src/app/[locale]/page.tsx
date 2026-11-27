@@ -21,6 +21,7 @@ import { HomeSearch, VetCard, VetDotMap } from "@/features/providers";
 import { liveStats, searchProviders } from "@/features/providers/server";
 import { QuestionList } from "@/features/questions";
 import { answeredHighlights } from "@/features/questions/server";
+import { WhenShopOpen } from "@/features/shop/server";
 import { format, pickLocale } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -89,7 +90,9 @@ async function CommunityRow() {
         {questions.length > 0 ? (
           <div className="grid content-start gap-4">
             <div className="flex items-end justify-between gap-3">
-              <h2 className="font-heading text-3xl font-bold tracking-tight">{t("qa.highlights")}</h2>
+              <h2 className="min-w-0 font-heading text-2xl font-bold tracking-tight text-balance sm:text-3xl">
+                {t("qa.highlights")}
+              </h2>
               <ButtonLink href={localeHref(locale, ROUTES.ask)} size="sm">
                 {t("qa.ask")}
               </ButtonLink>
@@ -100,10 +103,12 @@ async function CommunityRow() {
         {articles.length > 0 ? (
           <div className="grid content-start gap-4">
             <div className="flex items-end justify-between gap-3">
-              <h2 className="font-heading text-3xl font-bold tracking-tight">{t("art.title")}</h2>
+              <h2 className="min-w-0 font-heading text-2xl font-bold tracking-tight text-balance sm:text-3xl">
+                {t("art.title")}
+              </h2>
               <Link
                 href={localeHref(locale, ROUTES.articles)}
-                className="text-sm font-medium text-primary hover:underline"
+                className="shrink-0 pb-1 text-sm font-medium whitespace-nowrap text-primary hover:underline"
               >
                 {t("common.seeAll")}
               </Link>
@@ -319,43 +324,47 @@ export default async function HomePage() {
         </p>
       </section>
 
-      {/* Shop */}
-      <section className="surface-warm dots">
-        <div className="container-page grid items-center gap-10 py-20 md:grid-cols-[1fr_1.1fr] md:py-24">
-          <div className="grid gap-4">
-            <h2 className="font-heading text-4xl leading-[0.95] font-bold tracking-tight text-balance md:text-5xl">
-              {c.shopTeaser.title}
-            </h2>
-            <p className="max-w-md text-pretty text-foreground/75">{c.shopTeaser.body}</p>
-            <p className="flex items-center gap-2 text-sm font-medium">
-              <Truck aria-hidden="true" className="size-4 text-primary" />
-              {t("shop.codNote")}
-            </p>
-            <ButtonLink href={localeHref(locale, ROUTES.shop)} size="lg" className="justify-self-start">
-              {c.shopTeaser.button}
-              <ArrowRight aria-hidden="true" />
-            </ButtonLink>
-          </div>
-          <div className="relative mx-auto w-full max-w-md">
-            <PeekingPet kind="dog" delay={1} className="right-8" />
-            {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized local photo */}
-            <img
-              src="/images/pets/dog-bowl-800.webp"
-              srcSet="/images/pets/dog-bowl-400.webp 400w, /images/pets/dog-bowl-800.webp 800w"
-              sizes="(min-width: 768px) 28rem, 90vw"
-              alt=""
-              width={800}
-              height={800}
-              loading="lazy"
-              decoding="async"
-              className="aspect-[4/3] w-full rounded-(--radius-3xl) object-cover shadow-(--shadow-card)"
-            />
-            <span className="absolute -bottom-8 -left-6 rounded-(--radius-2xl) bg-card p-1 shadow-(--shadow-card) max-sm:hidden">
-              <Spot name="shop" className="w-32" />
-            </span>
-          </div>
-        </div>
-      </section>
+      {/* Shop: only once it sells something */}
+      <Suspense fallback={null}>
+        <WhenShopOpen>
+          <section className="surface-warm dots">
+            <div className="container-page grid items-center gap-10 py-20 md:grid-cols-[1fr_1.1fr] md:py-24">
+              <div className="grid gap-4">
+                <h2 className="font-heading text-4xl leading-[0.95] font-bold tracking-tight text-balance md:text-5xl">
+                  {c.shopTeaser.title}
+                </h2>
+                <p className="max-w-md text-pretty text-foreground/75">{c.shopTeaser.body}</p>
+                <p className="flex items-center gap-2 text-sm font-medium">
+                  <Truck aria-hidden="true" className="size-4 text-primary" />
+                  {t("shop.codNote")}
+                </p>
+                <ButtonLink href={localeHref(locale, ROUTES.shop)} size="lg" className="justify-self-start">
+                  {c.shopTeaser.button}
+                  <ArrowRight aria-hidden="true" />
+                </ButtonLink>
+              </div>
+              <div className="relative mx-auto w-full max-w-md">
+                <PeekingPet kind="dog" delay={1} className="right-8" />
+                {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized local photo */}
+                <img
+                  src="/images/pets/dog-bowl-800.webp"
+                  srcSet="/images/pets/dog-bowl-400.webp 400w, /images/pets/dog-bowl-800.webp 800w"
+                  sizes="(min-width: 768px) 28rem, 90vw"
+                  alt=""
+                  width={800}
+                  height={800}
+                  loading="lazy"
+                  decoding="async"
+                  className="aspect-[4/3] w-full rounded-(--radius-3xl) object-cover shadow-(--shadow-card)"
+                />
+                <span className="absolute -bottom-8 -left-6 rounded-(--radius-2xl) bg-card p-1 shadow-(--shadow-card) max-sm:hidden">
+                  <Spot name="shop" className="w-32" />
+                </span>
+              </div>
+            </div>
+          </section>
+        </WhenShopOpen>
+      </Suspense>
 
       {/* Emergency: a stacked card on phones (icon + title, text, full-width
           actions), one row from md up. */}

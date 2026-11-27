@@ -10,6 +10,7 @@ import { requireViewer } from "@/features/auth/server";
 import { WalletMark } from "@/features/payments";
 import { getSettings } from "@/features/settings/server";
 import {
+  cancelReasonText,
   CancelMyOrder,
   customerCanCancel,
   OrderStatusBadge,
@@ -95,7 +96,7 @@ async function Order({ params }: { params: Promise<{ id: string }> }) {
             status={o.status}
             stoppedLabel={
               o.status === "cancelled" || o.status === "returned"
-                ? `${t(o.status === "cancelled" ? "shop.status.cancelled" : "shop.status.returned")}${o.cancelReason ? ` · ${o.cancelReason}` : ""}`
+                ? `${t(o.status === "cancelled" ? "shop.status.cancelled" : "shop.status.returned")}${o.cancelReason ? ` · ${cancelReasonText(o.cancelReason, t)}` : ""}`
                 : undefined
             }
             labels={{

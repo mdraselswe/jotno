@@ -366,7 +366,7 @@ export function FilterPills({
   items: readonly { href: Route; label: ReactNode; active: boolean; count?: number | string }[];
 }) {
   return (
-    <nav aria-label={label} className="-mx-1 [scrollbar-width:none] overflow-x-auto px-1">
+    <nav aria-label={label} className="-mx-1 -my-1 [scrollbar-width:none] overflow-x-auto px-1 py-1">
       <ul className="flex w-max gap-1.5">
         {items.map((item) => (
           <li key={item.href}>
