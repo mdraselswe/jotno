@@ -15,6 +15,7 @@ import { audit } from "@/infrastructure/db/helpers";
 import { storage } from "@/infrastructure/storage";
 import { hasBangla, nameKey } from "@/lib/bangla-name";
 import { localeHref } from "@/lib/locale-href";
+import { missingDocs } from "../checklist";
 import { payoutAccountSchema, type PayoutAccountInput } from "../payout-account";
 import { payoutAccountKey } from "./payout-account";
 import { refreshCompleteness } from "./queries";
@@ -218,21 +219,18 @@ export async function submitForReview(locale: string): Promise<VetResult> {
       nameNidBn: p.nameNidBn,
       photoPath: p.photoPath,
       areaId: p.areaId,
-      docs: sql<number>`(select count(*)::int from ${schema.providerDocuments} d where d.provider_id = "providers"."id")`,
+      docKinds: sql<
+        string[]
+      >`(select coalesce(array_agg(distinct d.kind), '{}') from ${schema.providerDocuments} d where d.provider_id = "providers"."id")`,
       species: sql<number>`(select count(*)::int from ${schema.providerSpecies} s where s.provider_id = "providers"."id")`,
     })
     .from(p)
     .where(eq(p.profileId, viewer.id))
     .limit(1);
   if (!row || !["draft", "rejected"].includes(row.status)) return { ok: false, error: "common.notAllowed" };
-  if (
-    !row.registrationNo ||
-    !row.nameNidBn ||
-    !row.photoPath ||
-    !row.areaId ||
-    Number(row.docs) === 0 ||
-    Number(row.species) === 0
-  )
+  // The admin needs both the BVC certificate and the NID to approve.
+  if (missingDocs(row.docKinds).length) return { ok: false, error: "vet.submitDocs" };
+  if (!row.registrationNo || !row.nameNidBn || !row.photoPath || !row.areaId || Number(row.species) === 0)
     return { ok: false, error: "vet.submitMissing" };
   await db()
     .update(p)

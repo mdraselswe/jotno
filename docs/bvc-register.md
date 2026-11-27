@@ -21,6 +21,16 @@ their profile. Nobody asks for or stores the NID number. Changing this name,
 like the display name or the BVC number, sends a verified vet back for a
 re-check.
 
+To send the profile for review, a vet must upload **both the BVC certificate
+and the NID** (`REQUIRED_DOCS` in `src/features/providers/checklist.ts`); the
+documents card says so in a highlighted box. The NID photo is checked by eye and
+kept in the private bucket; its number is never typed in or stored.
+
+An admin can still verify any vet who isn't verified yet: a draft never sent,
+a profile sent back for changes, or one missing a required document. The vet
+page warns first, and the audit entry records what was skipped
+(`meta.override`: `draft`, `rejected`, `missingDocs`), shown in the vet's history.
+
 ## How a profile is matched
 
 `registerStatus` (`src/features/admin/bvc-match.ts`) gives one of these:

@@ -141,7 +141,7 @@ async function Overview() {
   const checklist = vetChecklist({
     ...provider,
     speciesCount: provider.speciesIds.length,
-    documentCount: provider.documents.length,
+    documentKinds: provider.documents.map((d) => d.kind),
     hasHours: hours.length > 0,
   });
   const complete = checklist.every((i) => i.done);

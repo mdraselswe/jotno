@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readyForReview, vetChecklist, type ChecklistInput } from "./checklist";
+import { missingDocs, readyForReview, vetChecklist, type ChecklistInput } from "./checklist";
 
 const EMPTY: ChecklistInput = {
   photoPath: null,
@@ -7,7 +7,7 @@ const EMPTY: ChecklistInput = {
   nameNidBn: null,
   areaId: null,
   speciesCount: 0,
-  documentCount: 0,
+  documentKinds: [],
   bio: null,
   qualifications: null,
   experienceYears: null,
@@ -33,7 +33,7 @@ describe("vetChecklist", () => {
       nameNidBn: "মোঃ রহিম",
       areaId: 7,
       speciesCount: 2,
-      documentCount: 1,
+      documentKinds: ["nid", "bvc_certificate"],
     });
     expect(readyForReview(items)).toBe(true);
     expect(items.filter((i) => !i.done).every((i) => !i.required)).toBe(true);
@@ -46,5 +46,31 @@ describe("vetChecklist", () => {
     const long = vetChecklist({ ...EMPTY, bio: "x".repeat(41), experienceYears: 0 });
     expect(long.find((i) => i.key === "bio")?.done).toBe(true);
     expect(long.find((i) => i.key === "experience")?.done).toBe(true);
+  });
+});
+
+describe("required documents", () => {
+  const ready: ChecklistInput = {
+    ...EMPTY,
+    photoPath: "vet/1.jpg",
+    registrationNo: "1234",
+    nameNidBn: "মোঃ রহিম",
+    areaId: 7,
+    speciesCount: 1,
+  };
+
+  it("needs both the BVC certificate and the NID, not just any document", () => {
+    expect(readyForReview(vetChecklist({ ...ready, documentKinds: ["degree", "other"] }))).toBe(false);
+    expect(readyForReview(vetChecklist({ ...ready, documentKinds: ["bvc_certificate"] }))).toBe(false);
+    expect(readyForReview(vetChecklist({ ...ready, documentKinds: ["nid"] }))).toBe(false);
+    expect(
+      readyForReview(vetChecklist({ ...ready, documentKinds: ["nid", "degree", "bvc_certificate"] })),
+    ).toBe(true);
+  });
+
+  it("lists what is missing", () => {
+    expect(missingDocs([])).toEqual(["bvc_certificate", "nid"]);
+    expect(missingDocs(["nid", "nid"])).toEqual(["bvc_certificate"]);
+    expect(missingDocs(["bvc_certificate", "nid"])).toEqual([]);
   });
 });

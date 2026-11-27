@@ -21,11 +21,12 @@ export function providerTone(status: string): BadgeTone {
 }
 
 /**
- * The statuses an admin can verify from: a profile the vet sent for review
- * (`pending`), or a suspended vet coming back. A draft was never sent and a
- * rejected profile must be fixed and sent again first.
+ * The statuses an admin can verify from: any vet not verified yet. The normal
+ * path is a profile the vet sent for review (`pending`, which needs the BVC
+ * certificate and NID) or a suspended vet coming back; an admin may still verify
+ * anyone else, and the page warns and the audit log notes it (`verifyOverrides`).
  */
-export const VERIFIABLE_STATUSES = ["pending", "suspended"] as const;
+export const VERIFIABLE_STATUSES = ["draft", "pending", "rejected", "suspended"] as const;
 
 /**
  * What an admin can tick before verifying a vet. Optional, but what was ticked
@@ -38,16 +39,19 @@ export type VerifyCheck = (typeof VERIFY_CHECKS)[number];
 /** Why Verify is off for a vet in this status, or null when it can be verified. */
 export function verifyBlock(status: string): MessageKey | null {
   if ((VERIFIABLE_STATUSES as readonly string[]).includes(status)) return null;
-  switch (status) {
-    case "draft":
-      return "adminui.vet.verifyDraft";
-    case "rejected":
-      return "adminui.vet.verifyRejected";
-    case "verified":
-      return "adminui.vet.verifyAlready";
-    default:
-      return "common.notAllowed";
-  }
+  return status === "verified" ? "adminui.vet.verifyAlready" : "common.notAllowed";
+}
+
+/** How verifying now would skip the normal review: never sent, sent back, documents missing. */
+export const VERIFY_OVERRIDES = ["draft", "rejected", "missingDocs"] as const;
+export type VerifyOverride = (typeof VERIFY_OVERRIDES)[number];
+
+/** The ways verifying a vet in `status`, missing `missingDocs`, skips the normal review. */
+export function verifyOverrides(status: string, missingDocs: readonly string[]): VerifyOverride[] {
+  const out: VerifyOverride[] = [];
+  if (status === "draft" || status === "rejected") out.push(status);
+  if (missingDocs.length) out.push("missingDocs");
+  return out;
 }
 
 export function consultTone(status: string): BadgeTone {

@@ -11,8 +11,11 @@ export { VetOfflineNotice } from "./components/vet-offline-notice";
 export { BuyFeaturedButton, FeaturedPlans } from "./components/buy-featured";
 export { PROFILE_ANCHOR, VetChecklist } from "./components/vet-checklist";
 export {
+  missingDocs,
   readyForReview,
+  REQUIRED_DOCS,
   vetChecklist,
+  type RequiredDoc,
   type ChecklistInput,
   type ChecklistItem,
   type ChecklistKey,

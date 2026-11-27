@@ -9,6 +9,7 @@ import { actionViewer, setRole, type Role } from "@/features/auth/server";
 import { notify } from "@/features/notifications/server";
 import { canPayout, vetBalance } from "@/features/payments";
 import { refundConsult, refundPlatform } from "@/features/payments/server";
+import { missingDocs } from "@/features/providers";
 import { formatter, translator, type MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
 import { audit } from "@/infrastructure/db/helpers";
@@ -16,7 +17,7 @@ import { supabaseAdmin } from "@/infrastructure/supabase/server";
 import { localeHref } from "@/lib/locale-href";
 import { taka } from "@/lib/money";
 import { RESTORE_ACTION, restorable, toCopy } from "../restore";
-import { VERIFIABLE_STATUSES, VERIFY_CHECKS, verifyBlock } from "../status";
+import { VERIFIABLE_STATUSES, VERIFY_CHECKS, verifyBlock, verifyOverrides } from "../status";
 
 const P = schema.providers;
 export type AdminResult = { ok: true } | { ok: false; error: MessageKey };
@@ -53,8 +54,9 @@ const reasonSchema = z.string().trim().min(3).max(300);
 const checksSchema = z.array(z.enum(VERIFY_CHECKS)).max(VERIFY_CHECKS.length);
 
 /**
- * Verify a vet: only a profile sent for review, or a suspended vet coming back
- * (see `verifyBlock`). `checks` are what the admin ticked; the audit log keeps them.
+ * Verify a vet: anyone not verified yet (see `verifyBlock`). `checks` are what the
+ * admin ticked; the audit log keeps them, and notes when the normal review was
+ * skipped (never sent, sent back, or the BVC certificate or NID missing).
  */
 export async function verifyProvider(
   providerId: string,
@@ -64,8 +66,19 @@ export async function verifyProvider(
   const ticked = checksSchema.safeParse([...new Set(checks)]);
   if (!me || !uuid.safeParse(providerId).success || !ticked.success)
     return { ok: false, error: "common.notAllowed" };
-  const [current] = await db().select({ status: P.status }).from(P).where(eq(P.id, providerId)).limit(1);
+  const [current] = await db()
+    .select({
+      status: P.status,
+      docKinds: sql<
+        string[]
+      >`(select coalesce(array_agg(distinct d.kind), '{}') from ${schema.providerDocuments} d where d.provider_id = ${P.id})`,
+    })
+    .from(P)
+    .where(eq(P.id, providerId))
+    .limit(1);
   if (!current) return { ok: false, error: "common.notAllowed" };
+  const missing = missingDocs(current.docKinds);
+  const override = verifyOverrides(current.status, missing);
   const block = verifyBlock(current.status);
   if (block) return { ok: false, error: block };
   const [done] = await db()
@@ -75,7 +88,10 @@ export async function verifyProvider(
     .returning({ id: P.id });
   // Someone changed the status in the meantime.
   if (!done) return { ok: false, error: "common.genericError" };
-  await audit(me.id, "provider.verify", "provider", providerId, { checks: ticked.data });
+  await audit(me.id, "provider.verify", "provider", providerId, {
+    checks: ticked.data,
+    ...(override.length ? { override, missingDocs: missing } : {}),
+  });
   const vet = await vetContact(providerId);
   if (vet) {
     const t = translator(vet.locale);

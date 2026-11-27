@@ -49,6 +49,9 @@ export {
   VERIFIABLE_STATUSES,
   VERIFY_CHECKS,
   verifyBlock,
+  VERIFY_OVERRIDES,
+  verifyOverrides,
   type VerifyCheck,
+  type VerifyOverride,
   type AuditGroup,
 } from "./status";

@@ -1,6 +1,16 @@
 "use client";
 
-import { Eye, FileText, FileUp, Lock, Trash2 } from "lucide-react";
+import {
+  CircleAlert,
+  CircleCheck,
+  Eye,
+  FileText,
+  FileUp,
+  Lock,
+  ShieldAlert,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { StatusBadge, type BadgeTone } from "@/components/layout/app-ui";
@@ -9,6 +19,8 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { useUpload } from "@/features/uploads";
 import type { MessageKey } from "@/i18n";
 import { useFormatter, useT } from "@/i18n/client";
+import { cn } from "@/lib/utils";
+import { missingDocs, REQUIRED_DOCS } from "../checklist";
 import { addVetDocument, removeVetDocument, viewMyDocument } from "../server/actions";
 
 const KINDS = {
@@ -48,7 +60,9 @@ export function VetDocuments({
 }) {
   const t = useT();
   const fmt = useFormatter();
-  const [kind, setKind] = useState<Kind>("bvc_certificate");
+  const missing = missingDocs(documents.map((d) => d.kind));
+  // Start on the first required document still missing.
+  const [kind, setKind] = useState<Kind>(missing[0] ?? "bvc_certificate");
   const input = useRef<HTMLInputElement>(null);
   const { upload, busy, error } = useUpload("vetDoc");
   const [pending, start] = useTransition();
@@ -59,8 +73,13 @@ export function VetDocuments({
     const path = await upload(file);
     if (!path) return;
     const r = await addVetDocument(kind, path);
-    if (r.ok) toast.success(t("vet.docAdded"));
-    else toast.error(t(r.error));
+    if (!r.ok) {
+      toast.error(t(r.error));
+      return;
+    }
+    toast.success(t("vet.docAdded"));
+    const next = missing.find((k) => k !== kind);
+    if (next) setKind(next);
   }
 
   function view(id: string) {
@@ -81,6 +100,61 @@ export function VetDocuments({
 
   return (
     <div className="grid gap-4">
+      <section
+        aria-labelledby="doc-required"
+        className={cn(
+          "grid gap-3 rounded-(--radius-xl) p-4 ring-1",
+          missing.length ? "bg-warning/10 ring-warning/40" : "bg-success/10 ring-success/30",
+        )}
+      >
+        <div className="flex items-start gap-3">
+          {missing.length ? (
+            <ShieldAlert
+              aria-hidden="true"
+              className="mt-0.5 size-5 shrink-0 text-warning-foreground dark:text-warning"
+            />
+          ) : (
+            <ShieldCheck aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-success" />
+          )}
+          <div className="grid gap-1">
+            <h3 id="doc-required" className="font-heading font-semibold">
+              {t("vetui.doc.requiredTitle")}
+            </h3>
+            <p className="text-sm text-pretty">
+              {t(missing.length ? "vetui.doc.requiredBody" : "vetui.doc.requiredDone")}
+            </p>
+          </div>
+        </div>
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {REQUIRED_DOCS.map((k) => {
+            const has = !missing.includes(k);
+            return (
+              <li
+                key={k}
+                className="flex items-center gap-2.5 rounded-(--radius-lg) bg-card px-3 py-2 text-sm ring-1 ring-foreground/6"
+              >
+                {has ? (
+                  <CircleCheck aria-hidden="true" className="size-4 shrink-0 text-success" />
+                ) : (
+                  <CircleAlert
+                    aria-hidden="true"
+                    className="size-4 shrink-0 text-warning-foreground dark:text-warning"
+                  />
+                )}
+                <span className="min-w-0 flex-1 font-medium">{t(KINDS[k])}</span>
+                <span
+                  className={cn(
+                    "text-xs font-medium",
+                    has ? "text-success" : "text-warning-foreground dark:text-warning",
+                  )}
+                >
+                  {t(has ? "vetui.doc.uploaded" : "vetui.doc.mustUpload")}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
       {documents.length === 0 ? (
         <div className="grid justify-items-center gap-2 rounded-(--radius-xl) border border-dashed border-foreground/15 px-4 py-8 text-center">
           <span className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
@@ -154,14 +228,16 @@ export function VetDocuments({
             >
               {(Object.keys(KINDS) as Kind[]).map((k) => (
                 <option key={k} value={k}>
-                  {t(KINDS[k])}
+                  {(REQUIRED_DOCS as readonly string[]).includes(k)
+                    ? t("vetui.doc.requiredOption", { name: t(KINDS[k]) })
+                    : t(KINDS[k])}
                 </option>
               ))}
             </NativeSelect>
           </div>
           <Button
             type="button"
-            variant={documents.length === 0 ? "brand" : "outline"}
+            variant={missing.length ? "brand" : "outline"}
             disabled={busy}
             onClick={() => input.current?.click()}
           >

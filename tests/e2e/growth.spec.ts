@@ -25,17 +25,21 @@ const TWIN_EMAIL = "e2e-bvc-twin@demo.jotno.test";
 const MATCH_EMAIL = "e2e-bvc-match@demo.jotno.test";
 const MATCH_BVC = "99001";
 const NID_NAME = "মোঃ পরীক্ষা রহমান";
+/** A vet who never sent the profile, verified by an admin anyway. */
+const DRAFT_EMAIL = "e2e-draft-vet@demo.jotno.test";
 
 async function cleanUp(project: string) {
   const SUMMARY = summaryFor(project);
   const VET = people(project).vet;
   const db = sql();
   try {
-    // The BVC check test’s throwaway vet (profile, vet and documents go with the auth user).
-    await db`delete from auth.users where email = ${TWIN_EMAIL}`;
-    // The register test's vet and the row the admin typed in.
-    await db`delete from auth.users where email = ${MATCH_EMAIL}`;
-    await db`delete from public.bvc_register where reg_key = ${MATCH_BVC}`;
+    // The admin tests' throwaway vets (profile, vet and documents go with the auth user) and
+    // the register row the admin typed in. Those tests run on desktop only, so only desktop
+    // removes them: the other project's clean-up would delete them mid-test.
+    if (project === "desktop") {
+      await db`delete from auth.users where email in ${db([TWIN_EMAIL, MATCH_EMAIL, DRAFT_EMAIL])}`;
+      await db`delete from public.bvc_register where reg_key = ${MATCH_BVC}`;
+    }
     // The approval test: its invite, the reward it earned, its paid request.
     const invited = await db<{ referee_id: string }[]>`
       select referee_id from public.referrals where code = ${inviteCode(project)}`;
@@ -240,19 +244,25 @@ test.describe("invites and quick help", () => {
         await expect(box).toBeChecked({ timeout: 1_000 });
       }).toPass({ timeout: 15_000 });
     }
+    // No BVC certificate or NID uploaded: the admin is told, and can still verify.
+    await expect(page.getByText("BVC certificate: missing")).toBeVisible();
+    await expect(page.getByText("Required documents missing: BVC certificate, National ID.")).toBeVisible();
     await page.getByRole("button", { name: "Verify (BVC checked)" }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toContainText("Checked: 2 of 3.");
+    await expect(dialog).toContainText("This skips the normal review");
     await dialog.getByRole("button", { name: "Yes, verify" }).click();
     await expect(page.getByText("Checked: certificate, NID")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Verified outside the normal review: documents missing")).toBeVisible();
 
     const check = sql();
     try {
-      const [log] = await check<{ meta: { checks?: string[] } | null }[]>`
+      const [log] = await check<{ meta: { checks?: string[]; override?: string[] } | null }[]>`
         select meta from public.audit_log
         where action = 'provider.verify' and entity_id = ${vetId}
         order by created_at desc limit 1`;
       expect(log?.meta?.checks).toEqual(["certificate", "nid"]);
+      expect(log?.meta?.override).toEqual(["missingDocs"]);
     } finally {
       await check.end();
     }
@@ -314,5 +324,77 @@ test.describe("invites and quick help", () => {
     await expect(page.getByRole("main").getByText("Dr. E2E Match")).toHaveCount(0);
     await page.goto("/en/admin/vets/?bvc=check");
     await expect(page.getByRole("main").getByText("Dr. E2E Match")).toHaveCount(0);
+  });
+
+  test("an admin can verify a vet who never sent the profile", async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop", "the admin signs in from the desktop project only");
+    const db = sql();
+    let vetId = "";
+    try {
+      await db`delete from auth.users where email = ${DRAFT_EMAIL}`;
+      const [u] = await db<{ id: string }[]>`
+        insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at)
+        values (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+          ${DRAFT_EMAIL}, '{"full_name":"E2E Draft"}'::jsonb, now(), now())
+        returning id`;
+      if (!u) throw new Error("could not create the test user");
+      const [v] = await db<{ id: string }[]>`
+        insert into public.providers (profile_id, status, slug, display_name)
+        values (${u.id}, 'draft', 'e2e-draft-vet', 'Dr. E2E Draft')
+        returning id`;
+      if (!v) throw new Error("could not create the test vet");
+      vetId = v.id;
+    } finally {
+      await db.end();
+    }
+
+    await signIn(page, "admin@demo.jotno.test", `/en/admin/vets/${vetId}/`);
+    await page.goto(`/en/admin/vets/${vetId}/`);
+    await expect(page.getByText("The vet hasn't sent this profile for review.")).toBeVisible();
+    // Until the panel is hydrated the dialog doesn't open: retry the click.
+    const dialog = page.getByRole("dialog");
+    await expect(async () => {
+      await page.getByRole("button", { name: "Verify (BVC checked)" }).click();
+      await expect(dialog).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 15_000 });
+    await dialog.getByRole("button", { name: "Yes, verify" }).click();
+    await expect(
+      page.getByText("Verified outside the normal review: not sent for review, documents missing"),
+    ).toBeVisible({
+      timeout: 15_000,
+    });
+
+    const check = sql();
+    try {
+      const [row] = await check<
+        { status: string }[]
+      >`select status from public.providers where id = ${vetId}`;
+      expect(row?.status).toBe("verified");
+      const [log] = await check<{ meta: { override?: string[]; missingDocs?: string[] } | null }[]>`
+        select meta from public.audit_log
+        where action = 'provider.verify' and entity_id = ${vetId}
+        order by created_at desc limit 1`;
+      expect(log?.meta?.override).toEqual(["draft", "missingDocs"]);
+      expect(log?.meta?.missingDocs).toEqual(["bvc_certificate", "nid"]);
+    } finally {
+      await check.end();
+    }
+  });
+
+  test("a vet sees that the BVC certificate and NID are required", async ({ page }, info) => {
+    const vet = people(info.project.name).vet;
+    await signIn(page, vet, "/en/dashboard/profile/");
+    await page.goto("/en/dashboard/profile/");
+    const panel = page.getByRole("region", { name: "Required for approval" });
+    await expect(panel).toBeVisible();
+    await expect(panel.getByRole("listitem").filter({ hasText: "BVC certificate" })).toContainText(
+      "Required",
+    );
+    await expect(panel.getByRole("listitem").filter({ hasText: "National ID" })).toContainText("Required");
+    await expect(page.getByRole("combobox", { name: "Document", exact: true })).toHaveValue(
+      "bvc_certificate",
+    );
+    const axe = await new AxeBuilder({ page }).include("#vp-docs").analyze();
+    expect(axe.violations).toEqual([]);
   });
 });

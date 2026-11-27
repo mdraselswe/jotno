@@ -15,6 +15,7 @@ import {
   Send,
   Sparkles,
   Trash2,
+  TriangleAlert,
   Undo2,
   type LucideIcon,
 } from "lucide-react";
@@ -63,7 +64,7 @@ import {
 import { BVC_DIVISIONS } from "../bvc-match";
 import type { HiddenContent } from "../restore";
 import { removeBvcEntry, saveBvcEntry } from "../server/bvc-actions";
-import { VERIFY_CHECKS, verifyBlock, type VerifyCheck } from "../status";
+import { VERIFY_CHECKS, verifyBlock, verifyOverrides, type VerifyCheck } from "../status";
 
 type Variant = "default" | "brand" | "outline" | "secondary" | "ghost" | "destructive";
 type Size = "default" | "sm" | "lg";
@@ -189,18 +190,24 @@ export function ReviewActions({
   providerId,
   status,
   name,
+  missingDocs,
 }: {
   providerId: string;
   status: string;
   name: string;
+  /** Required documents (`bvc_certificate`, `nid`) the vet hasn't uploaded. */
+  missingDocs: readonly string[];
 }) {
   const t = useT();
   const id = useId();
   const fmt = useFormatter();
   const reason = { label: t("admin.reason"), hint: t("admin.reasonHint"), min: 3, max: 300 };
-  // Only a profile sent for review (or a suspended vet) can be verified; the server checks too.
+  // Any vet not verified yet can be verified; the server checks too. Outside the
+  // normal review (not sent, sent back, documents missing) the panel says so.
   const block = status === "verified" ? null : verifyBlock(status);
   const canVerify = !block && status !== "verified";
+  const overrides = canVerify ? verifyOverrides(status, missingDocs) : [];
+  const docNames = missingDocs.map((k) => t(k === "nid" ? "vet.docNid" : "vet.docBvc")).join(", ");
   const [checks, setChecks] = useState<VerifyCheck[]>([]);
   const toggle = (c: VerifyCheck, on: boolean) =>
     setChecks((now) => (on ? [...now.filter((x) => x !== c), c] : now.filter((x) => x !== c)));
@@ -230,6 +237,26 @@ export function ReviewActions({
           })}
         </fieldset>
       ) : null}
+      {overrides.length ? (
+        <div
+          id={`${id}-override`}
+          className="grid gap-1.5 rounded-(--radius-lg) bg-warning/15 px-3 py-2.5 text-sm ring-1 ring-warning/40"
+        >
+          <p className="flex items-center gap-2 font-semibold">
+            <TriangleAlert
+              aria-hidden="true"
+              className="size-4 shrink-0 text-warning-foreground dark:text-warning"
+            />
+            {t("adminui.vet.override.title")}
+          </p>
+          <ul className="grid list-disc gap-0.5 ps-5 text-pretty">
+            {overrides.map((o) => (
+              <li key={o}>{t(`adminui.vet.override.${o}`, { list: docNames })}</li>
+            ))}
+          </ul>
+          <p className="text-pretty text-muted-foreground">{t("adminui.vet.override.note")}</p>
+        </div>
+      ) : null}
       {block ? (
         <>
           <p id={`${id}-why`} className="rounded-(--radius-lg) bg-warning/15 px-3 py-2 text-sm text-pretty">
@@ -248,10 +275,16 @@ export function ReviewActions({
           size="default"
           className="w-full"
           title={t("adminui.vet.verifyTitle", { name })}
-          body={`${t("adminui.vet.verifyBody")} ${t("adminui.vet.checksTicked", {
-            n: fmt.number(checks.length),
-            total: fmt.number(VERIFY_CHECKS.length),
-          })}`}
+          body={[
+            t("adminui.vet.verifyBody"),
+            t("adminui.vet.checksTicked", {
+              n: fmt.number(checks.length),
+              total: fmt.number(VERIFY_CHECKS.length),
+            }),
+            overrides.length ? t("adminui.vet.override.confirm") : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
           confirm={t("adminui.vet.verifyConfirm")}
           confirmVariant="brand"
           onConfirm={() => verifyProvider(providerId, checks)}

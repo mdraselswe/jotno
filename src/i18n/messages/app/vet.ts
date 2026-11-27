@@ -25,7 +25,9 @@ export const vet = pack(
     "vet.submit": "Send for verification",
     "vet.submitted": "Sent! We'll check it soon.",
     "vet.submitMissing":
-      "Add your photo, BVC registration number, your name as on your NID, area, the animals you treat and at least one document first.",
+      "Add your photo, BVC registration number, your name as on your NID, area and the animals you treat first.",
+    "vet.submitDocs":
+      "Upload your BVC certificate and your National ID (NID) first. We can't approve a profile without both.",
     "vet.availableOn": "You're available now",
     "vet.availableOff": "You're offline",
     "vet.availableHint": "Switch on when you can reply to chats. You'll show a green dot and rank higher.",
@@ -76,7 +78,8 @@ export const vet = pack(
     "vet.feeRange": "The chat fee must be between ৳100 and ৳3,000.",
     "vet.invalid": "Please check the highlighted fields.",
     "vet.documents": "Verification documents",
-    "vet.documentsHint": "Only Jotno admins see these. A photo of your BVC certificate is enough to start.",
+    "vet.documentsHint":
+      "Only Jotno admins see these. Your BVC certificate and NID are required for approval.",
     "vet.docEmpty": "No documents yet.",
     "vet.docKind": "Document",
     "vet.docBvc": "BVC certificate",
@@ -155,7 +158,9 @@ export const vet = pack(
     "vet.submit": "যাচাইয়ের জন্য পাঠান",
     "vet.submitted": "পাঠানো হয়েছে! শিগগিরই দেখব।",
     "vet.submitMissing":
-      "আগে আপনার ছবি, BVC রেজিস্ট্রেশন নম্বর, NID অনুযায়ী নাম, এলাকা, কোন প্রাণীর চিকিৎসা করেন আর অন্তত একটা ডকুমেন্ট দিন।",
+      "আগে আপনার ছবি, BVC রেজিস্ট্রেশন নম্বর, NID অনুযায়ী নাম, এলাকা আর কোন প্রাণীর চিকিৎসা করেন তা দিন।",
+    "vet.submitDocs":
+      "আগে আপনার BVC সার্টিফিকেট আর জাতীয় পরিচয়পত্র (NID) আপলোড করুন। দুটো ছাড়া প্রোফাইল অনুমোদন করা যায় না।",
     "vet.availableOn": "আপনি এখন অ্যাভেইলেবল",
     "vet.availableOff": "আপনি অফলাইন",
     "vet.availableHint": "চ্যাটের উত্তর দিতে পারলে চালু করুন। সবুজ ডট দেখাবে আর সার্চে উপরে আসবেন।",
@@ -206,7 +211,7 @@ export const vet = pack(
     "vet.feeRange": "চ্যাট ফি ৳১০০ থেকে ৳৩,০০০-এর মধ্যে হতে হবে।",
     "vet.invalid": "চিহ্নিত ঘরগুলো দেখুন।",
     "vet.documents": "যাচাইয়ের ডকুমেন্ট",
-    "vet.documentsHint": "শুধু যত্নের অ্যাডমিনরা দেখতে পান। শুরুতে BVC সার্টিফিকেটের একটা ছবিই যথেষ্ট।",
+    "vet.documentsHint": "শুধু যত্নের অ্যাডমিনরা দেখতে পান। অনুমোদনের জন্য BVC সার্টিফিকেট আর NID লাগবেই।",
     "vet.docEmpty": "এখনো কোনো ডকুমেন্ট নেই।",
     "vet.docKind": "ডকুমেন্ট",
     "vet.docBvc": "BVC সার্টিফিকেট",

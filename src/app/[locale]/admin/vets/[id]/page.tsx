@@ -37,11 +37,13 @@ import {
   registerTone,
   ReviewActions,
   VERIFY_CHECKS,
+  VERIFY_OVERRIDES,
   type VerifyCheck,
+  type VerifyOverride,
 } from "@/features/admin";
 import { providerForReview, vetConsultStats, adminMetadata } from "@/features/admin/server";
 import { requireRole } from "@/features/auth/server";
-import { VetProfileForm, vetProfileValues } from "@/features/providers";
+import { missingDocs, REQUIRED_DOCS, VetProfileForm, vetProfileValues } from "@/features/providers";
 import { getMyProvider } from "@/features/providers/server";
 import type { MessageKey } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
@@ -56,6 +58,12 @@ export async function generateMetadata() {
 function checksOf(meta: unknown): VerifyCheck[] {
   const raw = meta && typeof meta === "object" && "checks" in meta ? meta.checks : null;
   return Array.isArray(raw) ? VERIFY_CHECKS.filter((c) => raw.includes(c)) : [];
+}
+
+/** How a verification skipped the normal review, from its audit entry. */
+function overridesOf(meta: unknown): VerifyOverride[] {
+  const raw = meta && typeof meta === "object" && "override" in meta ? meta.override : null;
+  return Array.isArray(raw) ? VERIFY_OVERRIDES.filter((o) => raw.includes(o)) : [];
 }
 
 const DOC_KIND: Record<string, MessageKey> = {
@@ -73,6 +81,7 @@ async function Review({ params }: { params: Promise<{ id: string }> }) {
   const p = r.p;
   const [editable, stats] = await Promise.all([getMyProvider(p.profileId), vetConsultStats(p.id)]);
   const dash = "—";
+  const missing = missingDocs(r.documents.map((d) => d.kind));
   const n = (v: number) => fmt.number(v);
 
   const facts = [
@@ -290,6 +299,20 @@ async function Review({ params }: { params: Promise<{ id: string }> }) {
           </SectionCard>
 
           <SectionCard title={t("admin.documents")} description={t("adminui.vet.docsHint")} icon={FileText}>
+            <ul className="mb-4 flex flex-wrap gap-2" aria-label={t("adminui.vet.requiredDocs")}>
+              {REQUIRED_DOCS.map((k) => {
+                const has = !missing.includes(k);
+                return (
+                  <li key={k}>
+                    <StatusBadge tone={has ? "success" : "danger"}>
+                      {t(has ? "adminui.vet.docHas" : "adminui.vet.docMissing", {
+                        name: t(DOC_KIND[k] ?? "vet.docOther"),
+                      })}
+                    </StatusBadge>
+                  </li>
+                );
+              })}
+            </ul>
             {r.documents.length === 0 ? (
               <EmptyState
                 icon={FileText}
@@ -398,6 +421,15 @@ async function Review({ params }: { params: Promise<{ id: string }> }) {
                           : t("adminui.vet.checkedNone")}
                       </span>
                     ) : null}
+                    {h.action === "provider.verify" && overridesOf(h.meta).length > 0 ? (
+                      <span className="text-pretty text-warning-foreground dark:text-warning">
+                        {t("adminui.vet.overrideDone", {
+                          list: overridesOf(h.meta)
+                            .map((o) => t(`adminui.vet.overrideShort.${o}`))
+                            .join(", "),
+                        })}
+                      </span>
+                    ) : null}
                   </li>
                 ))}
               </ol>
@@ -411,7 +443,7 @@ async function Review({ params }: { params: Promise<{ id: string }> }) {
             description={t("adminui.vet.decisionSub")}
             icon={ShieldCheck}
           >
-            <ReviewActions providerId={p.id} status={p.status} name={p.displayName} />
+            <ReviewActions providerId={p.id} status={p.status} name={p.displayName} missingDocs={missing} />
           </SectionCard>
         </aside>
       </div>

@@ -10,7 +10,8 @@ export type ChecklistKey =
   | "nidName"
   | "area"
   | "species"
-  | "docs"
+  | "docBvc"
+  | "docNid"
   | "bio"
   | "degrees"
   | "experience"
@@ -36,7 +37,8 @@ export interface ChecklistInput {
   nameNidBn: string | null;
   areaId: number | null;
   speciesCount: number;
-  documentCount: number;
+  /** The kinds of the documents uploaded (`bvc_certificate`, `nid`, …). */
+  documentKinds: readonly string[];
   bio: string | null;
   qualifications: string | null;
   experienceYears: number | null;
@@ -49,6 +51,17 @@ export interface ChecklistInput {
 
 const filled = (s: string | null, min = 0) => (s ?? "").trim().length > min;
 
+/**
+ * The documents a vet must upload before sending the profile for review: the
+ * admin checks the certificate's name and number against the NID and the BVC list.
+ */
+export const REQUIRED_DOCS = ["bvc_certificate", "nid"] as const;
+export type RequiredDoc = (typeof REQUIRED_DOCS)[number];
+
+/** The required documents not uploaded yet, in `REQUIRED_DOCS` order. */
+export const missingDocs = (kinds: readonly string[]): RequiredDoc[] =>
+  REQUIRED_DOCS.filter((k) => !kinds.includes(k));
+
 export function vetChecklist(p: ChecklistInput): ChecklistItem[] {
   return [
     { key: "photo", done: Boolean(p.photoPath), required: true, target: "basics" },
@@ -56,7 +69,8 @@ export function vetChecklist(p: ChecklistInput): ChecklistItem[] {
     { key: "nidName", done: filled(p.nameNidBn), required: true, target: "creds" },
     { key: "area", done: p.areaId != null, required: true, target: "place" },
     { key: "species", done: p.speciesCount > 0, required: true, target: "services" },
-    { key: "docs", done: p.documentCount > 0, required: true, target: "documents" },
+    { key: "docBvc", done: p.documentKinds.includes("bvc_certificate"), required: true, target: "documents" },
+    { key: "docNid", done: p.documentKinds.includes("nid"), required: true, target: "documents" },
     { key: "bio", done: filled(p.bio, 40), required: false, target: "basics" },
     { key: "degrees", done: filled(p.qualifications), required: false, target: "creds" },
     { key: "experience", done: p.experienceYears != null, required: false, target: "creds" },

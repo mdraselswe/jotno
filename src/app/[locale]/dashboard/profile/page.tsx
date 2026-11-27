@@ -47,7 +47,7 @@ async function Profile() {
   const checklist = vetChecklist({
     ...p,
     speciesCount: p.speciesIds.length,
-    documentCount: p.documents.length,
+    documentKinds: p.documents.map((d) => d.kind),
     hasHours: hours.length > 0,
   });
   return (
@@ -86,9 +86,6 @@ async function Profile() {
               icon={FileCheck2}
               actions={<StatusBadge tone={pill.tone}>{t(pill.key)}</StatusBadge>}
             >
-              {p.documents.length === 0 && !locked ? (
-                <p className="mb-4 text-sm font-medium text-pretty">{t("vetui.doc.need")}</p>
-              ) : null}
               <VetDocuments
                 locked={locked}
                 status={p.status}

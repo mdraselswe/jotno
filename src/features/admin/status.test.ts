@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { auditTone, consultTone, listHref, pageParam, providerTone, verifyBlock } from "./status";
+import {
+  auditTone,
+  consultTone,
+  listHref,
+  pageParam,
+  providerTone,
+  verifyBlock,
+  verifyOverrides,
+} from "./status";
 
 describe("admin status tones", () => {
   it("colours vet states", () => {
@@ -48,15 +56,20 @@ describe("listHref", () => {
 });
 
 describe("who can be verified", () => {
-  it("allows a profile sent for review and a suspended vet", () => {
-    expect(verifyBlock("pending")).toBeNull();
-    expect(verifyBlock("suspended")).toBeNull();
+  it("lets an admin verify anyone not verified yet", () => {
+    for (const status of ["draft", "pending", "rejected", "suspended"])
+      expect(verifyBlock(status)).toBeNull();
   });
-  it("blocks a draft, a profile sent back for changes and a verified vet, with a reason", () => {
-    expect(verifyBlock("draft")).toBe("adminui.vet.verifyDraft");
-    expect(verifyBlock("rejected")).toBe("adminui.vet.verifyRejected");
+  it("blocks a verified vet and unknown statuses, with a reason", () => {
     expect(verifyBlock("verified")).toBe("adminui.vet.verifyAlready");
     expect(verifyBlock("whatever")).toBe("common.notAllowed");
+  });
+  it("says how verifying skips the normal review", () => {
+    expect(verifyOverrides("pending", [])).toEqual([]);
+    expect(verifyOverrides("suspended", [])).toEqual([]);
+    expect(verifyOverrides("pending", ["nid"])).toEqual(["missingDocs"]);
+    expect(verifyOverrides("draft", ["bvc_certificate", "nid"])).toEqual(["draft", "missingDocs"]);
+    expect(verifyOverrides("rejected", [])).toEqual(["rejected"]);
   });
   it("colours a restore as good news", () => {
     expect(auditTone("report.restore")).toBe("success");
