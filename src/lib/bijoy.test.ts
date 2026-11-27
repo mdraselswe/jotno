@@ -27,6 +27,24 @@ describe("bijoyToUnicode", () => {
     expect(bijoyToUnicode("GwjP g\u00D0j")).toBe("এলিচ মণ্ডল".normalize("NFC"));
   });
 
+  it("moves a reph typed after a letter and its vowel signs, and only a reph", () => {
+    expect(bijoyToUnicode("Wv: SY©v Av³vi")).toBe(bijoyToUnicode("Wv: SYv© Av³vi"));
+    expect(bijoyToUnicode("SYv©")).toBe("ঝর্ণা".normalize("NFC"));
+    expect(bijoyToUnicode("KvwZ©K")).toBe("কার্তিক".normalize("NFC"));
+  });
+
+  it("reads • at the start of a word as ৈ, and as ক্স inside one", () => {
+    expect(bijoyToUnicode("Avkxl Kzgvi \u2022eivMx")).toBe("আশীষ কুমার বৈরাগী".normalize("NFC"));
+    expect(bijoyToUnicode("\u2022mq`")).toBe(bijoyToUnicode("ˆmq`"));
+    expect(bijoyToUnicode("ev\u2022")).toBe("বাক্স");
+  });
+
+  it("puts u-kar after ya-phala and drops doubled aa-kar", () => {
+    expect(bijoyToUnicode("we`y¨r")).toBe("বিদ্যুৎ".normalize("NFC"));
+    expect(bijoyToUnicode("Avvn")).toBe("আহ");
+    expect(bijoyToUnicode("Aveyyj")).toBe("আবুল");
+  });
+
   it("reads the copies that swap ‼ and ‽ in for the e-kar", () => {
     expect(bijoyToUnicode("‼gvnv¤§`")).toBe(bijoyToUnicode("†gvnv¤§`"));
     expect(bijoyToUnicode("†nv‽mb")).toBe("হোসেন");

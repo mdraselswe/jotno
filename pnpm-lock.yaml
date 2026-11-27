@@ -258,6 +258,9 @@ importers:
       '@commitlint/config-conventional':
         specifier: 21.2.4
         version: 21.2.4
+      '@napi-rs/canvas':
+        specifier: 1.2.1
+        version: 1.2.1
       '@opennextjs/cloudflare':
         specifier: 1.20.18
         version: 1.20.18(next@16.4.6(@babel/core@7.29.13(supports-color@7.2.0))(@playwright/test@1.65.1)(@types/node@26.6.6)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(supports-color@7.2.0)(wrangler@4.166.0(@types/node@26.6.6)(vitest@5.1.1(@types/node@26.6.6)(jsdom@31.0.1(@napi-rs/canvas@1.2.1)(@noble/hashes@1.8.0))(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.46.0)(tsx@4.23.15)(yaml@2.9.1))))
@@ -7265,7 +7268,6 @@ snapshots:
       '@napi-rs/canvas-linux-x64-musl': 1.2.1
       '@napi-rs/canvas-win32-arm64-msvc': 1.2.1
       '@napi-rs/canvas-win32-x64-msvc': 1.2.1
-    optional: true
 
   '@next/env@16.4.6': {}
 

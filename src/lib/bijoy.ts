@@ -7,6 +7,9 @@
  * Used by scripts/bvc-import.ts; pure, so it is tested on its own.
  */
 
+/** Stands in for the Bijoy reph (©) until it is moved; private use, never in real text. */
+const REPH = "\uE000";
+
 /** Several characters for one Unicode piece; tried longest first. */
 const MULTI: Record<string, string> = {
   Av: "আ",
@@ -256,7 +259,8 @@ const SINGLE: Record<string, string> = {
   Í: "্ত",
   "‘": "্তু",
   "’": "্থ",
-  "©": "র্",
+  // Reph: a marker until it is moved in front of its letter (see REPH).
+  "©": REPH,
   // Punctuation and digits.
   "|": "।",
   Ñ: "—",
@@ -299,18 +303,19 @@ const MULTI_KEYS = Object.keys(MULTI).sort((a, b) => b.length - a.length);
 const C = "[\\u0995-\\u09B9\\u09CE\\u09DC\\u09DD\\u09DF]\\u09BC?";
 const CLUSTER = `${C}(?:\\u09CD${C})*`;
 const PRE_BASE = new RegExp(`([\\u09BF\\u09C7\\u09C8])(${CLUSTER})`, "g");
-// Reph after its letter (and the letter's vowel signs other than া): move it in front.
-const REPH_AFTER = new RegExp(
-  `(${CLUSTER})([\\u09BF-\\u09C4\\u09C7\\u09C8\\u09D7]*)\\u09B0\\u09CD(?!\\u09CD)`,
-  "g",
-);
+// Reph after its letter and the letter's vowel signs: move it in front.
+const REPH_AFTER = new RegExp(`(${CLUSTER})([\\u09BE-\\u09C4\\u09C7\\u09C8\\u09D7]*)\\uE000`, "g");
 
 /**
  * Converts Bijoy text to Unicode. Characters that are already Bangla or are
  * plain spaces pass through, so running it twice is harmless for Unicode.
  */
 export function bijoyToUnicode(text: string): string {
-  const input = text.replace(ALIAS, (c) => ALIASES[c] ?? c);
+  const input = text
+    .replace(ALIAS, (c) => ALIASES[c] ?? c)
+    // Some copies type ৈ with the ক্স key (• or ·): at the start of a word, where
+    // ক্স can't be, it is ৈ ("•mq`" is সৈয়দ).
+    .replace(/(^|[\s\-.(])[\u2022\u00B7]/g, "$1ˆ");
   let out = "";
   for (let i = 0; i < input.length;) {
     const multi = MULTI_KEYS.find((k) => input.startsWith(k, i));
@@ -331,6 +336,13 @@ export function bijoyToUnicode(text: string): string {
       .replace(PRE_BASE, "$2$1")
       // Reph typed after its letter goes before it.
       .replace(REPH_AFTER, "\u09B0\u09CD$1$2")
+      .replace(/\uE000/g, "\u09B0\u09CD")
+      // উ/ঊ/ঋ-kar typed before ্য or ্র ("দু্য") goes after it ("দ্যু").
+      .replace(/([\u09C1-\u09C4])(\u09CD[\u09AF\u09B0])/g, "$2$1")
+      // A hasanta between a vowel sign and ঁ, and a vowel sign typed twice (or া after আ), are typos.
+      .replace(/([\u09BE-\u09CC])\u09CD(?=\u0981)/g, "$1")
+      .replace(/\u0986\u09BE/g, "\u0986")
+      .replace(/([\u09BE-\u09CC])\1+/g, "$1")
       // ে + া = ো, ে + ৗ = ৌ.
       .replace(/\u09C7\u09BE/g, "\u09CB")
       .replace(/\u09C7\u09D7/g, "\u09CC")

@@ -10,6 +10,11 @@
  * DATABASE_URL comes from the environment or .env.local (the local database
  * by default). --dry-run reads the PDF and prints what it found, nothing else.
  * Single additions (a registration notice) go in by hand on /admin/bvc.
+ *
+ * Some rows are typed in a font whose PDF text is broken, so their name or reg
+ * no doesn't come through. `--review <dir>` cuts those rows out of the page
+ * images into PNG sheets and writes `<dir>/fixes.csv` to fill in by eye (keep
+ * it outside the repo); `--fixes <dir>/fixes.csv` then imports them too.
  */
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
@@ -18,7 +23,17 @@ import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import postgres from "postgres";
 import { nameKey } from "../src/lib/bangla-name.ts";
 import { bvcKey } from "../src/lib/bvc.ts";
-import { pageRows, type PageState, type TextBit, type VoterRow } from "./lib/bvc-rows.ts";
+import {
+  applyFixes,
+  needsReview,
+  outOfOrder,
+  pageRows,
+  parseFixes,
+  type PageState,
+  type TextBit,
+  type VoterRow,
+} from "./lib/bvc-rows.ts";
+import { writeReviewSheets } from "./lib/bvc-sheets.ts";
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -27,25 +42,34 @@ const { values, positionals } = parseArgs({
     url: { type: "string" },
     published: { type: "string" },
     "dry-run": { type: "boolean", default: false },
+    review: { type: "string" },
+    fixes: { type: "string" },
   },
 });
 const file = positionals[0];
 if (!file || !existsSync(file)) {
-  console.error("Usage: pnpm bvc:import <file.pdf> --title … [--url …] [--published YYYY-MM-DD] [--dry-run]");
+  console.error(
+    "Usage: pnpm bvc:import <file.pdf> --title … [--url …] [--published YYYY-MM-DD] [--dry-run]\n" +
+      "       [--review <dir>] [--fixes <fixes.csv>]",
+  );
   process.exit(1);
 }
 if (values.published && !/^\d{4}-\d{2}-\d{2}$/.test(values.published)) {
   console.error("--published must look like 2026-05-14.");
   process.exit(1);
 }
-const dryRun = values["dry-run"];
+if (values.fixes && !existsSync(values.fixes)) {
+  console.error(`No fixes file at ${values.fixes}.`);
+  process.exit(1);
+}
+const dryRun = values["dry-run"] || Boolean(values.review);
 
 const bytes = readFileSync(file);
 const hash = createHash("sha256").update(bytes).digest("hex");
 const doc = await getDocument({ data: new Uint8Array(bytes), verbosity: 0 }).promise;
 
 const state: PageState = { division: null, regX: null, last: null };
-const rows: VoterRow[] = [];
+let rows: VoterRow[] = [];
 for (let n = 1; n <= doc.numPages; n++) {
   const page = await doc.getPage(n);
   const content = await page.getTextContent();
@@ -56,6 +80,33 @@ for (let n = 1; n <= doc.numPages; n++) {
   }
   rows.push(...pageRows(bits, n, state));
   page.cleanup();
+}
+
+const parsedNos = new Set(rows.map((r) => r.voterNo));
+const lost = Array.from({ length: Math.max(0, ...parsedNos) }, (_, i) => i + 1).filter(
+  (n) => !parsedNos.has(n),
+);
+
+if (values.review) {
+  // A lost voter no is cut out just below the row before it, or above the row
+  // after it when the one before ends its page.
+  const placeholders = lost.flatMap((n) => {
+    const before = rows.filter((r) => r.voterNo < n).at(-1);
+    const after = rows.find((r) => r.voterNo > n);
+    const near =
+      before && before.y > 100 ? { ...before, y: before.y - 21 } : after && { ...after, y: after.y + 21 };
+    return near ? [{ ...near, voterNo: n, regNo: "", name: "", readable: false }] : [];
+  });
+  const toRead = [...rows.filter(needsReview), ...placeholders].sort((a, b) => a.page - b.page || b.y - a.y);
+  const sheets = await writeReviewSheets(doc, toRead, [...rows, ...placeholders], values.review);
+  console.log(`${toRead.length} rows to read by eye: ${sheets} sheets and fixes.csv in ${values.review}.`);
+}
+
+if (values.fixes) {
+  const fixes = parseFixes(readFileSync(values.fixes, "utf8"));
+  const merged = applyFixes(rows, fixes);
+  rows = merged.rows;
+  console.log(`Fixes from ${values.fixes}: ${merged.changed} rows read by eye, ${merged.added} added.`);
 }
 
 // One row per reg no; a readable one wins over an unreadable one, else the first.
@@ -101,6 +152,11 @@ if (doubled.length)
   );
 if (odd.length)
   console.log(`Names with unconverted characters: ${odd.length}\n${odd.slice(0, 10).map(show).join("\n")}`);
+const disorder = outOfOrder(rows);
+if (disorder.length)
+  console.log(
+    `Reg numbers out of order in their division (check these): ${disorder.length}\n${disorder.slice(0, 20).map(show).join("\n")}`,
+  );
 const all = [...byKey.values()];
 console.log("Samples:");
 for (const r of [0, 1, 2, Math.floor(all.length / 2), all.length - 2, all.length - 1].flatMap(

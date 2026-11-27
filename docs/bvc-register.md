@@ -67,18 +67,36 @@ from an earlier list.
 `/admin/bvc` (number, Bangla name, division, link to the notice). The same
 number again corrects the row. Adding and removing rows are in the audit log.
 
-## Limits of the 2026 PDF
+## Rows the PDF text can't give
 
 The PDF is Bijoy (SutonnyMJ) text, which `src/lib/bijoy.ts` converts to Unicode.
 Some rows were typed in a Unicode font whose PDF text is broken: only some
-letters come out.
+letters come out. In the 2026 list that is about 850 of 10,420 rows (about
+400 with a number but no name, about 450 with neither).
 
-- About 400 rows have a readable number but no readable name. They are stored
-  with their page, show as `unreadable`, and the admin compares by eye.
-- About 570 rows have a broken number too, so they are skipped. A vet among them
-  shows `notFound`: the admin checks the PDF, then adds them by hand on
-  `/admin/bvc`.
+These rows are read by eye from the page images:
 
-Text extraction can't fix these rows; OCR of those pages would. The import
-prints how many rows it skipped, so the numbers above can be checked for each
-new list.
+```sh
+# 1. Cut the rows out of the pages into PNG sheets (20 rows each) and a
+#    fixes.csv with what the text did give. Keep the folder outside the repo.
+pnpm bvc:import ~/Downloads/voter-list.pdf --review ~/bvc-review
+
+# 2. Fill reg_no (ASCII digits, leading zeros as printed) and name_bn (as
+#    printed) for each row in fixes.csv, reading the sheet it names. Leave
+#    name_bn blank where the print shows only empty boxes.
+
+# 3. Import with the fixes. Rows left blank in the CSV stay as before.
+pnpm bvc:import ~/Downloads/voter-list.pdf --fixes ~/bvc-review/fixes.csv \
+  --title "Final voter list 2026" --url "https://bvc.gov.bd/…" --published 2026-05-14
+```
+
+Only the number, name and reg columns are cut out (no addresses). Check a dry
+run with the fixes first (`--dry-run --fixes …`): it lists reg numbers out of
+order in their division (the list is sorted by number within each division),
+which is where a misread digit shows. A few are out of order in the PDF itself,
+and a few vets are listed twice.
+
+Rows still without a readable name show as `unreadable`, and the admin compares
+by eye; a row without a number is skipped, so such a vet shows `notFound` and the
+admin adds them on `/admin/bvc` after checking the PDF. The import prints these
+counts for each new list.
