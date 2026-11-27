@@ -3,8 +3,10 @@
 import { BellRing } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
-import { useT } from "@/i18n/client";
+import { business } from "@/config";
+import { useFormatter, useT } from "@/i18n/client";
 import { cn } from "@/lib/utils";
+import { PUSH_HELP } from "./push-toggle";
 import { usePush } from "./use-push";
 
 const KEY = "jotno.pushPrompt.until";
@@ -29,16 +31,33 @@ function subscribe(onChange: () => void) {
 }
 
 /**
- * Asks to turn on notifications where it matters (a chat, the vet's dashboard):
- * calls and replies then reach the phone even when Jotno is closed. Hidden once
- * on, blocked, unsupported, or after "Not now" (for a week).
+ * Asks to turn on notifications where it matters: a chat or the vet's
+ * dashboard (calls and replies), a pet's health page (vaccine reminders), the
+ * bookings page (visit reminders). On iPhone it explains Add to Home Screen,
+ * in Facebook/Messenger it says to open a real browser. Hidden once on,
+ * blocked, unsupported, or after "Not now" (for a week).
  */
-export function PushPrompt({ className }: { className?: string }) {
+export function PushPrompt({
+  className,
+  topic = "calls",
+}: {
+  className?: string;
+  /** What the notifications are for, so the ask says what the person gets. */
+  topic?: "calls" | "reminders" | "visits";
+}) {
   const t = useT();
+  const fmt = useFormatter();
   const { state, pending, turnOn } = usePush();
   // Server snapshot "snoozed": nothing in the server HTML, so no hydration mismatch.
   const hidden = useSyncExternalStore(subscribe, snoozed, () => true);
-  if (hidden || (state !== "off" && state !== "ios")) return null;
+  if (hidden || (state !== "off" && state !== "ios" && state !== "in-app" && state !== "ios-update"))
+    return null;
+  const ask =
+    topic === "reminders"
+      ? t("settings.promptReminders")
+      : topic === "visits"
+        ? t("settings.promptVisits", { n: fmt.number(business.appointment.reminderHours) })
+        : t("call.pushPrompt");
 
   function later() {
     try {
@@ -59,8 +78,9 @@ export function PushPrompt({ className }: { className?: string }) {
       )}
     >
       <BellRing aria-hidden="true" className="size-5 shrink-0 text-info" />
-      <p id="push-prompt-text" className="flex-1">
-        {t(state === "ios" ? "call.pushPromptIos" : "call.pushPrompt")}
+      <p id="push-prompt-text" className="grid flex-1 gap-1">
+        <span>{ask}</span>
+        {state === "off" ? null : <span className="text-muted-foreground">{t(PUSH_HELP[state])}</span>}
       </p>
       <div className="flex gap-2">
         {state === "off" ? (

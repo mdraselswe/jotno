@@ -65,11 +65,32 @@ export const account = pack(
     "settings.sub": "Your name, phone, area and notifications.",
     "settings.profile": "Profile",
     "settings.push": "Notifications on this device",
-    "settings.pushHint": "Get a ping when a vet replies or a vaccine is due.",
+    "settings.pushHint":
+      "Vaccine and visit reminders, vet replies and calls come as notifications. Turn them on on each phone or computer you use.",
     "settings.pushOn": "Turn on",
     "settings.pushOff": "Turn off",
-    "settings.pushBlocked": "Notifications are blocked in your browser settings.",
-    "settings.pushUnsupported": "This browser can't show notifications. On iPhone, install the app first.",
+    "settings.pushBlocked":
+      "Notifications are blocked for Jotno. Allow them in your browser's site settings (the icon next to the address), then reload this page.",
+    "settings.pushUnsupported":
+      "This browser can't show notifications. Open Jotno in Chrome, Edge, Firefox or Safari.",
+    "settings.pushInApp":
+      "Notifications don't work inside Facebook, Messenger or other in-app browsers. Open Jotno in Chrome or Safari (⋮ or ··· → Open in browser).",
+    "settings.pushIosUpdate":
+      "Notifications on iPhone need iOS 16.4 or later. Update in Settings → General → Software Update.",
+    "settings.pushFallback":
+      "Without notifications, due vaccines and visits still show on your account Overview.",
+    "settings.pushDone": "Notifications are on for this device.",
+    "settings.pushFailed": "Couldn't turn on notifications. Check your internet and try again.",
+    "settings.promptReminders":
+      "Turn on notifications on this device for vaccine and deworming reminders: a week before, the day before and on the day.",
+    "settings.promptVisits": "Turn on notifications to get a reminder {n} hours before your visit.",
+    // Reminder pushes, sent in the owner's language (cron jobs)
+    "remind.healthToday": "{pet}: {title} due today",
+    "remind.healthTomorrow": "{pet}: {title} due tomorrow",
+    "remind.healthWeek": "{pet}: {title} due in {n} days",
+    "remind.healthBody": "Staying on time keeps your pet protected.",
+    "remind.visitTitle": "Visit with {vet} at {time}",
+    "remind.visitBody": "Bring your pet's vaccine card.",
     "settings.danger": "Delete account",
     "settings.dangerHint": "Email us from your account email and we'll delete your data within 7 days.",
   },
@@ -135,11 +156,30 @@ export const account = pack(
     "settings.sub": "আপনার নাম, ফোন, এলাকা আর নোটিফিকেশন।",
     "settings.profile": "প্রোফাইল",
     "settings.push": "এই ডিভাইসে নোটিফিকেশন",
-    "settings.pushHint": "ভেট উত্তর দিলে বা টিকার সময় হলে জানাব।",
+    "settings.pushHint":
+      "টিকা আর ভিজিটের রিমাইন্ডার, ভেটের উত্তর আর কল নোটিফিকেশনে আসে। যে ফোন বা কম্পিউটারে যত্ন ব্যবহার করেন, প্রতিটিতে চালু করুন।",
     "settings.pushOn": "চালু করুন",
     "settings.pushOff": "বন্ধ করুন",
-    "settings.pushBlocked": "ব্রাউজারের সেটিংসে নোটিফিকেশন বন্ধ করা আছে।",
-    "settings.pushUnsupported": "এই ব্রাউজারে নোটিফিকেশন দেখানো যায় না। iPhone-এ আগে অ্যাপটি ইনস্টল করুন।",
+    "settings.pushBlocked":
+      "যত্ন-এর নোটিফিকেশন ব্লক করা আছে। ব্রাউজারের সাইট সেটিংসে (ঠিকানার পাশের চিহ্ন) Allow করুন, তারপর পেজটি রিলোড করুন।",
+    "settings.pushUnsupported":
+      "এই ব্রাউজারে নোটিফিকেশন দেখানো যায় না। Chrome, Edge, Firefox বা Safari-তে যত্ন খুলুন।",
+    "settings.pushInApp":
+      "Facebook, Messenger বা অন্য অ্যাপের ভেতরের ব্রাউজারে নোটিফিকেশন কাজ করে না। Chrome বা Safari-তে খুলুন (⋮ বা ··· → Open in browser)।",
+    "settings.pushIosUpdate":
+      "iPhone-এ নোটিফিকেশনের জন্য iOS 16.4 বা পরের ভার্সন লাগে। Settings → General → Software Update থেকে আপডেট করুন।",
+    "settings.pushFallback": "নোটিফিকেশন ছাড়াও বাকি টিকা আর ভিজিট অ্যাকাউন্টের সারসংক্ষেপ পেজে দেখতে পাবেন।",
+    "settings.pushDone": "এই ডিভাইসে নোটিফিকেশন চালু হয়েছে।",
+    "settings.pushFailed": "নোটিফিকেশন চালু করা গেল না। ইন্টারনেট দেখে আবার চেষ্টা করুন।",
+    "settings.promptReminders":
+      "এই ডিভাইসে নোটিফিকেশন চালু করুন: টিকা আর কৃমিনাশকের এক সপ্তাহ আগে, আগের দিন আর সেদিন মনে করিয়ে দেব।",
+    "settings.promptVisits": "নোটিফিকেশন চালু করুন: ভিজিটের {n} ঘণ্টা আগে মনে করিয়ে দেব।",
+    "remind.healthToday": "{pet}: {title} আজ",
+    "remind.healthTomorrow": "{pet}: {title} আগামীকাল",
+    "remind.healthWeek": "{pet}: {title} {n} দিন পর",
+    "remind.healthBody": "সময়মতো দিলে আপনার পোষা প্রাণী সুস্থ থাকবে।",
+    "remind.visitTitle": "{time}-এ {vet}-এর কাছে ভিজিট",
+    "remind.visitBody": "পোষা প্রাণীর টিকার কার্ড সাথে আনুন।",
     "settings.danger": "অ্যাকাউন্ট মুছুন",
     "settings.dangerHint": "আপনার অ্যাকাউন্টের ইমেইল থেকে আমাদের ইমেইল করুন, ৭ দিনের মধ্যে তথ্য মুছে দেব।",
   },

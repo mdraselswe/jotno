@@ -53,9 +53,24 @@ export function ringProgress(
   return Math.min(1, Math.max(0, left / total));
 }
 
-/** Reminder days before due: a week before, the day before, on the day. */
-export function shouldRemind(dueOn: string, today: string, remindedOn: string | null): boolean {
-  const left = daysBetween(today, dueOn);
-  if (![7, 1, 0].includes(left)) return false;
-  return remindedOn !== today;
+/** Which reminder a day falls in: the week before (7–2 days left), the day before, the day itself. */
+export type ReminderStage = "week" | "tomorrow" | "today";
+
+export function reminderStage(daysLeft: number): ReminderStage | null {
+  if (daysLeft === 0) return "today";
+  if (daysLeft === 1) return "tomorrow";
+  if (daysLeft >= 2 && daysLeft <= 7) return "week";
+  return null;
+}
+
+/**
+ * The reminder to send today, if any: one per stage. A stage that the daily
+ * job missed (a failed run, a record added 5 days before it's due) still goes
+ * out on the next run inside that stage, instead of being lost.
+ */
+export function reminderDue(dueOn: string, today: string, remindedOn: string | null): ReminderStage | null {
+  const stage = reminderStage(daysBetween(today, dueOn));
+  if (!stage || remindedOn === today) return null;
+  const last = remindedOn ? reminderStage(daysBetween(remindedOn, dueOn)) : null;
+  return last === stage ? null : stage;
 }

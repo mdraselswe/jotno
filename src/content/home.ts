@@ -73,7 +73,7 @@ export const homeContent: Record<string, HomeContent> = {
       {
         icon: "heart",
         title: "Keep them healthy",
-        body: "Add your pet's vaccines and deworming. We remind you before each one is due.",
+        body: "Add your pet's vaccines and deworming. We send a notification a week before each one is due, the day before and on the day.",
       },
     ],
     trust: [
@@ -163,7 +163,7 @@ export const homeContent: Record<string, HomeContent> = {
           body: "Book a time at the vet's chamber; pay the visit fee there.",
           points: [
             "Pick a time that suits you",
-            "Reminder 3 hours before",
+            "Reminder {remind} hours before",
             "Refund if the vet cancels",
             "Directions on the map",
           ],
@@ -200,7 +200,7 @@ export const homeContent: Record<string, HomeContent> = {
       {
         icon: "heart",
         title: "সুস্থ রাখুন",
-        body: "টিকা আর কৃমিনাশকের তথ্য রাখুন। সময় আসার আগেই আমরা মনে করিয়ে দেব।",
+        body: "টিকা আর কৃমিনাশকের তথ্য রাখুন। সময়ের এক সপ্তাহ আগে, আগের দিন আর সেদিন নোটিফিকেশন দিয়ে মনে করিয়ে দেব।",
       },
     ],
     trust: [
@@ -290,7 +290,7 @@ export const homeContent: Record<string, HomeContent> = {
           body: "ভেটের চেম্বারে সময় বুক করুন; ভিজিট ফি সেখানে দিন।",
           points: [
             "সুবিধামতো সময় বেছে নিন",
-            "৩ ঘণ্টা আগে রিমাইন্ডার",
+            "{remind} ঘণ্টা আগে রিমাইন্ডার",
             "ভেট বাতিল করলে টাকা ফেরত",
             "ম্যাপে ঠিকানা",
           ],

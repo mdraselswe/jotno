@@ -5,8 +5,10 @@ export {
   defaultDue,
   dueState,
   ringProgress,
-  shouldRemind,
+  reminderDue,
+  reminderStage,
   type DueState,
   type HealthKind,
+  type ReminderStage,
 } from "./schedule";
 export { HealthRing } from "./components/health-ring";

@@ -27,6 +27,7 @@ import { UserAvatar } from "@/features/auth";
 import { headerProfile, requireViewer } from "@/features/auth/server";
 import { listOwnerConsults } from "@/features/consults/server";
 import { dueState } from "@/features/health";
+import { PushPrompt } from "@/features/notifications";
 import {
   AddPetTile,
   ageLabel,
@@ -338,6 +339,9 @@ async function Overview() {
           </ul>
         )}
       </section>
+
+      {/* Reminders only reach a device with notifications on */}
+      {pets.length > 0 ? <PushPrompt topic="reminders" /> : null}
 
       {/* Health reminders */}
       {reminders.length > 0 ? (

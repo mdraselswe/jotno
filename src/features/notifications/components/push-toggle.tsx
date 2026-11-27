@@ -3,8 +3,18 @@
 import { Bell, BellOff } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useT } from "@/i18n/client";
+import type { MessageKey } from "@/i18n";
 import { cn } from "@/lib/utils";
-import { usePush } from "./use-push";
+import { usePush, type PushState } from "./use-push";
+
+/** What to say on a device where push can't be turned on from here. */
+export const PUSH_HELP: Record<Exclude<PushState, "loading" | "on" | "off">, MessageKey> = {
+  ios: "call.pushPromptIos",
+  "ios-update": "settings.pushIosUpdate",
+  "in-app": "settings.pushInApp",
+  blocked: "settings.pushBlocked",
+  unsupported: "settings.pushUnsupported",
+};
 
 /** Turns web push on or off for this device (needs the service worker, so production builds only). */
 export function PushToggle() {
@@ -13,18 +23,15 @@ export function PushToggle() {
 
   if (state === "loading")
     return <div className="h-16 w-full animate-pulse rounded-(--radius-xl) bg-muted" role="status" />;
-  if (state === "unsupported" || state === "ios" || state === "blocked")
+  if (state !== "on" && state !== "off")
     return (
-      <p className="flex items-start gap-3 rounded-(--radius-xl) bg-muted/60 p-3 text-sm text-muted-foreground">
+      <div className="flex items-start gap-3 rounded-(--radius-xl) bg-muted/60 p-3 text-sm text-muted-foreground">
         <BellOff aria-hidden="true" className="mt-0.5 size-4.5 shrink-0" />
-        {t(
-          state === "ios"
-            ? "call.pushPromptIos"
-            : state === "blocked"
-              ? "settings.pushBlocked"
-              : "settings.pushUnsupported",
-        )}
-      </p>
+        <p className="grid gap-1">
+          <span className="text-foreground">{t(PUSH_HELP[state])}</span>
+          <span>{t("settings.pushFallback")}</span>
+        </p>
+      </div>
     );
   const on = state === "on";
   return (

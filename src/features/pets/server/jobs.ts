@@ -1,8 +1,9 @@
 import "server-only";
 import { and, eq, gte, inArray, isNotNull, lte } from "drizzle-orm";
 import { petPath } from "@/config/routes";
-import { addDays, shouldRemind } from "@/features/health";
+import { addDays, daysBetween, reminderDue, type ReminderStage } from "@/features/health";
 import { notify } from "@/features/notifications/server";
+import { formatter, translator, type MessageKey } from "@/i18n";
 import { db, schema } from "@/infrastructure/db";
 import { dhakaDay } from "@/lib/dhaka";
 import { localeHref } from "@/lib/locale-href";
@@ -10,7 +11,17 @@ import { stillCurrent } from "../care";
 
 const H = schema.healthRecords;
 
-/** Daily: push a reminder 7 days, 1 day and on the day a vaccine/deworming is due. */
+const TITLE: Record<ReminderStage, MessageKey> = {
+  week: "remind.healthWeek",
+  tomorrow: "remind.healthTomorrow",
+  today: "remind.healthToday",
+};
+
+/**
+ * Daily (02:00 UTC, 8 am in Dhaka): push a reminder in the week before a
+ * vaccine/deworming/check-up is due, the day before and on the day. A stage a
+ * failed run missed goes out on the next run (reminderDue).
+ */
 export async function runHealthReminders(now = new Date()): Promise<{ reminded: number }> {
   const today = dhakaDay(now);
   const rows = await db()
@@ -51,23 +62,13 @@ export async function runHealthReminders(now = new Date()): Promise<{ reminded: 
   let reminded = 0;
   for (const r of stillCurrent(rows, history)) {
     if (!r.dueOn) continue;
-    if (!shouldRemind(r.dueOn, today, r.remindedAt ? dhakaDay(r.remindedAt) : null)) continue;
-    const bn = r.locale === "bn";
-    const when =
-      r.dueOn === today
-        ? bn
-          ? "আজ"
-          : "today"
-        : r.dueOn === addDays(today, 1)
-          ? bn
-            ? "আগামীকাল"
-            : "tomorrow"
-          : bn
-            ? "৭ দিনে"
-            : "in 7 days";
+    const stage = reminderDue(r.dueOn, today, r.remindedAt ? dhakaDay(r.remindedAt) : null);
+    if (!stage) continue;
+    const t = translator(r.locale);
+    const n = formatter(r.locale).number(daysBetween(today, r.dueOn));
     await notify(r.ownerId, "health.due", {
-      title: bn ? `${r.petName}: ${r.title} ${when}` : `${r.petName}: ${r.title} due ${when}`,
-      body: bn ? "সময়মতো দিলে আপনার পোষা প্রাণী সুস্থ থাকবে।" : "Staying on time keeps your pet protected.",
+      title: t(TITLE[stage], { pet: r.petName, title: r.title, n }),
+      body: t("remind.healthBody"),
       url: localeHref(r.locale, petPath(r.petId)),
       tag: `health-${r.id}`,
     });

@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { petPath, ROUTES } from "@/config/routes";
 import { requireViewer } from "@/features/auth/server";
 import { dueState, HealthRing, ringProgress, type HealthKind } from "@/features/health";
+import { PushPrompt } from "@/features/notifications";
 import {
   ageLabel,
   currentCare,
@@ -126,6 +127,7 @@ async function PetDetail({ params }: { params: Promise<{ id: string }> }) {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_19rem]">
         <SectionCard title={t("health.heading")} icon={HeartPulse} bodyClassName="grid gap-5">
+          <PushPrompt topic="reminders" />
           <HealthRecordForm petId={pet.id} today={today} />
           {records.length === 0 ? (
             <EmptyState

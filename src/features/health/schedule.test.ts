@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, defaultDue, dueState, ringProgress, shouldRemind } from "./schedule";
+import { addDays, defaultDue, dueState, reminderDue, reminderStage, ringProgress } from "./schedule";
 
 describe("health schedule", () => {
   it("defaults the next due date by kind", () => {
@@ -23,9 +23,34 @@ describe("health schedule", () => {
     expect(ringProgress("deworm", "2026-10-01", "2026-12-30", "2026-11-15")).toBeCloseTo(0.5, 1);
   });
 
-  it("reminds a week before, the day before and on the day, once a day", () => {
-    expect(shouldRemind("2026-12-08", "2026-12-01", null)).toBe(true);
-    expect(shouldRemind("2026-12-08", "2026-12-02", null)).toBe(false);
-    expect(shouldRemind("2026-12-02", "2026-12-01", "2026-12-01")).toBe(false);
+  it("splits the last week into three reminder stages", () => {
+    expect(reminderStage(8)).toBeNull();
+    expect(reminderStage(7)).toBe("week");
+    expect(reminderStage(2)).toBe("week");
+    expect(reminderStage(1)).toBe("tomorrow");
+    expect(reminderStage(0)).toBe("today");
+    expect(reminderStage(-1)).toBeNull();
+  });
+
+  it("reminds a week before, the day before and on the day, once each", () => {
+    expect(reminderDue("2026-12-08", "2026-12-01", null)).toBe("week");
+    // Already reminded this week: wait for the day before.
+    expect(reminderDue("2026-12-08", "2026-12-02", "2026-12-01")).toBeNull();
+    expect(reminderDue("2026-12-08", "2026-12-07", "2026-12-01")).toBe("tomorrow");
+    expect(reminderDue("2026-12-08", "2026-12-08", "2026-12-07")).toBe("today");
+    // Never twice on the same day.
+    expect(reminderDue("2026-12-02", "2026-12-01", "2026-12-01")).toBeNull();
+    // Too early, or already past.
+    expect(reminderDue("2026-12-20", "2026-12-01", null)).toBeNull();
+    expect(reminderDue("2026-11-30", "2026-12-01", null)).toBeNull();
+  });
+
+  it("catches up a stage the daily job missed", () => {
+    // Added 4 days before it's due, or the run 7 days before failed.
+    expect(reminderDue("2026-12-05", "2026-12-01", null)).toBe("week");
+    // The day-before run failed: on the day it still says "today".
+    expect(reminderDue("2026-12-08", "2026-12-08", "2026-12-02")).toBe("today");
+    // Due date moved a month later after a reminder: remind again in the new week.
+    expect(reminderDue("2027-01-08", "2027-01-01", "2026-12-07")).toBe("week");
   });
 });

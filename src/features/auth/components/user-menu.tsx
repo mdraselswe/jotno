@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ROUTES, type AppRoute } from "@/config/routes";
+import { forgetPushOnThisDevice } from "@/features/notifications";
 import { clearOfflineCache } from "@/features/pwa";
 import type { MessageKey } from "@/i18n";
 import { useLocale, useT } from "@/i18n/client";
@@ -47,6 +48,8 @@ export function useSignOut() {
   const locale = useLocale();
   const router = useRouter();
   return async () => {
+    // First, while still signed in: this device stops getting this person's notifications.
+    await forgetPushOnThisDevice();
     await supabaseBrowser().auth.signOut();
     await clearOfflineCache();
     router.replace(localeHref(locale, ROUTES.home));

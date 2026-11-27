@@ -173,7 +173,10 @@ export default async function HomePage() {
   });
 
   // The vet-reply promise comes from config, so the copy can't drift from the refund rule.
-  const replyVars = { reply: fmt.number(business.consult.replyWindowMinutes) };
+  const replyVars = {
+    reply: fmt.number(business.consult.replyWindowMinutes),
+    remind: fmt.number(business.appointment.reminderHours),
+  };
   const priceVars = {
     free: taka(fmt, 0),
     chat: taka(fmt, business.consult.minFee),

@@ -197,6 +197,8 @@ export const businessSchema = z.object({
     daysAhead: z.number().int().min(1),
     /** Slots that start sooner than this are not offered. */
     leadMinutes: z.number().int().min(0),
+    /** The owner gets a push reminder this many hours before the visit (cron `frequent`). */
+    reminderHours: z.number().int().min(1).max(48),
   }),
   payout: z.object({ minimum: poisha, weekday: z.number().int().min(0).max(6) }),
   featured: z.object({

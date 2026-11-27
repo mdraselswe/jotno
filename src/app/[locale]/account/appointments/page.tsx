@@ -12,6 +12,7 @@ import { ROUTES } from "@/config/routes";
 import { CancelAppointmentButton } from "@/features/appointments";
 import { listOwnerAppointments, type AppointmentItem } from "@/features/appointments/server";
 import { requireViewer } from "@/features/auth/server";
+import { PushPrompt } from "@/features/notifications";
 import type { Translate, Formatter } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
@@ -87,12 +88,15 @@ async function Appointments() {
                 {t("ownerui.appt.noUpcoming")}
               </p>
             ) : (
-              <AppointmentList
-                rows={upcoming.map((a) => toRow(a, t, fmt, true))}
-                t={t}
-                fmt={fmt}
-                action={(r) => <CancelAppointmentButton id={r.id} />}
-              />
+              <>
+                <PushPrompt topic="visits" />
+                <AppointmentList
+                  rows={upcoming.map((a) => toRow(a, t, fmt, true))}
+                  t={t}
+                  fmt={fmt}
+                  action={(r) => <CancelAppointmentButton id={r.id} />}
+                />
+              </>
             )}
           </section>
           {past.length > 0 ? (
