@@ -28,7 +28,7 @@ export async function generateMetadata() {
   const fmt = await getFormatter();
   return pageMetadata(
     t("quick.metaTitle", { fee: taka(fmt, business.quick.fee) }),
-    t("quick.metaDesc", { n: business.quick.answerMinutes }),
+    t("quick.metaDesc", { n: fmt.number(business.quick.answerMinutes) }),
     ROUTES.quick,
     await getLocale(),
   );

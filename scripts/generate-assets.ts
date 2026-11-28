@@ -21,6 +21,7 @@ import { SECURITY_HEADERS } from "../src/config/security.ts";
 import { emergencyContent } from "../src/content/emergency.ts";
 import { faqContent } from "../src/content/faq.ts";
 import { shopFaq } from "../src/content/shop-faq.ts";
+import { vetsFaq } from "../src/content/vets-faq.ts";
 import { SPECIES_PAGE_SLUGS, speciesPages } from "../src/content/species-pages.ts";
 import { clientMessagesModule, loadCatalogue, scanClientKeys } from "./lib/client-keys.ts";
 import { toHexColor } from "./lib/color.ts";
@@ -136,6 +137,8 @@ const fill = (text: string, locale: string) => {
     outMin: num(locale, business.shop.deliveryDays.outside.min),
     outMax: num(locale, business.shop.deliveryDays.outside.max),
     returns: num(locale, business.shop.returnDays),
+    hours: num(locale, business.consult.openHours),
+    days: num(locale, business.appointment.daysAhead),
   };
   return text.replace(/\{(\w+)\}/g, (all, k: string) => vars[k] ?? all);
 };
@@ -143,8 +146,10 @@ const faqLines = (locale: string) =>
   (faqContent[locale]?.items ?? [])
     .filter((item) => item.when !== "quick" || business.quick.enabled)
     .flatMap((item) => [`### ${item.q}`, "", fill(item.a, locale), ""]);
-const shopLines = (locale: string) =>
-  (shopFaq[locale]?.items ?? []).flatMap((item) => [`### ${item.q}`, "", fill(item.a, locale), ""]);
+const qaLines = (items: readonly { q: string; a: string }[] | undefined, locale: string) =>
+  (items ?? []).flatMap((item) => [`### ${item.q}`, "", fill(item.a, locale), ""]);
+const shopLines = (locale: string) => qaLines(shopFaq[locale]?.items, locale);
+const vetsLines = (locale: string) => qaLines(vetsFaq[locale]?.items, locale);
 const link = (locale: string, route: string, label: string, note: string) =>
   `- [${label}](${abs(localePath(locale, route))}): ${note}`;
 const en = LOCALES.includes("en") ? "en" : DEFAULT_LOCALE;
@@ -232,6 +237,10 @@ const llms = [
   "",
   ...faqLines(en),
   ...(LOCALES.includes("bn") ? ["## সাধারণ প্রশ্ন ও উত্তর", "", ...faqLines("bn")] : []),
+  `## ${vetsFaq[en]?.title ?? "Finding a vet in Bangladesh"}`,
+  "",
+  ...vetsLines(en),
+  ...(LOCALES.includes("bn") && vetsFaq.bn ? [`## ${vetsFaq.bn.title}`, "", ...vetsLines("bn")] : []),
   `## ${shopFaq[en]?.title ?? "Pet shop questions"}`,
   "",
   ...shopLines(en),

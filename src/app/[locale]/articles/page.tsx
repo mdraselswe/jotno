@@ -64,6 +64,7 @@ async function List({ searchParams }: { searchParams: Promise<Search> }) {
         <EmptyState
           icon={BookOpen}
           title={t("art.empty")}
+          body={species ? undefined : t("pubui.art.emptyBody")}
           action={
             species ? (
               <ButtonLink href={href(null)} variant="brand">

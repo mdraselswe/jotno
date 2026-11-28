@@ -3,13 +3,16 @@ import type { Route } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { EmptyState } from "@/components/layout/app-ui";
+import { FaqList } from "@/components/marketing/faq-list";
 import { PageTransition } from "@/components/motion/page-transition";
 import { ButtonLink } from "@/components/ui/button-link";
+import { JsonLd } from "@/components/ui/json-ld";
 import { Skeleton } from "@/components/ui/skeleton";
 import { business } from "@/config";
 import { ROUTES } from "@/config/routes";
 import { DISTRICTS, SPECIES } from "@/content/geo";
 import { AREAS } from "@/content/geo-areas";
+import { vetsFaq } from "@/content/vets-faq";
 import {
   VetCard,
   VetCardSkeleton,
@@ -27,13 +30,14 @@ import {
   searchProviders,
   vetSearchOf,
 } from "@/features/providers/server";
-import { plural, type Translate } from "@/i18n";
+import { format, pickLocale, plural, type Translate } from "@/i18n";
 import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { parseNear, parseRadius, widerRadius } from "@/lib/geo";
 import { localeHref } from "@/lib/locale-href";
 import { pageMetadata } from "@/lib/metadata";
 import { taka } from "@/lib/money";
 import { splitAccent } from "@/lib/rich-text";
+import { faqLd } from "@/lib/structured-data";
 
 export async function generateMetadata() {
   const t = await getT();
@@ -273,6 +277,30 @@ function FilterPanelSkeleton() {
   );
 }
 
+/** Common questions about finding a vet, with FAQPage data (content/vets-faq.ts). */
+async function VetsQuestions() {
+  const locale = await getLocale();
+  const fmt = await getFormatter();
+  const faq = pickLocale(vetsFaq, locale);
+  const vars = {
+    chat: taka(fmt, business.consult.minFee),
+    hours: fmt.number(business.consult.openHours),
+    reply: fmt.number(business.consult.replyWindowMinutes),
+    booking: taka(fmt, business.appointment.bookingFee),
+    days: fmt.number(business.appointment.daysAhead),
+  };
+  const items = faq.items.map((item) => ({ q: item.q, a: format(item.a, vars) }));
+  return (
+    <section className="grid max-w-3xl gap-4" aria-labelledby="vets-faq">
+      <JsonLd data={faqLd(items)} />
+      <h2 id="vets-faq" className="font-heading text-2xl font-bold tracking-tight md:text-3xl">
+        {faq.title}
+      </h2>
+      <FaqList items={items} />
+    </section>
+  );
+}
+
 export default async function VetsPage({ searchParams }: PageProps<"/[locale]/vets">) {
   const t = await getT();
   const fmt = await getFormatter();
@@ -347,6 +375,9 @@ export default async function VetsPage({ searchParams }: PageProps<"/[locale]/ve
           <DistrictLinks title={t("pubui.district.browse")} />
         </div>
       </Suspense>
+      <div className="container-page pb-12 md:pb-16">
+        <VetsQuestions />
+      </div>
     </PageTransition>
   );
 }

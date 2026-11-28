@@ -43,6 +43,9 @@ export function organizationLd(description: string): Ld {
       "Livestock health",
       "Online veterinary consultation",
       "Pet vaccination",
+      "Livestock vaccination",
+      "Poultry diseases",
+      "Pet food and supplies",
     ],
     contactPoint: [
       {
@@ -54,6 +57,20 @@ export function organizationLd(description: string): Ld {
       },
     ],
     sameAs: site.socials.map((s) => s.url),
+  };
+}
+
+/** The About page, tied to the organisation it describes. */
+export function aboutPageLd(locale: string, name: string, description: string): Ld {
+  return {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    url: absoluteUrl(ROUTES.about, locale),
+    name,
+    description,
+    inLanguage: locale,
+    about: { "@id": ORGANIZATION_ID() },
+    isPartOf: { "@id": WEBSITE_ID() },
   };
 }
 

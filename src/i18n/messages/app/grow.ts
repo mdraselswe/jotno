@@ -132,8 +132,9 @@ export const grow = pack(
     "quick.title": "A vet's advice for {fee}",
     "quick.sub": "Describe the problem and add photos. The first vet on duty answers you in this chat.",
     "quick.shareText": "Pet unwell? On Jotno a vet on duty answers for {fee}.",
-    "quick.metaTitle": "Quick vet help for {fee}",
-    "quick.metaDesc": "A vet on duty answers within {n} minutes, or you get a free retry or your money back.",
+    "quick.metaTitle": "Ask a vet online for {fee}: quick vet help in Bangladesh",
+    "quick.metaDesc":
+      "Pet or farm animal unwell? Send photos and a vet on duty answers within {n} minutes, or you get a free retry or your money back. Pay with bKash or Nagad.",
     "quick.ctaTitle": "Quick help · {fee}",
     "quick.ctaSub": "A vet on duty answers within {n} minutes",
     "quick.step1": "Write what's wrong and add up to {n} photos.",
@@ -341,9 +342,9 @@ export const grow = pack(
     "quick.title": "{fee}-তে ভেটের পরামর্শ",
     "quick.sub": "সমস্যা লিখুন, ছবি দিন। ডিউটিতে থাকা প্রথম ভেট এই চ্যাটেই উত্তর দেবেন।",
     "quick.shareText": "পোষা প্রাণী অসুস্থ? Jotno-তে ডিউটিতে থাকা ভেট উত্তর দেন মাত্র {fee}-তে।",
-    "quick.metaTitle": "{fee}-তে জরুরি ভেট পরামর্শ",
+    "quick.metaTitle": "{fee}-তে অনলাইনে পশু ডাক্তারের পরামর্শ: দ্রুত ভেট উত্তর",
     "quick.metaDesc":
-      "ডিউটিতে থাকা ভেট {n} মিনিটের মধ্যে উত্তর দেবেন, নইলে ফ্রি আবার জিজ্ঞেস করুন বা টাকা ফেরত নিন।",
+      "পোষা প্রাণী বা গরু-ছাগল অসুস্থ? ছবি পাঠান, ডিউটিতে থাকা ভেট {n} মিনিটের মধ্যে উত্তর দেবেন, নইলে ফ্রি আবার জিজ্ঞেস করুন বা টাকা ফেরত নিন। বিকাশ বা নগদে পেমেন্ট।",
     "quick.ctaTitle": "জরুরি পরামর্শ · {fee}",
     "quick.ctaSub": "ডিউটিতে থাকা ভেট {n} মিনিটে উত্তর দেবেন",
     "quick.step1": "কী সমস্যা লিখুন, {n}টি পর্যন্ত ছবি দিন।",

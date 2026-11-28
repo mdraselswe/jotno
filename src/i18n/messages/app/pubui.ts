@@ -157,6 +157,8 @@ export const pubui = pack(
     "pubui.art.read": "Read the guide",
     "pubui.art.by": "By {name}",
     "pubui.art.count": "{n} guides",
+    "pubui.art.emptyBody":
+      "Vets are writing the first guides on vaccines, deworming, cat and dog care, and cow, goat and chicken diseases. Until then, ask a vet for free or open the emergency first-aid page.",
     "pubui.art.aboutAuthor": "About the author",
     "pubui.art.askAuthor": "Have a question about your pet? Ask {name} in a chat.",
     "pubui.art.profile": "View profile",
@@ -342,6 +344,8 @@ export const pubui = pack(
     "pubui.art.read": "গাইডটি পড়ুন",
     "pubui.art.by": "লিখেছেন {name}",
     "pubui.art.count": "{n}টি গাইড",
+    "pubui.art.emptyBody":
+      "ভেটরা টিকা, কৃমিনাশক, বিড়াল-কুকুরের যত্ন আর গরু, ছাগল, মুরগির রোগ নিয়ে প্রথম গাইডগুলো লিখছেন। ততক্ষণ ফ্রিতে ভেটকে প্রশ্ন করুন বা জরুরি প্রাথমিক চিকিৎসার পেজ দেখুন।",
     "pubui.art.aboutAuthor": "লেখক সম্পর্কে",
     "pubui.art.askAuthor": "পোষা প্রাণী নিয়ে প্রশ্ন আছে? চ্যাটে {name}-কে জিজ্ঞেস করুন।",
     "pubui.art.profile": "প্রোফাইল দেখুন",

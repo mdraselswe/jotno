@@ -1,13 +1,16 @@
-import { HeartHandshake, ShieldCheck, Stethoscope, type LucideIcon } from "lucide-react";
+import { ArrowRight, HeartHandshake, ShieldCheck, Stethoscope, type LucideIcon } from "lucide-react";
+import Link from "next/link";
 import { Spot } from "@/components/illustrations/spots";
 import { PageTransition } from "@/components/motion/page-transition";
 import { ButtonLink } from "@/components/ui/button-link";
+import { JsonLd } from "@/components/ui/json-ld";
 import { ROUTES } from "@/config/routes";
 import { aboutContent } from "@/content/pages";
 import { pickLocale } from "@/i18n";
-import { getLocale, getT } from "@/i18n/server";
+import { getFormatter, getLocale, getT } from "@/i18n/server";
 import { localeHref } from "@/lib/locale-href";
 import { pageMetadata } from "@/lib/metadata";
+import { aboutPageLd, organizationLd } from "@/lib/structured-data";
 
 export async function generateMetadata() {
   const t = await getT();
@@ -20,10 +23,14 @@ const VALUE_ICONS: readonly LucideIcon[] = [ShieldCheck, HeartHandshake, Stethos
 export default async function AboutPage() {
   const locale = await getLocale();
   const t = await getT();
+  const fmt = await getFormatter();
   const c = pickLocale(aboutContent, locale);
   const [lead, ...rest] = c.paragraphs;
+  const description = t("pubui.seo.aboutDesc");
   return (
     <PageTransition>
+      <JsonLd data={aboutPageLd(locale, t("pubui.seo.aboutTitle"), description)} />
+      <JsonLd data={organizationLd(description)} />
       <section data-no-reveal className="relative overflow-hidden surface-soft dots">
         <div className="container-page grid items-center gap-8 py-12 md:grid-cols-[1.4fr_1fr] md:py-20">
           <div className="grid gap-5">
@@ -52,6 +59,31 @@ export default async function AboutPage() {
         </div>
       </section>
 
+      <section className="container-page grid gap-8 pb-16 md:pb-24">
+        <h2 className="max-w-2xl font-heading text-3xl font-bold tracking-tight text-balance md:text-4xl">
+          {c.servicesTitle}
+        </h2>
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {c.services.map((s) => (
+            <li key={s.title}>
+              <Link
+                href={localeHref(locale, ROUTES[s.route])}
+                className="group grid h-full content-start gap-2 rounded-(--radius-2xl) bg-card p-6 shadow-(--shadow-card) ring-1 ring-foreground/6 transition-shadow duration-(--motion-fast) hover:shadow-(--shadow-card-hover) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                <span className="flex items-center justify-between gap-3 font-heading text-lg font-bold tracking-tight">
+                  {s.title}
+                  <ArrowRight
+                    aria-hidden="true"
+                    className="size-4.5 text-primary transition-transform duration-(--motion-fast) group-hover:translate-x-0.5"
+                  />
+                </span>
+                <span className="text-pretty text-muted-foreground">{s.body}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       <section className="surface-muted">
         <div className="container-page grid gap-10 py-16 md:py-24">
           <h2 className="max-w-2xl font-heading text-3xl font-bold tracking-tight text-balance md:text-5xl">
@@ -75,6 +107,22 @@ export default async function AboutPage() {
             })}
           </ul>
         </div>
+      </section>
+
+      <section className="container-page grid gap-6 pt-16 md:grid-cols-[1fr_1.4fr] md:gap-12 md:pt-24">
+        <h2 className="font-heading text-3xl font-bold tracking-tight text-balance md:text-4xl">
+          {c.verifyTitle}
+        </h2>
+        <ol className="grid gap-4">
+          {c.verifySteps.map((step, i) => (
+            <li key={step} className="flex gap-4">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 font-heading font-bold text-primary">
+                {fmt.number(i + 1)}
+              </span>
+              <p className="pt-1 text-lg text-pretty text-foreground/80">{step}</p>
+            </li>
+          ))}
+        </ol>
       </section>
 
       <section className="container-page py-16 md:py-24">

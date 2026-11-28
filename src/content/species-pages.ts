@@ -44,6 +44,7 @@ export const speciesPages: Record<string, Record<SpeciesSlug, SpeciesPage>> = {
         "টিকা আর কৃমিনাশকের সময়সূচি",
         "লোম পড়া, চুলকানি, ছত্রাক (রিংওয়ার্ম) আর মাইট",
         "বমি, ডায়রিয়া, খাওয়া বন্ধ",
+        "হাঁচি, সর্দি আর চোখ দিয়ে পানি পড়া (ক্যাট ফ্লু)",
         "প্রস্রাবে কষ্ট বা প্রস্রাব না হওয়া (জরুরি)",
         "খাসি/বন্ধ্যাকরণ (স্পে-নিউটার) পরামর্শ",
       ],
@@ -97,7 +98,7 @@ export const speciesPages: Record<string, Record<SpeciesSlug, SpeciesPage>> = {
         "পালক পড়া আর ঠোঁট-নখের সমস্যা",
         "শ্বাসকষ্ট আর হাঁচি",
         "পাতলা পায়খানা",
-        "খাবার আর খাঁচার যত্ন",
+        "বাজরিগার, লাভবার্ড ও কবুতরের খাবার আর খাঁচার যত্ন",
       ],
       faq: [
         {
@@ -222,6 +223,7 @@ export const speciesPages: Record<string, Record<SpeciesSlug, SpeciesPage>> = {
         "Vaccine and deworming schedules",
         "Hair loss, itching, ringworm and mites",
         "Vomiting, diarrhoea, not eating",
+        "Sneezing, runny nose and eyes (cat flu)",
         "Straining to pee or not peeing (an emergency)",
         "Spay and neuter advice",
       ],
@@ -275,7 +277,7 @@ export const speciesPages: Record<string, Record<SpeciesSlug, SpeciesPage>> = {
         "Feather loss, beak and nail problems",
         "Breathing trouble and sneezing",
         "Watery droppings",
-        "Food and cage care",
+        "Food and cage care for budgies, lovebirds and pigeons",
       ],
       faq: [
         {

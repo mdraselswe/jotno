@@ -395,24 +395,23 @@ export default async function HomePage() {
       {/* Emergency: a stacked card on phones (icon + title, text, full-width
           actions), one row from md up. */}
       <section className="container-page py-14">
-        <div className="relative grid gap-5 overflow-hidden rounded-(--radius-3xl) bg-destructive/8 p-5 ring-1 ring-destructive/20 sm:p-8 md:grid-cols-[auto_1fr_auto] md:items-center md:gap-8">
+        <div className="relative grid gap-5 overflow-hidden rounded-(--radius-3xl) bg-destructive/8 p-5 ring-1 ring-destructive/20 sm:p-8 md:grid-cols-[auto_1fr_auto] md:items-center md:gap-x-8 md:gap-y-1">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -top-16 -right-16 size-48 rounded-full bg-destructive/8"
           />
           <div className="flex items-center gap-4 md:contents">
-            <span className="sos-breathe grid size-14 shrink-0 place-items-center rounded-full bg-destructive text-white shadow-(--shadow-control) md:size-16">
+            <span className="sos-breathe grid size-14 shrink-0 place-items-center rounded-full bg-destructive text-white shadow-(--shadow-control) md:row-span-2 md:size-16">
               <Siren aria-hidden="true" className="size-7 md:size-8" />
             </span>
-            <h2 className="font-heading text-2xl font-bold tracking-tight md:hidden">{c.emergency.title}</h2>
-          </div>
-          <div className="relative grid gap-1">
-            <h2 className="font-heading text-2xl font-bold tracking-tight max-md:hidden">
+            <h2 className="relative font-heading text-2xl font-bold tracking-tight md:col-start-2 md:row-start-1 md:self-end">
               {c.emergency.title}
             </h2>
-            <p className="text-pretty text-foreground/80">{c.emergency.body}</p>
           </div>
-          <div className="relative grid gap-2 sm:flex sm:flex-wrap md:grid md:justify-items-stretch">
+          <p className="relative text-pretty text-foreground/80 md:col-start-2 md:row-start-2 md:self-start">
+            {c.emergency.body}
+          </p>
+          <div className="relative grid gap-2 sm:flex sm:flex-wrap md:col-start-3 md:row-span-2 md:row-start-1 md:grid md:justify-items-stretch">
             <ButtonLink
               href={localeHref(locale, ROUTES.emergency)}
               variant="destructive"
