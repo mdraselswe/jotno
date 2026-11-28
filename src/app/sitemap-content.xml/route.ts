@@ -1,4 +1,4 @@
-import { site } from "@/config";
+import { isIndexable, site } from "@/config";
 import { LOCALES, localePath } from "@/config/locale";
 import {
   articlePath,
@@ -25,6 +25,8 @@ import { activeProductSlugs } from "@/features/shop/server";
 const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 export async function GET() {
+  // The demo site lists nothing (see isIndexable).
+  if (!isIndexable) return new Response("Not found", { status: 404 });
   const [vets, districts, species, questions, articles, products] = await Promise.all([
     verifiedVetSlugs(),
     vetCountsByDistrict(),

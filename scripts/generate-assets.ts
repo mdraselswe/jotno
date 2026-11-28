@@ -13,9 +13,10 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 import { MARK_VIEWBOX, markSvg } from "../src/config/brand-mark.ts";
-import { business, features, site } from "../src/config/index.ts";
+import { business, features, isIndexable, site } from "../src/config/index.ts";
 import { DEFAULT_LOCALE, LOCALES, localeDir, localePath, privatePathVariants } from "../src/config/locale.ts";
 import { pageUrl, ROUTES, SITEMAP_ROUTES, speciesPath } from "../src/config/routes.ts";
+import { siteConfig } from "../src/config/site.ts";
 import { SECURITY_HEADERS } from "../src/config/security.ts";
 import { emergencyContent } from "../src/content/emergency.ts";
 import { faqContent } from "../src/content/faq.ts";
@@ -254,6 +255,29 @@ write("llms.txt", llms);
 // IndexNow key file (src/infrastructure/indexnow): proves the pings come from this site.
 if (site.seo.indexNowKey) write(`${site.seo.indexNowKey}.txt`, site.seo.indexNowKey);
 
+// The demo site (NEXT_PUBLIC_DEMO) must never be found or suggested in place of
+// the real one: Google and Bing may crawl only to read its noindex (layout
+// metadata + X-Robots-Tag), every other crawler (AI included) is shut out, and
+// there is no sitemap, llms.txt or IndexNow key.
+if (!isIndexable) {
+  write(
+    "robots.txt",
+    [
+      `# Demo site, not for search engines or AI assistants. The real site: ${siteConfig.url}`,
+      "User-agent: Googlebot",
+      "User-agent: Bingbot",
+      "Allow: /",
+      "",
+      "User-agent: *",
+      "Disallow: /",
+      "",
+    ].join("\n"),
+  );
+  for (const file of ["sitemap.xml", "llms.txt", `${site.seo.indexNowKey}.txt`]) {
+    rmSync(path.join(PUBLIC, file), { force: true });
+  }
+}
+
 // Security headers for static hosts that read public/_headers (Cloudflare, Netlify). Server mode sends them itself.
 const NO_CACHE = "  Cache-Control: public, max-age=0, must-revalidate";
 write(
@@ -261,6 +285,7 @@ write(
   [
     "/*",
     ...SECURITY_HEADERS.map((h) => `  ${h.key}: ${h.value}`),
+    ...(isIndexable ? [] : ["  X-Robots-Tag: noindex, nofollow, noarchive"]),
     "/sw.js",
     NO_CACHE,
     "/manifest.webmanifest",

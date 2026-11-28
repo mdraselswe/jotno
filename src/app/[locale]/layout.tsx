@@ -10,7 +10,7 @@ import { ScrollScenes } from "@/components/motion/scroll-scenes";
 import { ViewTransitionGuard } from "@/components/motion/view-transition-guard";
 import { brandStyle, fontVariables, htmlDesignAttributes } from "@/components/layout/brand-style";
 import { ThemeScript } from "@/components/layout/theme-script";
-import { features, isProduction, site } from "@/config";
+import { features, isIndexable, isProduction, site } from "@/config";
 import { LOCALES, localeDir } from "@/config/locale";
 import { ogLocale, pageAlternates } from "@/lib/metadata";
 import { OG_IMAGE_PATH, ogImages } from "@/lib/og";
@@ -44,17 +44,20 @@ export async function generateMetadata(): Promise<Metadata> {
     publisher: site.name,
     category: "health",
     // Let search engines and AI answers show full snippets and large images.
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        "max-image-preview": "large",
-        "max-snippet": -1,
-        "max-video-preview": -1,
-      },
-    },
+    // The demo site is never indexed (isIndexable), so only the real site is found.
+    robots: isIndexable
+      ? {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+            "max-video-preview": -1,
+          },
+        }
+      : { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false } },
     alternates: pageAlternates("/", locale),
     openGraph: {
       type: "website",

@@ -26,6 +26,12 @@ export const business = businessConfig;
 export const design = designConfig;
 
 export const isProduction = buildEnv.NODE_ENV === "production";
+/**
+ * Search engines and AI crawlers may index this deploy. False on the demo site
+ * (NEXT_PUBLIC_DEMO): noindex everywhere, robots.txt shuts AI crawlers out, no
+ * sitemap or llms.txt, so only the real site is found and suggested.
+ */
+export const isIndexable = !publicEnv.NEXT_PUBLIC_DEMO;
 /** CPUs for a small shared build machine (BUILD_CPUS); undefined for a normal build. */
 export const buildCpus = buildEnv.BUILD_CPUS;
 

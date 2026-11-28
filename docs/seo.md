@@ -25,6 +25,7 @@ How Jotno is made easy to find in search engines (Google, Bing) and to quote in 
 - Only mark up what is visible on the page. Never fake ratings or reviews.
 - Thin pages (no answer, no vet, demo data) get `robots: { index: false }` and stay out of the sitemaps.
 - Prices and time windows in copy come from `src/config/business.ts` placeholders, never typed by hand.
+- The demo site (`NEXT_PUBLIC_DEMO`, demo.jotnocare.com) is never indexed: `isIndexable` in `src/config/index.ts` turns on noindex (layout metadata + `X-Robots-Tag`), a robots.txt that lets only Googlebot and Bingbot in (to read the noindex), and drops the sitemaps, llms.txt and IndexNow.
 - `pnpm indexnow` sends every URL once (after a launch or a big change). Day to day, publishing announces itself.
 
 ## Owner checklist

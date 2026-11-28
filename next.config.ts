@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { buildCpus, isProduction, site } from "./src/config/index.ts";
+import { buildCpus, isIndexable, isProduction, site } from "./src/config/index.ts";
 import { DEFAULT_LOCALE, PREFIXED_LOCALES } from "./src/config/locale.ts";
 import { SECURITY_HEADERS, SERVER_HEADERS } from "./src/config/security.ts";
 
@@ -90,7 +90,9 @@ const config: NextConfig = {
         cacheComponents: true,
         partialPrefetching: true,
         async headers() {
-          return [{ source: "/:path*", headers: [...SECURITY_HEADERS, ...SERVER_HEADERS] }];
+          // The demo site: noindex on every response (pages, files, API), whatever a page says.
+          const noindex = isIndexable ? [] : [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }];
+          return [{ source: "/:path*", headers: [...SECURITY_HEADERS, ...SERVER_HEADERS, ...noindex] }];
         },
         // The unprefixed → default-locale rewrite lives in src/proxy.ts here: a
         // next.config rewrite drops the query from the router payload's
