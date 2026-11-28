@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { DemoBanner } from "@/components/layout/demo-banner";
+import { LoadWatch } from "@/components/layout/load-watch";
 import { NavProgress } from "@/components/layout/nav-progress";
 import { TabBar } from "@/components/layout/tab-bar";
 import { ScrollScenes } from "@/components/motion/scroll-scenes";
@@ -120,6 +121,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
             {t("a11y.skip")}
           </a>
           <NavProgress />
+          <LoadWatch />
           <DemoBanner />
           <SiteHeader
             cart={

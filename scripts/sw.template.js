@@ -98,8 +98,61 @@ async function page(request) {
   }
 }
 
+/**
+ * How long a file (script, style, image) or a page's router data may take to
+ * start answering before it is asked for again. On some networks the host's
+ * HTTP/3 stalls a single request for ~45 s while the others arrive; a second
+ * try usually comes back at once. Only the wait for the first byte counts, so
+ * a big image on a slow connection is never cut off mid-download.
+ */
+const ASSET_TIMEOUT_MS = 8000;
+const DATA_TIMEOUT_MS = 10000;
+/** src/lib/client-issue.ts: what went wrong reaches the server log. */
+const ISSUE_PATH = "/api/client-issue/";
+let issuesSent = 0;
+
+function reportIssue(kind, request, started, detail) {
+  if (issuesSent >= 10 || self.navigator.onLine === false) return;
+  issuesSent += 1;
+  const url = new URL(request.url);
+  const body = JSON.stringify({ kind, path: url.pathname, ms: Date.now() - started, detail });
+  fetch(ISSUE_PATH, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+    keepalive: true,
+  }).catch(() => undefined);
+}
+
+/** Fetch; if no answer comes within `timeoutMs`, give up on that try and ask once more. */
+async function fetchWithRetry(request, timeoutMs) {
+  const started = Date.now();
+  const attempt = (limit) => {
+    const own = new AbortController();
+    const signal =
+      typeof AbortSignal.any === "function" ? AbortSignal.any([request.signal, own.signal]) : own.signal;
+    const timer = limit ? setTimeout(() => own.abort(), limit) : 0;
+    return fetch(request, { signal }).finally(() => clearTimeout(timer));
+  };
+  try {
+    return await attempt(timeoutMs);
+  } catch (error) {
+    // The page itself gave up (a cancelled prefetch) or the device is offline: don't ask again.
+    if (request.signal.aborted || self.navigator.onLine === false) throw error;
+    try {
+      const response = await attempt(0);
+      reportIssue("asset-retry", request, started);
+      return response;
+    } catch (again) {
+      if (!request.signal.aborted)
+        reportIssue("asset-failed", request, started, String(again?.message ?? again));
+      throw again;
+    }
+  }
+}
+
 async function cacheFirst(request) {
-  return (await fromCache(request)) ?? store(request, await fetch(request));
+  return (await fromCache(request)) ?? store(request, await fetchWithRetry(request, ASSET_TIMEOUT_MS));
 }
 
 /**
@@ -109,7 +162,7 @@ async function cacheFirst(request) {
  */
 async function networkFirst(request) {
   try {
-    return await store(request, await fetch(request));
+    return await store(request, await fetchWithRetry(request, DATA_TIMEOUT_MS));
   } catch {
     return (await fromCache(request)) ?? Response.error();
   }

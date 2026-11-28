@@ -9,6 +9,7 @@ import { ButtonAnchor } from "@/components/ui/button-link";
 import { isProduction } from "@/config";
 import { useConnectionStatus } from "@/features/connection";
 import type { Translate } from "@/i18n";
+import { reportClientIssue } from "@/lib/client-issue";
 import { isStaleDeployError, STALE_RELOAD_GAP_MS, STALE_RELOAD_KEY } from "@/lib/stale-deploy";
 import { cn } from "@/lib/utils";
 
@@ -63,13 +64,22 @@ export function ErrorView({
   useEffect(() => {
     // Hook for an error reporter (Sentry…): src/infrastructure/<vendor>.
     console.error(error);
-    // This tab runs an older build than the server (a deploy happened): reload once.
-    if (!isStaleDeployError(error)) return;
+    const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    const stale = isStaleDeployError(error);
     const last = Number(sessionStorage.getItem(STALE_RELOAD_KEY) ?? 0);
-    if (Date.now() - last < STALE_RELOAD_GAP_MS) return;
+    const reload = stale && Date.now() - last >= STALE_RELOAD_GAP_MS;
+    // The server log shows how often visitors meet this page (src/lib/client-issue.ts).
+    reportClientIssue({
+      kind: reload ? "stale-reload" : "error-page",
+      path: location.pathname,
+      detail: digest ? `${detail} (digest ${digest})` : detail,
+    });
+    // This tab runs an older build than the server (a deploy happened), or a
+    // file didn't arrive: reload once.
+    if (!reload) return;
     sessionStorage.setItem(STALE_RELOAD_KEY, String(Date.now()));
     location.reload();
-  }, [error]);
+  }, [error, digest]);
 
   const copy = async () => {
     if (!digest) return;
